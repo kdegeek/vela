@@ -40,6 +40,7 @@ grep 't2bce' /tmp/initrd.txt || echo "note: t2bce modules are not in the initram
 
 # --- the kiosk and the daemon ---
 command -v chromium-browser || command -v chromium
+test -x /usr/libexec/vela/session-start -a -x /usr/libexec/vela/launcher-kiosk -a -x /usr/libexec/vela/install-flatpaks
 command -v swaymsg greetd sway Xwayland mpv ir-ctl wtype flatpak node curl jq vela-ctl
 /ctx/smoke-daemon.sh /usr/bin/node /usr/lib/vela/daemon /usr/share/vela/assets /usr/share/vela/apps /usr/lib/vela/launcher
 

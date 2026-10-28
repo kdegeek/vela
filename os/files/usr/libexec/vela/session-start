@@ -1,0 +1,7 @@
+#!/bin/sh
+# Run once by sway at startup. Hands this sway's sockets to the user manager and D-Bus (Flatpak
+# portals), then (re)starts the daemon. restart, not start: if sway crashes, greetd starts a new
+# one before the user manager stops, and a running daemon would keep the dead sway's socket.
+systemctl --user import-environment WAYLAND_DISPLAY SWAYSOCK DISPLAY XDG_CURRENT_DESKTOP
+dbus-update-activation-environment --systemd WAYLAND_DISPLAY SWAYSOCK DISPLAY XDG_CURRENT_DESKTOP
+exec systemctl --user restart vela-session.target

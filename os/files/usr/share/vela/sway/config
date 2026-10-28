@@ -24,10 +24,8 @@ bindsym --inhibited XF86AudioMute exec vela-ctl volume mute
 # Developer escape.
 bindsym Ctrl+Alt+Shift+BackSpace exec systemctl --user restart vela-daemon
 
-# Hand this sway's sockets to the user manager and D-Bus (Flatpak portals), then (re)start the
-# daemon. restart, not start: if sway crashes, greetd starts a new one before the user manager
-# stops, and the running daemon would keep talking to the dead sway's socket.
-exec systemctl --user import-environment WAYLAND_DISPLAY SWAYSOCK DISPLAY XDG_CURRENT_DESKTOP; dbus-update-activation-environment --systemd WAYLAND_DISPLAY SWAYSOCK DISPLAY XDG_CURRENT_DESKTOP; systemctl --user restart vela-session.target
+# Put SWAYSOCK/WAYLAND_DISPLAY into the user manager, then (re)start vela-daemon.
+exec /usr/libexec/vela/session-start
 
 # The launcher lives on workspace "home".
 exec /usr/libexec/vela/launcher-kiosk
