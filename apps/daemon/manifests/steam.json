@@ -9,5 +9,18 @@
     "-gamepadui"
   ],
   "windowAppId": "steam",
-  "homePassthrough": true
+  "homePassthrough": true,
+  "feature": {
+    "kind": "static",
+    "item": {
+      "title": "Big Picture",
+      "tags": [
+        "Your library"
+      ],
+      "blurb": "Pick up where you left off.",
+      "backdropUrl": "/api/art/mock/bd-tos-3.jpg",
+      "tint": "oklch(0.80 0.08 240)",
+      "label": "Your library"
+    }
+  }
 }

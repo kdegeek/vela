@@ -10,5 +10,9 @@
     "--app=https://www.crunchyroll.com",
     "--ozone-platform=wayland"
   ],
-  "windowAppId": "^(google-chrome|chrome-www\\.crunchyroll\\.com.*)$"
+  "windowAppId": "^(google-chrome|chrome-www\\.crunchyroll\\.com.*)$",
+  "feature": {
+    "kind": "mock",
+    "slug": "tos-2"
+  }
 }

@@ -1,10 +1,13 @@
 import fs from "node:fs";
+import path from "node:path";
+import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import type { VelaConfig } from "./config.js";
 import fastifyWebsocket from "@fastify/websocket";
-import { API, type VelaEvent } from "@vela/shared";
+import { API, type HomeState, type VelaEvent } from "@vela/shared";
+import { ART_WIDTHS, type JellyfinClient } from "./media/jellyfin.js";
 import type { AppManifest } from "./manifests.js";
 import type { AppRunner } from "./session/appRunner.js";
 
@@ -32,6 +35,26 @@ export interface Services {
   manifests: AppManifest[];
   runner: AppRunner;
   bus: EventBus;
+  /** Builds the home screen state. */
+  home?: () => Promise<HomeState>;
+  /** Present when the media provider is jellyfin; backs the art proxy. */
+  jellyfin?: JellyfinClient;
+}
+
+/** VELA_ASSETS_DIR overrides; default is apps/daemon/assets for both src/ and dist/. */
+function assetsDir(): string {
+  return process.env.VELA_ASSETS_DIR ?? fileURLToPath(new URL("../assets", import.meta.url));
+}
+
+const SAFE_FILE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const MIME: Record<string, string> = { ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png" };
+
+/** Serves one file from a flat directory; a name with any path component gets 404. */
+async function sendAsset(dir: string, file: string, reply: import("fastify").FastifyReply) {
+  const mime = MIME[path.extname(file).toLowerCase()];
+  const full = path.join(dir, file);
+  if (!SAFE_FILE.test(file) || !mime || !fs.existsSync(full)) return reply.code(404).send({ error: "not found" });
+  return reply.header("content-type", mime).header("cache-control", "max-age=86400").send(fs.readFileSync(full));
 }
 
 /** VELA_LAUNCHER_DIR overrides; default is the sibling launcher build in the monorepo. */
@@ -79,6 +102,34 @@ export function buildServer(s: Services): FastifyInstance {
   app.post(API.goHome, async () => {
     await s.runner.goHome();
     return { ok: true };
+  });
+
+  app.get(API.home, async (_req, reply) => {
+    if (!s.home) return reply.code(503).send({ error: "home state unavailable" });
+    return s.home();
+  });
+
+  app.get<{ Params: { file: string } }>("/api/glyphs/:file", (req, reply) => sendAsset(path.join(assetsDir(), "glyphs"), req.params.file, reply));
+  app.get<{ Params: { file: string } }>("/api/art/mock/:file", (req, reply) => sendAsset(path.join(assetsDir(), "mock"), req.params.file, reply));
+
+  app.get<{ Params: { id: string; type: string }; Querystring: { w?: string } }>("/api/art/jellyfin/:id/:type", async (req, reply) => {
+    const { id, type } = req.params;
+    const w = Number(req.query.w);
+    if (!(ART_WIDTHS as readonly number[]).includes(w)) return reply.code(400).send({ error: "w must be 3840, 1280 or 704" });
+    if (type !== "Backdrop" && type !== "Primary") return reply.code(400).send({ error: "type must be Backdrop or Primary" });
+    if (!/^[0-9a-fA-F-]{8,40}$/.test(id)) return reply.code(400).send({ error: "bad id" });
+    if (!s.jellyfin) return reply.code(404).send({ error: "jellyfin is not configured" });
+    let up: Response;
+    try {
+      up = await s.jellyfin.fetchImage(id, type, w);
+    } catch {
+      return reply.code(502).send({ error: "Jellyfin isn't reachable" });
+    }
+    if (!up.ok || !up.body) return reply.code(up.status === 404 ? 404 : 502).send({ error: "image unavailable" });
+    return reply
+      .header("content-type", up.headers.get("content-type") ?? "image/jpeg")
+      .header("cache-control", "max-age=86400")
+      .send(Readable.fromWeb(up.body as import("node:stream/web").ReadableStream));
   });
 
   const dir = launcherDir();
