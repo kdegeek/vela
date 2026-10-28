@@ -28,39 +28,47 @@ export function parseEvents(buf: Buffer): InputEvent[] {
   return out;
 }
 
-export function guideHandler(deps: {
-  goHome(): void;
-  passthrough(): boolean;
-  now(): number;
-  longPressMs?: number;
-}): (e: InputEvent) => void {
+export type GuideHandler = ((e: InputEvent) => void) & { reset(): void };
+
+export function guideHandler(deps: { goHome(): void; passthrough(): boolean; longPressMs?: number }): GuideHandler {
   const longMs = deps.longPressMs ?? DEFAULT_LONG_PRESS_MS;
-  let downAt: number | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let held = false;
   let fired = false;
-  return (e) => {
+  const reset = (): void => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    held = false;
+    fired = false;
+  };
+  const handle = (e: InputEvent): void => {
     if (e.type !== EV_KEY || e.code !== BTN_MODE) return;
     if (e.value === 1) {
-      downAt = deps.now();
-      fired = false;
-    } else if (e.value === 2) {
-      // key repeat while held: fire as soon as the hold is long enough
-      if (downAt !== null && !fired && deps.now() - downAt >= longMs) {
+      if (held) return;
+      reset();
+      held = true;
+      timer = setTimeout(() => {
+        timer = null;
+        if (!held) return;
         fired = true;
         deps.goHome();
-      }
+      }, longMs);
     } else if (e.value === 0) {
-      if (downAt === null) return;
-      const held = deps.now() - downAt;
-      downAt = null;
-      if (fired) return;
-      if (held >= longMs || !deps.passthrough()) deps.goHome();
+      if (!held) return;
+      const wasFired = fired;
+      reset();
+      if (!wasFired && !deps.passthrough()) deps.goHome();
     }
+    // value 2 (autorepeat) is ignored: gamepad drivers do not send it.
   };
+  return Object.assign(handle, { reset });
 }
 
 export interface WatchOptions {
   dir?: string;
   intervalMs?: number;
+  /** Called when a device stream closes or errors (unplug), so held state can be cleared. */
+  onDrop?: () => void;
 }
 
 export function watchGamepads(onEvent: (e: InputEvent) => void, opts: WatchOptions = {}): () => void {
@@ -90,6 +98,7 @@ export function watchGamepads(onEvent: (e: InputEvent) => void, opts: WatchOptio
       const drop = (): void => {
         if (open.get(file) === stream) open.delete(file);
         stream.destroy();
+        opts.onDrop?.();
       };
       stream.on("data", (chunk) => {
         const buf = rest.length ? Buffer.concat([rest, chunk as Buffer]) : (chunk as Buffer);

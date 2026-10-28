@@ -64,13 +64,27 @@ app.listen({ host: config.server.listen, port: PORT }).then(
   },
 );
 
+let stopGamepads: () => void = () => {};
 if (process.platform === "linux" && process.env.VELA_GAMEPAD !== "0") {
   const guide = guideHandler({
     goHome: () => void runner.goHome().catch((e) => console.error("vela: goHome", (e as Error).message)),
     passthrough: () => manifests.find((m) => m.id === runner.current())?.homePassthrough === true,
-    now: () => Date.now(),
   });
-  const stop = watchGamepads(guide);
-  process.once("SIGTERM", stop);
-  process.once("SIGINT", stop);
+  stopGamepads = watchGamepads(guide, { onDrop: guide.reset });
 }
+
+let shuttingDown = false;
+function shutdown(): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  stopGamepads();
+  app.close().then(
+    () => process.exit(0),
+    (e) => {
+      console.error("vela: shutdown", (e as Error).message);
+      process.exit(1);
+    },
+  );
+}
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);

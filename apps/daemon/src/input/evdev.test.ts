@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { guideHandler, parseEvents, watchGamepads, type InputEvent } from "./evdev.js";
 
 function raw(sec: number, usec: number, type: number, code: number, value: number): Buffer {
@@ -17,10 +17,9 @@ function raw(sec: number, usec: number, type: number, code: number, value: numbe
 const ev = (value: number): InputEvent => ({ sec: 0, usec: 0, type: 1, code: 0x13c, value });
 
 function setup(passthrough: boolean) {
-  let t = 0;
   const goHome = vi.fn();
-  const h = guideHandler({ goHome, passthrough: () => passthrough, now: () => t });
-  return { goHome, h, at: (ms: number) => void (t = ms) };
+  const h = guideHandler({ goHome, passthrough: () => passthrough });
+  return { goHome, h };
 }
 
 describe("parseEvents", () => {
@@ -37,46 +36,63 @@ describe("parseEvents", () => {
 });
 
 describe("guideHandler", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
   it("short press goes home", () => {
-    const { goHome, h, at } = setup(false);
-    at(0);
+    const { goHome, h } = setup(false);
     h(ev(1));
-    at(200);
+    vi.advanceTimersByTime(200);
     h(ev(0));
     expect(goHome).toHaveBeenCalledTimes(1);
   });
   it("short press with passthrough does nothing", () => {
-    const { goHome, h, at } = setup(true);
-    at(0);
+    const { goHome, h } = setup(true);
     h(ev(1));
-    at(200);
+    vi.advanceTimersByTime(200);
+    h(ev(0));
+    vi.advanceTimersByTime(2000);
+    expect(goHome).not.toHaveBeenCalled();
+  });
+  it("long press fires at 600 ms while still held, even with passthrough", () => {
+    const { goHome, h } = setup(true);
+    h(ev(1));
+    vi.advanceTimersByTime(599);
+    expect(goHome).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(goHome).toHaveBeenCalledTimes(1);
+  });
+  it("release after long press does not fire twice", () => {
+    const { goHome, h } = setup(false);
+    h(ev(1));
+    vi.advanceTimersByTime(900);
+    h(ev(0));
+    vi.advanceTimersByTime(2000);
+    expect(goHome).toHaveBeenCalledTimes(1);
+  });
+  it("release at 599 ms counts as short", () => {
+    const { goHome, h } = setup(false);
+    h(ev(1));
+    vi.advanceTimersByTime(599);
+    h(ev(0));
+    vi.advanceTimersByTime(2000);
+    expect(goHome).toHaveBeenCalledTimes(1);
+  });
+  it("reset cancels a pending long press", () => {
+    const { goHome, h } = setup(true);
+    h(ev(1));
+    h.reset();
+    vi.advanceTimersByTime(2000);
     h(ev(0));
     expect(goHome).not.toHaveBeenCalled();
   });
-  it("long press goes home even with passthrough", () => {
-    const { goHome, h, at } = setup(true);
-    at(0);
-    h(ev(1));
-    at(700);
-    h(ev(0));
-    expect(goHome).toHaveBeenCalledTimes(1);
-  });
-  it("long press fires once", () => {
-    const { goHome, h, at } = setup(true);
-    at(0);
-    h(ev(1));
-    at(650);
-    h(ev(2));
-    at(900);
-    h(ev(2));
-    h(ev(0));
-    expect(goHome).toHaveBeenCalledTimes(1);
-  });
-  it("ignores other buttons and event types", () => {
+  it("ignores autorepeat, other buttons and event types", () => {
     const { goHome, h } = setup(false);
     h({ sec: 0, usec: 0, type: 1, code: 0x130, value: 1 });
     h({ sec: 0, usec: 0, type: 3, code: 0x13c, value: 1 });
     h({ sec: 0, usec: 0, type: 1, code: 0x130, value: 0 });
+    h(ev(2));
+    vi.advanceTimersByTime(2000);
     expect(goHome).not.toHaveBeenCalled();
   });
 });
@@ -111,6 +127,15 @@ describe("watchGamepads", () => {
     stop();
     fs.closeSync(writer);
     open.mockRestore();
+  });
+
+  it("calls onDrop when a device stream drops", async () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "vela-input-"));
+    fs.mkdirSync(path.join(dir, "usb-pad-event-joystick"));
+    const onDrop = vi.fn();
+    const stop = watchGamepads(() => {}, { dir, intervalMs: 20, onDrop });
+    await vi.waitFor(() => expect(onDrop).toHaveBeenCalled());
+    stop();
   });
 
   it("removes a device on read error so a rescan can reopen it", async () => {
