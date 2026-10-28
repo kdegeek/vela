@@ -14,6 +14,8 @@ const Manifest = z.object({
   command: z.array(z.string()).optional(),
   windowAppId: z.string().min(1),
   homePassthrough: z.boolean().optional(),
+  /** Position in the Apps row; lower first. Apps without one sort last, by name. */
+  order: z.number().optional(),
   feature: z
     .discriminatedUnion("kind", [
       z.object({ kind: z.literal("mock"), slug: z.string() }),

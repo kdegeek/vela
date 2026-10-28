@@ -24,6 +24,9 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
  */
 export function connect(base: string, onEvent: (e: VelaEvent) => void, opts: { retryMs?: number } = {}): VelaApi {
   const retryMs = opts.retryMs ?? 1000;
+  // home() calls are numbered; a slow older response resolves with the newest state instead.
+  let homeSeq = 0;
+  let latest: { seq: number; state: HomeState } | undefined;
   const root = base.replace(/\/+$/, "");
   let closed = false;
   let socket: WebSocket | undefined;
@@ -66,13 +69,20 @@ export function connect(base: string, onEvent: (e: VelaEvent) => void, opts: { r
 
   return {
     async home() {
+      const seq = ++homeSeq;
       for (;;) {
         try {
-          const r = await fetch(root + API.home);
-          if (r.ok) return (await r.json()) as HomeState;
+          const r = await fetch(root + API.home, { signal: AbortSignal.timeout(3000) });
+          if (r.ok) {
+            const state = (await r.json()) as HomeState;
+            if (latest && latest.seq > seq) return latest.state;
+            latest = { seq, state };
+            return state;
+          }
         } catch {
-          // daemon not up yet; retry quietly
+          // daemon not up yet, or it hung past 3 s; retry quietly
         }
+        if (latest && latest.seq > seq) return latest.state;
         await sleep(retryMs);
       }
     },

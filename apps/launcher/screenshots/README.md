@@ -1,0 +1,1 @@
+Screenshots: 3840x2160 headless Chromium against the daemon in mock mode; app statuses are overridden to `ready` (Steam to `installing` in 4-toast) because macOS has no flatpak, so the daemon reports every app as `missing`.

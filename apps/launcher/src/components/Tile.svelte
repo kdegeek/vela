@@ -1,20 +1,12 @@
 <script lang="ts">
   import type { AppTile, MediaCard } from "@vela/shared";
   import { cardArt } from "../lib/art.js";
-  import { loadGlyph } from "../lib/glyphs.js";
 
   type Props = { tint: string; onpick: () => void } & (
     | { kind: "app"; app: AppTile }
     | { kind: "wide" | "poster"; card: MediaCard }
   );
   let props: Props = $props();
-
-  let glyph = $state("");
-  $effect(() => {
-    if (props.kind !== "app") return;
-    const url = props.app.glyphUrl;
-    void loadGlyph(url).then((svg) => (glyph = svg));
-  });
 
   const STATUS: Record<string, string> = { installing: "Installing", missing: "Not installed", running: "Open" };
 </script>
@@ -28,7 +20,11 @@
     data-tile
     onclick={props.onpick}
   >
-    <span class="glyph" style:color={app.brandColor}>{@html glyph}</span>
+    <!-- Glyphs are masks, so no SVG markup enters the DOM: the silhouette takes the brand color
+         and any white detail (YouTube's play triangle) is drawn back through a luminance mask. -->
+    <span class="glyph" style:--glyph={`url("${app.glyphUrl}")`} style:--brand={app.brandColor} aria-hidden="true">
+      <span class="glyph-light"></span>
+    </span>
     <span class="name">{app.name}</span>
     {#if STATUS[app.status]}<span class="state" class:is-running={app.status === "running"}>{STATUS[app.status]}</span>{/if}
   </button>
@@ -98,13 +94,22 @@
     backdrop-filter: blur(1.2rem) saturate(1.4);
     border: 0.0625rem solid color-mix(in oklch, var(--starlight) 10%, transparent);
   }
-  .glyph {
+  .glyph,
+  .glyph-light {
+    display: block;
     inline-size: 3rem;
     aspect-ratio: 1;
+    mask-image: var(--glyph);
+    mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
   }
-  .glyph :global(svg) {
-    inline-size: 100%;
-    block-size: 100%;
+  .glyph {
+    background: var(--brand);
+  }
+  .glyph-light {
+    background: var(--starlight);
+    mask-mode: luminance;
   }
   .name {
     font-size: 1.05rem;

@@ -3,6 +3,7 @@
   "name": "Crunchyroll",
   "glyph": "crunchyroll.svg",
   "brandColor": "oklch(0.72 0.19 50)",
+  "order": 40,
   "kind": "flatpak",
   "flatpak": "com.google.Chrome",
   "args": [

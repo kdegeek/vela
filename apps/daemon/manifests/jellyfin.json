@@ -3,6 +3,7 @@
   "name": "Jellyfin",
   "glyph": "jellyfin.svg",
   "brandColor": "oklch(0.66 0.17 300)",
+  "order": 30,
   "kind": "flatpak",
   "flatpak": "com.github.iwalton3.jellyfin-media-player",
   "args": [

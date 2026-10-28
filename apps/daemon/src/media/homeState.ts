@@ -13,6 +13,8 @@ export interface HomeDeps {
   media: { resume(): Promise<MediaCard[]> } | null;
   mock: MockProvider;
   insideTemp?: () => Promise<string | undefined>;
+  /** config.ui.clock24h, passed to the launcher clock. */
+  clock24h?: boolean;
 }
 
 function heroFrom(c: MediaCard, appId: string): HeroItem {
@@ -35,8 +37,11 @@ export async function buildHomeState(d: HomeDeps): Promise<HomeState> {
   if (!d.media) rows.push(...d.mock.rows());
   else if (resume) rows.push({ id: "continue", title: "Continue watching", layout: "wide", items: resume });
 
+  const ordered = [...d.manifests].sort(
+    (a, b) => (a.order ?? Infinity) - (b.order ?? Infinity) || a.name.localeCompare(b.name),
+  );
   const apps = await Promise.all(
-    d.manifests.map(async (m): Promise<AppTile> => {
+    ordered.map(async (m): Promise<AppTile> => {
       let feature: HeroItem | null = null;
       const f = m.feature;
       if (f?.kind === "mock") feature = { ...d.mock.hero(f.slug), sourceId: m.id };
@@ -49,7 +54,7 @@ export async function buildHomeState(d: HomeDeps): Promise<HomeState> {
     }),
   );
 
-  const status: HomeState["status"] = {};
+  const status: HomeState["status"] = { clock24h: d.clock24h ?? false };
   if (line) status.line = line;
   if (d.insideTemp) {
     try {

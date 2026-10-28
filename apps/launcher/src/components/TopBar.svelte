@@ -1,9 +1,9 @@
 <script lang="ts">
   import type { HomeStatus } from "@vela/shared";
+  import { formatClock } from "../lib/clock.js";
 
   let { status }: { status: HomeStatus | null } = $props();
 
-  const fmt = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
   let now = $state(new Date());
   $effect(() => {
     const t = setInterval(() => (now = new Date()), 5_000);
@@ -42,7 +42,7 @@
         {status.insideTemp} inside
       </span>
     {/if}
-    <time class="clock" datetime={now.toISOString()}>{fmt.format(now)}</time>
+    <time class="clock" datetime={now.toISOString()}>{formatClock(now, status?.clock24h ?? false)}</time>
   </div>
 </header>
 

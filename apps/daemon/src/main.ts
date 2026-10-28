@@ -93,6 +93,7 @@ const home = () =>
     media: jf ? { resume: async () => (await jf.resume()).map((i) => toCard(i, mock.hero("sintel").backdropUrl)) } : null,
     mock,
     insideTemp,
+    clock24h: config.ui.clock24h,
   });
 startHomePolling(home, bus.emit);
 const play = jf ? createPlayer({ jf, start: startMpv, goHome: () => runner.goHome(), emit: bus.emit, runner }) : undefined;

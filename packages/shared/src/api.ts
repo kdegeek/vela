@@ -41,6 +41,8 @@ export interface AppTile {
 export interface HomeStatus {
   line?: string;
   insideTemp?: string;
+  /** From config ui.clock24h. */
+  clock24h?: boolean;
 }
 
 export interface HomeState {

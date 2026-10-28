@@ -61,7 +61,11 @@
 
   // ---------- Hero ----------
 
-  const settler = createHeroSettler<HeroItem>((item) => paintHero(item));
+  // Neighbors are warmed only once focus rests, never per key repeat (each is a 4K decode).
+  const settler = createHeroSettler<HeroItem>((item) => {
+    paintHero(item);
+    warmNeighbors();
+  });
 
   function paintHero(item: HeroItem) {
     hero = item;
@@ -110,7 +114,6 @@
     void relayout();
     const item = heroAt(focus.row, focus.cols[focus.row] ?? 0);
     if (item) settler.focus(item);
-    warmNeighbors();
   }
 
   function setHome(s: HomeState) {

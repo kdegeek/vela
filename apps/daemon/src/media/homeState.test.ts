@@ -16,7 +16,20 @@ describe("buildHomeState", () => {
     const s = await buildHomeState({ manifests, status: async (x) => (x.id === "plex" ? "installing" : "ready"), media: null, mock });
     expect(s.apps.find((a) => a.id === "plex")?.status).toBe("installing");
     expect(s.apps.find((a) => a.id === "steam")?.status).toBe("ready");
-    expect(s.apps[0]?.glyphUrl).toBe("/api/glyphs/plex.svg");
+    expect(s.apps.find((a) => a.id === "plex")?.glyphUrl).toBe("/api/glyphs/plex.svg");
+  });
+
+  it("apps are ordered by manifest order", async () => {
+    const ms = [{ ...m("steam"), order: 50 }, m("zeta"), { ...m("plex"), order: 10 }, m("alpha"), { ...m("youtube"), order: 20 }];
+    const s = await buildHomeState({ manifests: ms, status: async () => "ready", media: null, mock });
+    expect(s.apps.map((a) => a.id)).toEqual(["plex", "youtube", "steam", "alpha", "zeta"]);
+  });
+
+  it("passes the clock24h preference through in status", async () => {
+    const on = await buildHomeState({ manifests, status: async () => "ready", media: null, mock, clock24h: true });
+    expect(on.status.clock24h).toBe(true);
+    const off = await buildHomeState({ manifests, status: async () => "ready", media: null, mock });
+    expect(off.status.clock24h).toBe(false);
   });
 
   it("assigns hero features per manifest", async () => {

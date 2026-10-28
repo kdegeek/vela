@@ -3,6 +3,7 @@
   "name": "Home",
   "glyph": "home.svg",
   "brandColor": "oklch(0.75 0.13 220)",
+  "order": 60,
   "kind": "builtin",
   "windowAppId": "^$",
   "feature": {

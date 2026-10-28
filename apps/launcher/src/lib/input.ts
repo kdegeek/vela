@@ -33,37 +33,52 @@ export function actionForKey(key: string): Action | null {
 const FIRST_REPEAT_MS = 380;
 const REPEAT_MS = 110;
 
+type PadKey = "left" | "right" | "up" | "down" | "a" | "b";
+const PAD_ACTIONS: Record<PadKey, Action> = {
+  left: { kind: "move", dir: "left" },
+  right: { kind: "move", dir: "right" },
+  up: { kind: "move", dir: "up" },
+  down: { kind: "move", dir: "down" },
+  a: { kind: "activate" },
+  b: { kind: "back" },
+};
+const PAD_KEYS = Object.keys(PAD_ACTIONS) as PadKey[];
+// Reused every frame so polling allocates nothing.
+const pressed: Record<PadKey, boolean> = { left: false, right: false, up: false, down: false, a: false, b: false };
+
 /**
- * Polls the Gamepad API every animation frame: d-pad or left stick moves (repeating after
- * 380 ms, then every 110 ms), A activates, B goes back. Returns a stop function.
+ * Polls the Gamepad API every animation frame while a pad is connected: d-pad or left stick
+ * moves (repeating after 380 ms, then every 110 ms), A activates, B goes back. The loop starts
+ * on `gamepadconnected` (or at once if a pad is already present) and stops when none remain.
+ * Returns a stop function.
  */
 export function pollGamepads(onAction: (a: Action) => void): () => void {
-  const held: Record<string, boolean> = {};
-  const next: Record<string, number> = {};
+  const held: Record<PadKey, boolean> = { left: false, right: false, up: false, down: false, a: false, b: false };
+  const next: Record<PadKey, number> = { left: 0, right: 0, up: 0, down: 0, a: 0, b: 0 };
   let raf = 0;
+
   const tick = (now: number) => {
-    const pressed: Record<string, boolean> = {};
+    for (const k of PAD_KEYS) pressed[k] = false;
+    let any = false;
     for (const gp of navigator.getGamepads?.() ?? []) {
       if (!gp) continue;
+      any = true;
       const ax = gp.axes[0] ?? 0;
       const ay = gp.axes[1] ?? 0;
-      const b = (i: number) => gp.buttons[i]?.pressed === true;
-      pressed.left ||= b(14) || ax < -0.5;
-      pressed.right ||= b(15) || ax > 0.5;
-      pressed.up ||= b(12) || ay < -0.5;
-      pressed.down ||= b(13) || ay > 0.5;
-      pressed.a ||= b(0);
-      pressed.b ||= b(1);
+      const b = gp.buttons;
+      pressed.left ||= b[14]?.pressed === true || ax < -0.5;
+      pressed.right ||= b[15]?.pressed === true || ax > 0.5;
+      pressed.up ||= b[12]?.pressed === true || ay < -0.5;
+      pressed.down ||= b[13]?.pressed === true || ay > 0.5;
+      pressed.a ||= b[0]?.pressed === true;
+      pressed.b ||= b[1]?.pressed === true;
     }
-    const act: Record<string, Action> = {
-      left: { kind: "move", dir: "left" },
-      right: { kind: "move", dir: "right" },
-      up: { kind: "move", dir: "up" },
-      down: { kind: "move", dir: "down" },
-      a: { kind: "activate" },
-      b: { kind: "back" },
-    };
-    for (const k of Object.keys(act)) {
+    if (!any) {
+      raf = 0;
+      for (const k of PAD_KEYS) held[k] = false;
+      return;
+    }
+    for (const k of PAD_KEYS) {
       if (!pressed[k]) {
         held[k] = false;
         continue;
@@ -72,14 +87,23 @@ export function pollGamepads(onAction: (a: Action) => void): () => void {
       if (!held[k]) {
         held[k] = true;
         next[k] = now + FIRST_REPEAT_MS;
-        onAction(act[k]!);
-      } else if (repeatable && now >= next[k]!) {
+        onAction(PAD_ACTIONS[k]);
+      } else if (repeatable && now >= next[k]) {
         next[k] = now + REPEAT_MS;
-        onAction(act[k]!);
+        onAction(PAD_ACTIONS[k]);
       }
     }
     raf = requestAnimationFrame(tick);
   };
-  raf = requestAnimationFrame(tick);
-  return () => cancelAnimationFrame(raf);
+
+  const start = () => {
+    if (!raf) raf = requestAnimationFrame(tick);
+  };
+  addEventListener("gamepadconnected", start);
+  if ((navigator.getGamepads?.() ?? []).some((g) => g)) start();
+  return () => {
+    removeEventListener("gamepadconnected", start);
+    cancelAnimationFrame(raf);
+    raf = 0;
+  };
 }

@@ -1,14 +1,39 @@
 <script lang="ts">
   import type { HeroItem } from "@vela/shared";
   import { preload } from "../lib/art.js";
+  import { createCrossfadeQueue } from "../lib/crossfade.js";
 
   let { item, sourceName, sourceColor }: { item: HeroItem | null; sourceName: string; sourceColor: string } = $props();
 
-  // Two stacked layers: the incoming backdrop fades in over the outgoing one (700 ms).
-  let layers = $state<[Layer | null, Layer | null]>([null, null]);
+  // Two stacked layers: the incoming backdrop fades in over the outgoing one (700 ms). Only one
+  // fade runs at a time; requests during a fade wait, and the latest one wins.
   type Layer = { url: string; ratio: string };
+  let layers = $state<[Layer | null, Layer | null]>([null, null]);
   let front = $state(0);
+  let layerEls = $state<HTMLElement[]>([]);
   let wanted: string | null = null;
+  const ratios = new Map<string, string>();
+  const reduced = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
+  const FADE_MS = 700;
+  let fadeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const fades = createCrossfadeQueue((url) => {
+    const back = 1 - front;
+    layers[back] = { url, ratio: ratios.get(url) ?? "16 / 9" };
+    front = back;
+    // transitionend ends the fade; the timer covers reduced motion (no transition) and a missed event.
+    clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(endFade, reduced?.matches ? FADE_MS : FADE_MS + 200);
+  });
+
+  function endFade() {
+    clearTimeout(fadeTimer);
+    fades.done();
+  }
+
+  function onTransitionEnd(e: TransitionEvent, i: number) {
+    if (e.propertyName === "opacity" && i === front && e.target === layerEls[i]) endFade();
+  }
 
   $effect(() => {
     const url = item?.backdropUrl;
@@ -17,14 +42,14 @@
     void preload(url).then((img) => {
       // A later focus may have asked for a different backdrop while this one decoded.
       if (!img || wanted !== url) return;
-      const back = 1 - front;
-      layers[back] = { url, ratio: `${img.naturalWidth} / ${img.naturalHeight}` };
-      front = back;
+      ratios.set(url, `${img.naturalWidth} / ${img.naturalHeight}`);
+      fades.request(url);
     });
   });
 
+  $effect(() => () => clearTimeout(fadeTimer));
+
   let text = $state<HTMLElement>();
-  const reduced = typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
   $effect(() => {
     void item;
     if (!text || reduced?.matches) return;
@@ -45,6 +70,8 @@
 <div class="backdrop" aria-hidden="true">
   {#each layers as layer, i (i)}
     <div
+      bind:this={layerEls[i]}
+      ontransitionend={(e) => onTransitionEnd(e, i)}
       class="layer"
       class:is-front={front === i && !!layer}
       style:aspect-ratio={layer?.ratio}

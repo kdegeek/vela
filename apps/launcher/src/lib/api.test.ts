@@ -52,6 +52,23 @@ describe("connect", () => {
     expect(fetchMock.mock.calls[0]![0]).toBe("http://127.0.0.1:7300/api/home");
   });
 
+  it("older response does not overwrite newer", async () => {
+    const older: HomeState = { apps: [], rows: [], status: { insideTemp: "old" } };
+    const newer: HomeState = { apps: [], rows: [], status: { insideTemp: "new" } };
+    let releaseOlder!: (r: Response) => void;
+    const fetchMock = vi
+      .fn()
+      .mockReturnValueOnce(new Promise<Response>((r) => (releaseOlder = r)))
+      .mockResolvedValueOnce(Response.json(newer));
+    vi.stubGlobal("fetch", fetchMock);
+    const api = connect("http://127.0.0.1:7300", () => {});
+    const first = api.home();
+    const second = api.home();
+    expect(await second).toEqual(newer);
+    releaseOlder(Response.json(older));
+    expect(await first).toEqual(newer);
+  });
+
   it("reconnects the event socket and delivers events", async () => {
     const events: unknown[] = [];
     connect("http://127.0.0.1:7300", (e) => events.push(e), { retryMs: 500 });

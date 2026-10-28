@@ -8,23 +8,38 @@ export function cardArt(backdropUrl: string): string {
   return backdropUrl.replace(/([?&]w=)3840$/, "$11280");
 }
 
+/** Decoded 4K backdrops are ~33 MB each; keep only the most recently used few. */
+const CACHE_SIZE = 12;
 const decoded = new Map<string, Promise<HTMLImageElement | null>>();
 
-/** Loads and decodes an image once, so a crossfade never shows a half-painted frame. Resolves null on failure. */
+/** URLs currently held, oldest first (for tests). */
+export function cachedUrls(): string[] {
+  return [...decoded.keys()];
+}
+
+/**
+ * Loads and decodes an image once, so a crossfade never shows a half-painted frame. Resolves
+ * null on failure. An LRU of 12: a hit moves the URL to the newest end; inserting past 12
+ * drops the oldest.
+ */
 export function preload(url: string): Promise<HTMLImageElement | null> {
   let p = decoded.get(url);
-  if (!p) {
+  if (p) {
+    decoded.delete(url);
+    decoded.set(url, p);
+  } else {
     const img = new Image();
     img.decoding = "async";
     img.src = url;
     p = img.decode().then(
       () => img,
       () => {
-        decoded.delete(url);
+        if (decoded.get(url) === p) decoded.delete(url);
         return null;
       },
     );
     decoded.set(url, p);
+    if (decoded.size > CACHE_SIZE) decoded.delete(decoded.keys().next().value!);
   }
   return p;
 }
