@@ -22,12 +22,48 @@ describe("startMpv", () => {
     startMpv("http://jf/v", 300, { spawn: f.spawn, connect: f.connect });
     const [cmd, args] = f.spawn.mock.calls[0]!;
     expect(cmd).toBe("mpv");
-    expect(args).toEqual(expect.arrayContaining(["--config-dir=/usr/share/vela/mpv", "--fs", "--hwdec=vaapi", "--idle=yes", "--force-window=yes"]));
+    expect(args).toEqual(expect.arrayContaining(["--config-dir=/usr/share/vela/mpv", "--fs", "--hwdec=vaapi", "--idle=once", "--force-window=yes"]));
     expect(args.some((a) => a.startsWith("--input-ipc-server="))).toBe(true);
     expect(args.some((a) => a.startsWith("--start"))).toBe(false);
     const out = f.written.join("");
     expect(out).toContain('"observe_property",1,"time-pos"');
     expect(out).toContain('"observe_property",2,"pause"');
+  });
+
+  it("argv uses --idle=once", () => {
+    const f = fake();
+    startMpv("u", 0, { spawn: f.spawn, connect: f.connect });
+    const args = f.spawn.mock.calls[0]![1];
+    expect(args).toContain("--idle=once");
+    expect(args).not.toContain("--idle=yes");
+  });
+
+  it("end-file eof sends quit, then exit reports the last position", async () => {
+    const f = fake();
+    const s = startMpv("u", 0, { spawn: f.spawn, connect: f.connect });
+    let res: [number, boolean] | undefined;
+    s.onExit((l, failed) => (res = [l, failed]));
+    f.stream.write('{"event":"property-change","name":"time-pos","data":90}\n{"event":"end-file","reason":"eof"}\n');
+    await tick();
+    expect(f.written.join("")).toContain('{"command":["quit"]}');
+    f.exit();
+    await tick();
+    await tick();
+    expect(res).toEqual([90, false]);
+  });
+
+  it("end-file error before any time-pos sends quit and flags failure", async () => {
+    const f = fake();
+    const s = startMpv("u", 0, { spawn: f.spawn, connect: f.connect });
+    let res: [number, boolean] | undefined;
+    s.onExit((l, failed) => (res = [l, failed]));
+    f.stream.write('{"event":"end-file","reason":"error"}\n');
+    await tick();
+    expect(f.written.join("")).toContain('{"command":["quit"]}');
+    f.exit();
+    await tick();
+    await tick();
+    expect(res).toEqual([0, true]);
   });
 
   it("argv never contains the stream URL; loadfile goes over IPC", () => {

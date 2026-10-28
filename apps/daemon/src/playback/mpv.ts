@@ -8,7 +8,7 @@ import type { Duplex } from "node:stream";
 export interface MpvSession {
   /** `fromTime` is true only when this update carried a real time-pos value (not just a pause change). */
   onTime(cb: (sec: number, paused: boolean, fromTime: boolean) => void): void;
-  /** `ipcFailed` is true when mpv never accepted the IPC connection and was killed. */
+  /** `ipcFailed` is true when mpv never accepted the IPC connection, or the file failed to load before any playback. */
   onExit(cb: (lastSec: number, ipcFailed: boolean) => void): void;
   quit(): void;
 }
@@ -56,10 +56,11 @@ export function startMpv(url: string, startSec: number, opts: MpvOpts = {}): Mpv
   let paused = false;
   let exited = false;
   let ipcFailed = false;
+  let sawTime = false;
   let stream: Duplex | null = null;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const proc = spawn("mpv", ["--config-dir=/usr/share/vela/mpv", "--fs", "--hwdec=vaapi", "--idle=yes", "--force-window=yes", `--input-ipc-server=${sock}`]);
+  const proc = spawn("mpv", ["--config-dir=/usr/share/vela/mpv", "--fs", "--hwdec=vaapi", "--idle=once", "--force-window=yes", `--input-ipc-server=${sock}`]);
 
   const send = (command: unknown[]): void => {
     try {
@@ -76,9 +77,17 @@ export function startMpv(url: string, startSec: number, opts: MpvOpts = {}): Mpv
     } catch {
       return;
     }
+    if (m.event === "end-file") {
+      // --idle=once should quit mpv already; this is the backstop, and flags a file that failed to load.
+      const reason = (m as { reason?: string }).reason;
+      if (reason === "error" && !sawTime) ipcFailed = true;
+      if (reason === "eof" || reason === "error" || reason === "quit") send(["quit"]);
+      return;
+    }
     if (m.event !== "property-change") return;
     if (m.name === "time-pos" && typeof m.data === "number") {
       lastSec = m.data;
+      sawTime = true;
       timeCbs.forEach((cb) => cb(lastSec, paused, true));
     } else if (m.name === "pause" && typeof m.data === "boolean") {
       paused = m.data;
