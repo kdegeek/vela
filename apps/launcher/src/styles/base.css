@@ -1,0 +1,49 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  block-size: 100%;
+  overflow: clip;
+  background: var(--abyss);
+}
+
+body {
+  color: var(--starlight);
+  font-family: var(--ui);
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* A TV: driven by remote and gamepad, never a pointer or text selection. */
+  cursor: none;
+  user-select: none;
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+img,
+svg {
+  display: block;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: none;
+}

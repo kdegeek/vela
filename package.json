@@ -7,7 +7,7 @@
   "packageManager": "pnpm@12.8.1",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -b && pnpm --filter @vela/launcher check",
     "build": "pnpm -r build"
   },
   "devDependencies": {

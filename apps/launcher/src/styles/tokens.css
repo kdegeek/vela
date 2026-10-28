@@ -1,0 +1,38 @@
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("/fonts/instrument-serif-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Manrope";
+  src: url("/fonts/manrope-var.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: block;
+}
+
+/* The tint is sampled per title; registering it lets the whole room fade between moods. */
+@property --tint {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(0.85 0.03 230);
+}
+
+:root {
+  --abyss: oklch(0.15 0.035 268);
+  --nebula: oklch(0.28 0.07 285);
+  --starlight: oklch(0.97 0.012 85);
+  --mist: color-mix(in oklch, var(--starlight) 72%, transparent);
+  --faint: color-mix(in oklch, var(--starlight) 38%, transparent);
+  --shadow: oklch(0 0 none / 0.6);
+
+  --display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --ui: "Manrope", system-ui, sans-serif;
+
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --gutter: 6rem;
+
+  /* 1rem = 16px at 1080p, 32px at 4K: the layout never reflows, it scales. */
+  font-size: min(100vw / 120, 100vh / 67.5);
+  color-scheme: dark;
+}
