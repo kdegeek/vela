@@ -6,14 +6,17 @@ set -euxo pipefail
 # --- services ---
 systemctl set-default graphical.target
 systemctl enable greetd.service vela-flatpaks.service podman-auto-update.timer t2fanrd.service
-systemctl --global enable vela-daemon.service
+systemctl --global enable vela-daemon.service vela-kiosk.service
 # No text console: greetd owns tty1 and nothing spawns gettys on the others.
 systemctl mask getty@tty1.service autovt@.service
 # get-apple-firmware copies blobs from a macOS partition into /usr/lib/firmware; the disk is wiped
 # and /usr is read-only. Firmware goes to /var/lib/vela/firmware instead (kargs, Task 11).
 systemctl disable get-apple-firmware.service || true
 systemctl is-enabled greetd.service vela-flatpaks.service podman-auto-update.timer t2fanrd.service
-systemctl --global is-enabled vela-daemon.service
+systemctl --global is-enabled vela-daemon.service vela-kiosk.service
+# Both must be pulled in by the session target that session-start restarts.
+test -L /etc/systemd/user/vela-session.target.wants/vela-daemon.service
+test -L /etc/systemd/user/vela-session.target.wants/vela-kiosk.service
 systemctl is-enabled get-apple-firmware.service || true
 # Session audio: the PipeWire user units (normally enabled by package presets; make sure).
 systemctl --global enable pipewire.socket pipewire-pulse.socket wireplumber.service
@@ -40,6 +43,7 @@ grep 't2bce' /tmp/initrd.txt || echo "note: t2bce modules are not in the initram
 
 # --- the kiosk and the daemon ---
 command -v chromium-browser || command -v chromium
+grep -qx "VELA_KERNEL=$(rpm -q --qf '%{VERSION}-%{RELEASE}' kernel-core)" /usr/lib/os-release
 test -x /usr/libexec/vela/session-start -a -x /usr/libexec/vela/launcher-kiosk -a -x /usr/libexec/vela/install-flatpaks
 command -v swaymsg greetd sway Xwayland mpv ir-ctl wtype flatpak node curl jq vela-ctl
 /ctx/smoke-daemon.sh /usr/bin/node /usr/lib/vela/daemon /usr/share/vela/assets /usr/share/vela/apps /usr/lib/vela/launcher

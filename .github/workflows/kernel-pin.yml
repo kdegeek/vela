@@ -1,0 +1,28 @@
+name: kernel-pin
+# Weekly reminder: fails while the t2linux COPR has a newer kernel than the one pinned in
+# os/Containerfile. The pin is deliberate; bump it after checking the new kernel.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare the pin with the COPR
+        run: |
+          pin=$(sed -n 's/^ARG T2_KERNEL=//p' os/Containerfile)
+          fedora=${pin##*.fc}
+          python3 .github/scripts/t2-copr-kernels.py "$fedora" > copr.txt
+          echo "pinned: $pin"; echo "COPR fedora-$fedora kernels:"; cat copr.txt
+          latest=$(tail -n 1 copr.txt)
+          if [ "$latest" != "$pin" ] && [ "$(printf '%s\n%s\n' "$pin" "$latest" | sort -V | tail -n 1)" = "$latest" ]; then
+            echo "::error title=Newer t2linux kernel::The COPR has kernel $latest; os/Containerfile pins $pin. Test it, then bump ARG T2_KERNEL deliberately (the next image build mirrors it to the release t2-kernel-$latest)."
+            exit 1
+          fi
+          echo "The pin is the newest kernel the COPR has."

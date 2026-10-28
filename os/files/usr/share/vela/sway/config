@@ -10,6 +10,8 @@ default_floating_border none
 seat * hide_cursor 1
 xwayland enable
 focus_follows_mouse no
+# Never show swaynag's warning bar (config errors and the like go to the journal only).
+swaynag_command -
 
 # Everything runs full screen, Wayland and XWayland alike.
 for_window [app_id=".*"] fullscreen enable
@@ -24,8 +26,10 @@ bindsym --inhibited XF86AudioMute exec vela-ctl volume mute
 # Developer escape.
 bindsym Ctrl+Alt+Shift+BackSpace exec systemctl --user restart vela-daemon
 
-# Put SWAYSOCK/WAYLAND_DISPLAY into the user manager, then (re)start vela-daemon.
+# Put SWAYSOCK/WAYLAND_DISPLAY into the user manager, then (re)start vela-daemon and vela-kiosk.
 exec /usr/libexec/vela/session-start
 
-# The launcher lives on workspace "home".
-exec /usr/libexec/vela/launcher-kiosk
+# The launcher (vela-kiosk.service, restarted if it crashes) always opens on workspace "home",
+# so a restart never pulls the user out of a running app. Chromium's app_id for an --app
+# window is chrome-<host>__-<profile>; chromium/chromium-browser covers a plain window.
+assign [app_id="^(chrome-127\.0\.0\.1|chromium)"] workspace home

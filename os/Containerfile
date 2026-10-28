@@ -3,8 +3,13 @@
 #   buildah build -f os/Containerfile --platform linux/amd64 -t vela .
 
 # t2linux kernel from the sharpenedblade/t2linux COPR (https://wiki.t2linux.org/distributions/fedora/installation/).
-# The COPR prunes old builds, so bump this when a newer kernel replaces it.
+# Pinned on purpose. The COPR prunes old builds, so image.yml mirrors these RPMs to the GitHub
+# release t2-kernel-<version>; the build uses the COPR first and falls back to that release.
+# kernel-pin.yml fails weekly while the COPR has a newer kernel: bump this deliberately.
 ARG T2_KERNEL=7.2.9-310.t2.fc44
+ARG T2_KERNEL_MIRROR=https://github.com/kdegeek/vela/releases/download
+# auto (COPR, then mirror) or mirror (mirror only).
+ARG T2_KERNEL_SOURCE=auto
 # Flipper-IRDB (CC0-1.0), pinned.
 ARG IRDB_COMMIT=d126fb1b6f1e114c52b4a8c19839ea65e3a9c24d
 
@@ -43,12 +48,15 @@ RUN git init -q /irdb \
 # --- OS image -----------------------------------------------------------------
 FROM quay.io/fedora/fedora-bootc:44
 ARG T2_KERNEL
+ARG T2_KERNEL_MIRROR
+ARG T2_KERNEL_SOURCE
+LABEL org.vela.kernel="${T2_KERNEL}"
 
 # 1-2. t2linux kernel and T2 support packages (initramfs is rebuilt at the end, after Plymouth).
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/var \
     --mount=type=tmpfs,dst=/tmp \
-    /ctx/t2-kernel.sh "$T2_KERNEL"
+    /ctx/t2-kernel.sh "$T2_KERNEL" "$T2_KERNEL_MIRROR" "$T2_KERNEL_SOURCE"
 
 # 3-4. RPM Fusion codecs and VA-API, then the session packages.
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \

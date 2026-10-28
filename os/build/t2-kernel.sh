@@ -1,9 +1,17 @@
 #!/bin/bash
 # Replaces the stock Fedora kernel with the pinned t2linux kernel and adds the T2 support
 # packages, following https://wiki.t2linux.org/distributions/fedora/installation/ and the
-# way kansei-os/t2-atomic swaps the kernel in a bootc image. Usage: t2-kernel.sh <version-release>
+# way kansei-os/t2-atomic swaps the kernel in a bootc image.
+# Usage: t2-kernel.sh <version-release> <mirror-base-url> <auto|mirror>
+#   auto:   install the pinned kernel from the COPR; if the COPR no longer has it (it prunes old
+#           builds), use the copy in the GitHub release t2-kernel-<version-release>.
+#   mirror: go straight to the release copy (to test the fallback, or when the COPR is down).
+# Either way the RPMs must carry a valid signature from the COPR's key.
 set -euxo pipefail
 t2="$1"
+mirror="$2"
+source="${3:-auto}"
+pkgs=(kernel kernel-core kernel-modules kernel-modules-core kernel-modules-extra)
 
 dnf -y install dnf5-plugins
 dnf -y copr enable sharpenedblade/t2linux
@@ -17,8 +25,29 @@ echo "stock kernel: $(rpm -q kernel-core)"
 rpm -e --nodeps --noscripts "${stock[@]}"
 rm -rf /usr/lib/modules/*
 
-dnf -y install \
-  "kernel-$t2" "kernel-core-$t2" "kernel-modules-$t2" "kernel-modules-core-$t2" "kernel-modules-extra-$t2"
+install_from_mirror() {
+  local dir=/tmp/t2-kernel
+  mkdir -p "$dir"
+  curl -fsSL --retry 3 -o "$dir/SHA256SUMS" "$mirror/t2-kernel-$t2/SHA256SUMS"
+  for p in "${pkgs[@]}"; do
+    curl -fsSL --retry 3 -o "$dir/$p-$t2.x86_64.rpm" "$mirror/t2-kernel-$t2/$p-$t2.x86_64.rpm"
+  done
+  (cd "$dir" && sha256sum -c SHA256SUMS)
+  rpm --import https://download.copr.fedorainfracloud.org/results/sharpenedblade/t2linux/pubkey.gpg
+  for f in "$dir"/*.rpm; do
+    rpm -K "$f" | grep -q 'signatures OK' || { rpm -Kv "$f"; echo "bad or missing COPR signature: $f" >&2; exit 1; }
+  done
+  dnf -y install "$dir"/*.rpm
+  echo "kernel source: mirror release t2-kernel-$t2"
+}
+if [ "$source" = mirror ]; then
+  install_from_mirror
+elif dnf -y install "${pkgs[@]/%/-$t2}"; then
+  echo "kernel source: COPR"
+else
+  echo "pinned kernel $t2 is not installable from the COPR; falling back to the mirror release"
+  install_from_mirror
+fi
 
 # Fan daemon, module/udev/NetworkManager config, and the T2 audio profiles (wiki: "headless setups").
 dnf -y install t2fanrd t2linux-config t2linux-audio t2linux-scripts
@@ -26,6 +55,7 @@ dnf -y copr disable sharpenedblade/t2linux
 
 kver=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core)
 [ "$kver" = "$t2.x86_64" ] || { echo "expected kernel $t2, got $kver" >&2; exit 1; }
+echo "VELA_KERNEL=$t2" >> /usr/lib/os-release
 test -f "/usr/lib/modules/$kver/vmlinuz"
 [ "$(ls /usr/lib/modules | wc -l)" = 1 ] || { ls -la /usr/lib/modules; echo "more than one kernel in /usr/lib/modules" >&2; exit 1; }
 

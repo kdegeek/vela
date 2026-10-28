@@ -1,0 +1,13 @@
+[Unit]
+Description=Vela launcher (kiosk Chromium)
+PartOf=vela-session.target
+After=vela-session.target vela-daemon.service
+
+[Service]
+Type=exec
+ExecStart=/usr/libexec/vela/launcher-kiosk
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=vela-session.target

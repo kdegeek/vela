@@ -1,13 +1,20 @@
 #!/bin/sh
-# Shows the launcher on workspace "home" once the daemon answers (or after ~30 s regardless;
-# the launcher page retries on its own).
-deadline=$(($(date +%s) + 30))
-while [ "$(date +%s)" -lt "$deadline" ]; do
-  curl -fs -o /dev/null -m 2 -H 'Host: 127.0.0.1:7300' http://127.0.0.1:7300/api/health && break
-  sleep 0.5
-done
-
-swaymsg workspace home >/dev/null
+# Runs the launcher in a kiosk Chromium (vela-kiosk.service). WAYLAND_DISPLAY and SWAYSOCK come
+# from session-start's import into the user manager.
+#
+# First start in a sway session: wait until the daemon answers (at most ~30 s; the launcher page
+# retries on its own after that) and show workspace "home". A restart after a crash does neither:
+# the window lands on "home" by the sway assign rule, and whatever app is on screen stays there.
+marker="${XDG_RUNTIME_DIR:-/tmp}/vela-kiosk.started"
+if [ "$(cat "$marker" 2>/dev/null)" != "$SWAYSOCK" ]; then
+  deadline=$(($(date +%s) + 30))
+  while [ "$(date +%s)" -lt "$deadline" ]; do
+    curl -fs -o /dev/null -m 2 -H 'Host: 127.0.0.1:7300' http://127.0.0.1:7300/api/health && break
+    sleep 0.5
+  done
+  swaymsg workspace home >/dev/null
+  printf '%s\n' "$SWAYSOCK" > "$marker"
+fi
 
 browser=$(command -v chromium-browser || command -v chromium)
 exec "$browser" --ozone-platform=wayland --kiosk --app=http://127.0.0.1:7300 \

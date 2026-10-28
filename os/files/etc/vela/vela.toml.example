@@ -17,6 +17,10 @@ provider = "mock"
 # [media.jellyfin]
 # url = "http://jellyfin.lan:8096"
 # username = "nate"   # the token is stored in /var/lib/vela/secrets.json, not here
+#
+# Secrets (Jellyfin and Home Assistant tokens) live only in /var/lib/vela/secrets.json, which
+# must be owned by vela with mode 0600 (chown vela:vela, chmod 0600). A tmpfiles rule restores
+# that owner and mode at every boot if the file exists.
 
 # [homeAssistant]
 # url = "http://homeassistant.local:8123"

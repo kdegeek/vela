@@ -3,19 +3,27 @@ on:
   push:
     branches: ["**"]
     tags: ["v*"]
+  # Same-repo PR branches are already built by their push event; PRs only run for forks (job if).
   pull_request:
   workflow_dispatch:
+    inputs:
+      kernel_source:
+        description: "Where the t2linux kernel comes from: auto (COPR, then the mirror release) or mirror"
+        type: choice
+        options: [auto, mirror]
+        default: auto
 
 concurrency:
   group: image-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write # the t2-kernel-<version> mirror release
   packages: write
 
 jobs:
   build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     outputs:
@@ -28,6 +36,12 @@ jobs:
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
           df -h /
+
+      - name: Mirror the pinned t2linux kernel to a release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/mirror-t2-kernel.sh
 
       - name: Image name and tags
         id: meta
@@ -46,13 +60,15 @@ jobs:
 
       - name: Build (includes bootc container lint)
         id: build
-        uses: redhat-actions/buildah-build@v3
+        uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
         with:
           image: ${{ steps.meta.outputs.image }}
           tags: ${{ steps.meta.outputs.tags }}
           containerfiles: os/Containerfile
           context: .
           platforms: linux/amd64
+          build-args: |
+            T2_KERNEL_SOURCE=${{ inputs.kernel_source || 'auto' }}
           oci: false
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
@@ -68,7 +84,7 @@ jobs:
 
       - name: Log in to GHCR
         if: steps.meta.outputs.push == 'true'
-        uses: redhat-actions/podman-login@v2
+        uses: redhat-actions/podman-login@50c2d9a331bb67c8fdab99b86455fad05e2e3252 # v2.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -76,7 +92,7 @@ jobs:
 
       - name: Push to GHCR
         if: steps.meta.outputs.push == 'true'
-        uses: redhat-actions/push-to-registry@v3
+        uses: redhat-actions/push-to-registry@94ade333c38ecc0e60e94785125d9a52ca423b37 # v3.0.0
         with:
           image: ${{ steps.build.outputs.image }}
           tags: ${{ steps.build.outputs.tags }}
