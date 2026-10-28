@@ -28,6 +28,8 @@ export class AppRunner {
   private pending = new Map<string, ReturnType<typeof setTimeout>>();
   /** ids whose launch timed out; a late window still switches if the user is still home. */
   private timedOut = new Set<string>();
+  /** Set by expectPlayer(); the next mpv window is shown, not just placed. */
+  private playerPending = false;
 
   constructor(private deps: AppRunnerDeps) {
     deps.sway.onWindowNew((w) => void this.onNew(w).catch(this.logErr));
@@ -95,13 +97,28 @@ export class AppRunner {
     return { ok: true };
   }
 
+  /** Playback is about to start: the next "mpv" window goes to workspace app-player and is shown. */
+  expectPlayer(): void {
+    this.playerPending = true;
+  }
+
   async goHome(): Promise<void> {
+    this.playerPending = false;
     await this.deps.sway.showWorkspace("home");
     this.cur = "home";
     this.deps.emit({ type: "home" });
   }
 
   private async onNew(w: SwayWindow): Promise<void> {
+    if (w.appId === "mpv") {
+      await this.deps.sway.moveWindowToWorkspace(w.id, "app-player");
+      if (this.playerPending) {
+        this.playerPending = false;
+        await this.deps.sway.showWorkspace("app-player");
+        this.cur = "player";
+      }
+      return;
+    }
     const m = this.appFor(w);
     if (!m) return;
     const ws = `app-${m.id}`;

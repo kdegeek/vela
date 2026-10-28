@@ -53,6 +53,23 @@ describe("server", () => {
     expect(no.json()).toEqual({ reason: "installing" });
   });
 
+  it("POST /api/play: jellyfin key plays, mock key is 409 with a toast", async () => {
+    const played: string[] = [];
+    const sv = { ...services(), play: async (id: string) => void played.push(id) };
+    const toasts: unknown[] = [];
+    sv.bus.subscribe((e) => toasts.push(e));
+    const app = buildServer(sv);
+    const ok = await app.inject({ method: "POST", url: "/api/play", payload: { key: "jellyfin:abc" }, headers: H });
+    expect(ok.statusCode).toBe(200);
+    expect(played).toEqual(["abc"]);
+    const mock = await app.inject({ method: "POST", url: "/api/play", payload: { key: "mock:sintel" }, headers: H });
+    expect(mock.statusCode).toBe(409);
+    expect(mock.json()).toEqual({ reason: "mock" });
+    expect(toasts).toEqual([{ type: "toast", message: "Mock titles can't be played. Connect Jellyfin in /etc/vela/vela.toml." }]);
+    const bad = await app.inject({ method: "POST", url: "/api/play", payload: { key: "nope" }, headers: H });
+    expect(bad.statusCode).toBe(400);
+  });
+
   it("POST /api/home/go succeeds", async () => {
     const app = buildServer(services());
     const res = await app.inject({ method: "POST", url: "/api/home/go", payload: {}, headers: H });

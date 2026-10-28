@@ -6,7 +6,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import type { VelaConfig } from "./config.js";
 import fastifyWebsocket from "@fastify/websocket";
-import { API, type HomeState, type VelaEvent } from "@vela/shared";
+import { API, isMediaKey, type HomeState, type VelaEvent } from "@vela/shared";
 import { ART_WIDTHS, type JellyfinClient } from "./media/jellyfin.js";
 import type { AppManifest } from "./manifests.js";
 import type { AppRunner } from "./session/appRunner.js";
@@ -39,6 +39,8 @@ export interface Services {
   home?: () => Promise<HomeState>;
   /** Present when the media provider is jellyfin; backs the art proxy. */
   jellyfin?: JellyfinClient;
+  /** Starts Jellyfin playback of an item; resolves once mpv is launched, not when it ends. */
+  play?: (itemId: string) => Promise<void>;
 }
 
 /** VELA_ASSETS_DIR overrides; default is apps/daemon/assets for both src/ and dist/. */
@@ -104,6 +106,18 @@ export function buildServer(s: Services): FastifyInstance {
     const r = await s.runner.launch(id);
     if (r.ok) return { ok: true };
     return reply.code(409).send({ reason: r.reason });
+  });
+
+  app.post<{ Body: { key?: string } }>(API.play, async (req, reply) => {
+    const key = req.body?.key;
+    if (typeof key !== "string" || !isMediaKey(key)) return reply.code(400).send({ error: "key required" });
+    if (key.startsWith("mock:")) {
+      s.bus.emit({ type: "toast", message: "Mock titles can't be played. Connect Jellyfin in /etc/vela/vela.toml." });
+      return reply.code(409).send({ reason: "mock" });
+    }
+    if (!s.play) return reply.code(503).send({ error: "jellyfin is not configured" });
+    await s.play(key.slice("jellyfin:".length));
+    return { ok: true };
   });
 
   app.post(API.goHome, async () => {

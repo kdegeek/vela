@@ -194,4 +194,20 @@ describe("AppRunner", () => {
     await vi.advanceTimersByTimeAsync(10_000);
     expect(t.events.filter((e) => e.type === "toast")).toHaveLength(1);
   });
+
+  it("places the mpv window on app-player and shows it when playback is expected", async () => {
+    const t = setup();
+    t.runner.expectPlayer();
+    t.open({ id: 9, appId: "mpv" });
+    await flush();
+    expect(t.ops).toEqual(["move:9:app-player", "show:app-player"]);
+    expect(t.runner.current()).toBe("player");
+  });
+
+  it("moves an unexpected mpv window without switching to it", async () => {
+    const t = setup();
+    t.open({ id: 9, appId: "mpv" });
+    await flush();
+    expect(t.ops).toEqual(["move:9:app-player"]);
+  });
 });

@@ -7,6 +7,8 @@ import { loadManifests } from "./manifests.js";
 import { buildServer, EventBus, PORT } from "./server.js";
 import { AppRunner, defaultSpawn } from "./session/appRunner.js";
 import { flatpakStatus } from "./session/flatpak.js";
+import { createPlayer } from "./playback/jellyfinReporter.js";
+import { startMpv } from "./playback/mpv.js";
 import { createNoopSway, createSway } from "./session/sway.js";
 
 const config = loadConfig(process.env.VELA_CONFIG ?? "/etc/vela/vela.toml");
@@ -50,7 +52,8 @@ const home = () =>
     mock,
   });
 startHomePolling(home, bus.emit);
-const app = buildServer({ config, manifests, runner, bus, home, jellyfin });
+const play = jf ? createPlayer({ jf, start: startMpv, goHome: () => runner.goHome(), emit: bus.emit, runner }) : undefined;
+const app = buildServer({ config, manifests, runner, bus, home, jellyfin, play });
 
 app.listen({ host: config.server.listen, port: PORT }).then(
   () => console.log(`vela daemon listening on ${config.server.listen}:${PORT}`),
