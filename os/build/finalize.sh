@@ -25,6 +25,7 @@ grep -A2 '^\[Daemon\]' /etc/plymouth/plymouthd.conf
 
 kver=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core)
 export DRACUT_NO_XATTR=1
+mkdir -p /var/tmp  # /var is a tmpfs during the build
 dracut --no-hostonly --kver "$kver" --reproducible -f "/usr/lib/modules/$kver/initramfs.img"
 lsinitrd "/usr/lib/modules/$kver/initramfs.img" > /tmp/initrd.txt
 grep -q 'ostree-prepare-root' /tmp/initrd.txt || { echo "initramfs lacks ostree-prepare-root" >&2; exit 1; }
