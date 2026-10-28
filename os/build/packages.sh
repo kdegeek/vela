@@ -30,3 +30,4 @@ rpm -q sway greetd chromium mpv ffmpeg intel-media-driver plymouth
 rpm -q --whatprovides nodejs
 node --version
 dnf clean all
+rm -rf /run/dnf /run/selinux-policy  # runtime-only dirs dnf leaves behind (bootc lint)

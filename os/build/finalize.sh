@@ -25,8 +25,11 @@ grep -A2 '^\[Daemon\]' /etc/plymouth/plymouthd.conf
 
 kver=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core)
 export DRACUT_NO_XATTR=1
-mkdir -p /var/tmp  # /var is a tmpfs during the build
-dracut --no-hostonly --kver "$kver" --reproducible -f "/usr/lib/modules/$kver/initramfs.img"
+# /var is a tmpfs during the build; dracut needs /var/tmp and the target of /root.
+mkdir -p /var/tmp /var/roothome
+dracut --no-hostonly --kver "$kver" --reproducible -f "/usr/lib/modules/$kver/initramfs.img" 2>&1 | tee /tmp/dracut.log
+# dracut exits 0 even when dracut-install fails on an item.
+if grep -F 'dracut[E]: FAILED' /tmp/dracut.log; then exit 1; fi
 lsinitrd "/usr/lib/modules/$kver/initramfs.img" > /tmp/initrd.txt
 grep -q 'ostree-prepare-root' /tmp/initrd.txt || { echo "initramfs lacks ostree-prepare-root" >&2; exit 1; }
 grep -q 'plymouth/themes/vela/wordmark.png' /tmp/initrd.txt || { echo "initramfs lacks the vela Plymouth theme" >&2; exit 1; }

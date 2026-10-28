@@ -38,3 +38,4 @@ modinfo -k "$kver" apple-bce || echo "note: modinfo apple-bce: not found (module
 
 rpm -q kernel-core kernel-modules kernel-modules-extra t2fanrd t2linux-config t2linux-audio t2linux-scripts
 dnf clean all
+rm -rf /run/dnf /run/selinux-policy  # runtime-only dirs dnf leaves behind (bootc lint)
