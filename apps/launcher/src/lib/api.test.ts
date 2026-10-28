@@ -4,6 +4,7 @@ import { connect } from "./api.js";
 
 class FakeSocket {
   static all: FakeSocket[] = [];
+  onopen: (() => void) | null = null;
   onmessage: ((e: { data: string }) => void) | null = null;
   onclose: (() => void) | null = null;
   onerror: (() => void) | null = null;
@@ -64,6 +65,17 @@ describe("connect", () => {
     expect(FakeSocket.all).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(1);
     expect(FakeSocket.all).toHaveLength(2);
+  });
+
+  it("asks for a home refetch when the socket reconnects, not on first connect", async () => {
+    const events: unknown[] = [];
+    connect("http://127.0.0.1:7300", (e) => events.push(e), { retryMs: 500 });
+    FakeSocket.all[0]!.onopen?.();
+    expect(events).toEqual([]);
+    FakeSocket.all[0]!.close();
+    await vi.advanceTimersByTimeAsync(500);
+    FakeSocket.all[1]!.onopen?.();
+    expect(events).toEqual([{ type: "home-state-changed" }]);
   });
 
   it("POSTs JSON with a body and maps 409 to a reason", async () => {

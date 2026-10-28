@@ -27,11 +27,17 @@ export function connect(base: string, onEvent: (e: VelaEvent) => void, opts: { r
   const root = base.replace(/\/+$/, "");
   let closed = false;
   let socket: WebSocket | undefined;
+  let opened = false;
 
   const openSocket = () => {
     if (closed) return;
     const ws = new WebSocket(root.replace(/^http/, "ws") + API.events);
     socket = ws;
+    // After a daemon restart nothing announces a change, so a reconnect means "refetch home".
+    ws.onopen = () => {
+      if (opened) onEvent({ type: "home-state-changed" });
+      opened = true;
+    };
     ws.onmessage = (m: MessageEvent) => {
       let e: VelaEvent;
       try {
