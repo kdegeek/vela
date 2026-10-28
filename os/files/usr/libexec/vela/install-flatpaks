@@ -1,0 +1,74 @@
+#!/bin/bash
+# Installs every Flatpak in /usr/share/vela/flatpaks.list system-wide from Flathub.
+# While an app installs, its ID is in /var/lib/vela/flatpak-installing (the launcher shows it as
+# "installing"). Exits non-zero if anything failed; vela-flatpaks.service retries in 5 minutes.
+# When everything is in, /var/lib/vela/flatpaks.done stops the service from running again.
+set -uo pipefail
+
+LIST=${VELA_FLATPAKS_LIST:-/usr/share/vela/flatpaks.list}
+STATE=${VELA_STATE_DIR:-/var/lib/vela}
+VAAPI=org.freedesktop.Platform.VAAPI.Intel
+MARKER="$STATE/flatpak-installing"
+
+mkdir -p "$STATE"
+trap 'rm -f "$MARKER"' EXIT
+
+flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || {
+  echo "vela-flatpaks: could not add Flathub (offline?); retrying later" >&2
+  exit 1
+}
+
+failed=0
+want_vaapi=0
+
+install_ref() { # install_ref <marker-id> <ref>
+  echo "$1" > "$MARKER"
+  if ! flatpak install --system --noninteractive --or-update -y flathub "$2"; then
+    echo "vela-flatpaks: installing $2 failed" >&2
+    failed=1
+  fi
+  rm -f "$MARKER"
+}
+
+while read -r id _; do
+  case "$id" in '' | \#*) continue ;; esac
+  if [ "$id" = "$VAAPI" ]; then want_vaapi=1; continue; fi
+  if flatpak info --system "$id" >/dev/null 2>&1; then continue; fi
+  install_ref "$id" "$id"
+done < "$LIST"
+
+# The VA-API extension is versioned with the runtime: install the branch each installed runtime
+# asks for (org.kde.Platform, for example, names its freedesktop base version).
+if [ "$want_vaapi" = 1 ]; then
+  branches=$(
+    flatpak list --system --runtime --columns=ref | while read -r ref; do
+      flatpak info --system -m "$ref" 2>/dev/null |
+        awk -v ext="[Extension $VAAPI]" '
+          $0 == ext { on = 1; next }
+          /^\[/ { on = 0 }
+          on && /^versions?=/ { sub(/^versions?=/, ""); gsub(/;/, "\n"); print }'
+    done | sed '/^$/d' | sort -u
+  )
+  if [ -z "$branches" ]; then
+    echo "vela-flatpaks: no installed runtime declares $VAAPI" >&2
+    failed=1
+  fi
+  have=0
+  for b in $branches; do
+    if flatpak info --system "$VAAPI//$b" >/dev/null 2>&1; then have=1; continue; fi
+    # A runtime may name a branch Flathub never published; skip those instead of retrying forever.
+    if ! flatpak remote-info --system flathub "runtime/$VAAPI/x86_64/$b" >/dev/null 2>&1; then
+      echo "vela-flatpaks: $VAAPI//$b is not on Flathub; skipping" >&2
+      continue
+    fi
+    install_ref "$VAAPI" "runtime/$VAAPI/x86_64/$b"
+    flatpak info --system "$VAAPI//$b" >/dev/null 2>&1 && have=1
+  done
+  [ "$have" = 1 ] || failed=1
+fi
+
+if [ "$failed" = 0 ]; then
+  touch "$STATE/flatpaks.done"
+  echo "vela-flatpaks: all Flatpaks installed"
+fi
+exit "$failed"

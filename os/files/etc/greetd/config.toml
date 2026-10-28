@@ -1,0 +1,13 @@
+# Vela: boot straight into the kiosk session as vela. default_session runs the same session
+# instead of a greeter, so when sway exits or crashes greetd starts it again; there is no
+# text login to fall back to.
+[terminal]
+vt = 1
+
+[initial_session]
+user = "vela"
+command = "sway --config /usr/share/vela/sway/config"
+
+[default_session]
+user = "vela"
+command = "sway --config /usr/share/vela/sway/config"

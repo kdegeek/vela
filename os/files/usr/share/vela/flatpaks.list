@@ -1,0 +1,7 @@
+# Flatpaks installed system-wide from Flathub at first boot by vela-flatpaks.service.
+com.google.Chrome
+tv.plex.PlexHTPC
+com.github.iwalton3.jellyfin-media-player
+com.valvesoftware.Steam
+# Intel VA-API driver: installed for every org.freedesktop.Platform branch the apps above use.
+org.freedesktop.Platform.VAAPI.Intel

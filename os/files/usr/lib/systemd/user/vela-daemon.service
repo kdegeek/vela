@@ -1,0 +1,22 @@
+[Unit]
+Description=Vela daemon (launcher, apps, playback, devices)
+PartOf=vela-session.target
+After=vela-session.target
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/node /usr/lib/vela/daemon/dist/main.js
+Environment=NODE_ENV=production
+Environment=VELA_CONFIG=/etc/vela/vela.toml
+Environment=VELA_SECRETS=/var/lib/vela/secrets.json
+Environment=VELA_LAUNCHER_DIR=/usr/lib/vela/launcher
+Environment=VELA_ASSETS_DIR=/usr/share/vela/assets
+Environment=VELA_IRDB=/usr/share/vela/irdb
+Restart=always
+RestartSec=1
+# Apps the daemon launched (Chrome, Plex, Steam...) live in this unit's cgroup. Kill only the
+# daemon on stop/restart so a daemon crash or the developer escape does not close the app on screen.
+KillMode=process
+
+[Install]
+WantedBy=vela-session.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Install Vela's Flatpak apps from Flathub
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=!/var/lib/vela/flatpaks.done
+StartLimitIntervalSec=0
+
+[Service]
+Type=exec
+ExecStart=/usr/libexec/vela/install-flatpaks
+# Offline or Flathub trouble: try again every 5 minutes until everything is installed.
+Restart=on-failure
+RestartSec=5min
+
+[Install]
+WantedBy=multi-user.target

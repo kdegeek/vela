@@ -1,0 +1,20 @@
+[Unit]
+Description=Home Assistant
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+ContainerName=homeassistant
+Image=ghcr.io/home-assistant/home-assistant:stable
+Network=host
+Volume=/var/lib/homeassistant:/config:Z
+Volume=/etc/localtime:/etc/localtime:ro
+AutoUpdate=registry
+
+[Service]
+Restart=always
+# First start pulls a ~1.5 GB image.
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

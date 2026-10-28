@@ -1,0 +1,4 @@
+[Unit]
+Description=Vela kiosk session
+# Started (restarted) from the sway config once SWAYSOCK and WAYLAND_DISPLAY are in the user
+# manager's environment; units that are PartOf= it restart with it.

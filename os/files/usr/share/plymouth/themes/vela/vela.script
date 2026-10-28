@@ -1,0 +1,13 @@
+# Abyss background, oklch(0.15 0.035 268) = #060a1a, with the Vela wordmark centered.
+Window.SetBackgroundTopColor(0.024, 0.039, 0.102);
+Window.SetBackgroundBottomColor(0.024, 0.039, 0.102);
+
+logo.image = Image("wordmark.png");
+logo.sprite = Sprite(logo.image);
+
+fun place_logo() {
+  logo.sprite.SetX(Window.GetX() + Window.GetWidth() / 2 - logo.image.GetWidth() / 2);
+  logo.sprite.SetY(Window.GetY() + Window.GetHeight() / 2 - logo.image.GetHeight() / 2);
+}
+place_logo();
+Plymouth.SetRefreshFunction(place_logo);

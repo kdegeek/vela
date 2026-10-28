@@ -1,0 +1,33 @@
+# Vela kiosk session. Started by greetd as the vela user:
+#   sway --config /usr/share/vela/sway/config
+
+# 4K60; if the display does not offer that mode, sway falls back to its preferred mode.
+output * mode 3840x2160@60Hz
+output * bg #060a1a solid_color
+
+default_border none
+default_floating_border none
+seat * hide_cursor 1
+xwayland enable
+focus_follows_mouse no
+
+# Everything runs full screen, Wayland and XWayland alike.
+for_window [app_id=".*"] fullscreen enable
+for_window [class=".*"] fullscreen enable
+
+# Home and volume (Flirc remote, keyboards). --inhibited: still works when an app grabs shortcuts.
+bindsym --inhibited XF86HomePage exec vela-ctl home
+bindsym --inhibited Ctrl+Alt+Home exec vela-ctl home
+bindsym --inhibited XF86AudioRaiseVolume exec vela-ctl volume up
+bindsym --inhibited XF86AudioLowerVolume exec vela-ctl volume down
+bindsym --inhibited XF86AudioMute exec vela-ctl volume mute
+# Developer escape.
+bindsym Ctrl+Alt+Shift+BackSpace exec systemctl --user restart vela-daemon
+
+# Hand this sway's sockets to the user manager and D-Bus (Flatpak portals), then (re)start the
+# daemon. restart, not start: if sway crashes, greetd starts a new one before the user manager
+# stops, and the running daemon would keep talking to the dead sway's socket.
+exec systemctl --user import-environment WAYLAND_DISPLAY SWAYSOCK DISPLAY XDG_CURRENT_DESKTOP; dbus-update-activation-environment --systemd WAYLAND_DISPLAY SWAYSOCK DISPLAY XDG_CURRENT_DESKTOP; systemctl --user restart vela-session.target
+
+# The launcher lives on workspace "home".
+exec /usr/libexec/vela/launcher-kiosk

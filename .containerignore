@@ -1,0 +1,13 @@
+# Build context for os/Containerfile is the repo root; keep host build output out of it.
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+.git
+.github
+.superpowers
+spikes
+docs
+dev
+**/screenshots
+output
+*.qcow2

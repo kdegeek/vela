@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Vela
+Description=Vela wordmark on the abyss background
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/vela
+ScriptFile=/usr/share/plymouth/themes/vela/vela.script

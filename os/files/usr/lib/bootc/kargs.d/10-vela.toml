@@ -1,0 +1,3 @@
+# Quiet boot with the Vela splash; firmware_class.path is where the Wi-Fi/Bluetooth blobs live.
+kargs = ["quiet", "splash", "loglevel=3", "rd.udev.log_level=3", "vt.global_cursor_default=0", "firmware_class.path=/var/lib/vela/firmware"]
+match-architectures = ["x86_64"]

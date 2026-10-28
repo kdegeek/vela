@@ -1,0 +1,82 @@
+name: image
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+      sha_tag: ${{ steps.meta.outputs.sha_tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+
+      - name: Image name and tags
+        id: meta
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          short="${GITHUB_SHA::7}"
+          echo "image=ghcr.io/$owner/vela" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=sha-$short" >> "$GITHUB_OUTPUT"
+          echo "tags=latest sha-$short" >> "$GITHUB_OUTPUT"
+          # Only main and version tags publish; everything else builds and lints.
+          if [ "$GITHUB_EVENT_NAME" != pull_request ] && { [ "$GITHUB_REF" = refs/heads/main ] || [[ "$GITHUB_REF" == refs/tags/* ]]; }; then
+            echo "push=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "push=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build (includes bootc container lint)
+        id: build
+        uses: redhat-actions/buildah-build@v3
+        with:
+          image: ${{ steps.meta.outputs.image }}
+          tags: ${{ steps.meta.outputs.tags }}
+          containerfiles: os/Containerfile
+          context: .
+          platforms: linux/amd64
+          oci: false
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=Vela
+            containers.bootc=1
+
+      - name: Image size
+        run: |
+          podman images --format '{{.Repository}}:{{.Tag}} {{.Size}}'
+          echo "bytes: $(podman image inspect --format '{{.Size}}' "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}")"
+          df -h /
+
+      - name: Log in to GHCR
+        if: steps.meta.outputs.push == 'true'
+        uses: redhat-actions/podman-login@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to GHCR
+        if: steps.meta.outputs.push == 'true'
+        uses: redhat-actions/push-to-registry@v3
+        with:
+          image: ${{ steps.build.outputs.image }}
+          tags: ${{ steps.build.outputs.tags }}
