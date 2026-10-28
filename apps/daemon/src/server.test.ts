@@ -33,7 +33,7 @@ describe("server", () => {
     fs.writeFileSync(path.join(d, "index.html"), "<h1>hi</h1>");
     process.env.VELA_LAUNCHER_DIR = d;
     const app = buildServer(services());
-    const res = await app.inject({ method: "GET", url: "/" });
+    const res = await app.inject({ method: "GET", url: "/", headers: H });
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain("<h1>hi</h1>");
   });
@@ -111,5 +111,26 @@ describe("server", () => {
     bus.subscribe((e) => got.push(e.type));
     bus.emit({ type: "home" });
     expect(got).toEqual(["home"]);
+  });
+
+  it("guard applies to percent-encoded api path", async () => {
+    const app = buildServer(services());
+    const res = await app.inject({ method: "POST", url: "/%61pi/launch", payload: { id: "plex" }, headers: { ...H, origin: "https://evil.example" } });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("guard applies to double-slash path", async () => {
+    const app = buildServer(services());
+    const res = await app.inject({ method: "POST", url: "//api/home/go", payload: {}, headers: { host: "evil.example:7300" } });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("static launcher GET with good Host passes", async () => {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), "vela-ui-"));
+    fs.writeFileSync(path.join(d, "index.html"), "<h1>hi</h1>");
+    process.env.VELA_LAUNCHER_DIR = d;
+    const app = buildServer(services());
+    expect((await app.inject({ method: "GET", url: "/", headers: H })).statusCode).toBe(200);
+    expect((await app.inject({ method: "GET", url: "/", headers: { host: "evil.example:7300" } })).statusCode).toBe(403);
   });
 });

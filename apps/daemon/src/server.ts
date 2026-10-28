@@ -45,12 +45,11 @@ export function buildServer(s: Services): FastifyInstance {
   const app = Fastify({ logger: false });
   app.decorate("services", s);
 
-  // Guard against web pages on this box (CSRF, cross-site WebSocket, DNS rebinding).
+  // Applies to every request regardless of path (the router normalizes paths). Guard against web pages on this box (CSRF, cross-site WebSocket, DNS rebinding).
   const listen = s.config.server.listen;
   const hosts = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`, `${listen}:${PORT}`]);
   const origins = new Set([`http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`]);
   app.addHook("onRequest", async (req, reply) => {
-    if (!req.url.startsWith("/api/")) return;
     if (listen !== "0.0.0.0" && !hosts.has(req.headers.host ?? "")) return reply.code(403).send({ error: "bad host" });
     const origin = req.headers.origin;
     if (origin !== undefined && !origins.has(origin)) return reply.code(403).send({ error: "bad origin" });
