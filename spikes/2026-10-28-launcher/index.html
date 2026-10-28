@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vela</title>
+  <link rel="preload" href="assets/fonts/instrument-serif-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/manrope-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="stage">
+    <div class="backdrop" aria-hidden="true">
+      <div class="backdrop-layer"></div>
+      <div class="backdrop-layer"></div>
+    </div>
+    <div class="scrim" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <svg class="wordmark" viewBox="0 0 120 28" aria-label="Vela">
+        <g class="sail" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+          <path d="M4 22 L12 6 L20 18 L14 24 Z"/>
+        </g>
+        <g fill="currentColor">
+          <circle cx="4" cy="22" r="1.8"/><circle cx="12" cy="6" r="2.2"/>
+          <circle cx="20" cy="18" r="1.6"/><circle cx="14" cy="24" r="1.4"/>
+        </g>
+        <text x="30" y="20" class="wordmark-text">Vela</text>
+      </svg>
+      <div class="status">
+        <div class="hints" aria-hidden="true">
+          <span><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> Move</span>
+          <span><kbd>Enter</kbd> Open</span>
+          <span><kbd>Esc</kbd> Back</span>
+        </div>
+        <span class="home-chip"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8 8 2.5 14 8M4 7v6.5h8V7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>71° inside</span>
+        <time class="clock"></time>
+      </div>
+    </header>
+
+    <section class="hero" aria-live="polite">
+      <p class="hero-source"><span class="source-dot"></span><span class="source-name"></span></p>
+      <h1 class="hero-title"></h1>
+      <p class="hero-meta"></p>
+      <p class="hero-blurb"></p>
+      <div class="hero-progress" hidden>
+        <div class="bar"><span></span></div>
+        <span class="left"></span>
+      </div>
+    </section>
+
+    <main class="rows"></main>
+
+  </div>
+
+  <div class="launch" hidden>
+    <div class="launch-mark"></div>
+    <p class="launch-title"></p>
+    <p class="launch-sub">Press Back to return home</p>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+{
+ "bd-sintel.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Durian_-_Sintel-wallpaper-sintel.jpg",
+  "license": "CC BY 3.0",
+  "artist": "David REVOY"
+ },
+ "bd-sintel2.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Sintel-screenshot-4.jpg",
+  "license": "CC BY 3.0",
+  "artist": "\u00a9 copyright Blender Foundation www.sintel.org"
+ },
+ "bd-tos.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Tears_of_Steel_frame_01_2a.jpg",
+  "license": "CC BY 3.0",
+  "artist": "(CC) Blender Foundation | Project Mango"
+ },
+ "bd-tos2.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Tears_of_Steel_frame_09_1a.jpg",
+  "license": "CC BY 3.0",
+  "artist": "(CC) Blender Foundation | Project Mango"
+ },
+ "bd-cosmos.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:CosmosLaundromat-final-scene.jpg",
+  "license": "CC BY-SA 4.0",
+  "artist": "Blender Foundation"
+ },
+ "bd-bbb.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Big_Buck_Bunny_-_forest.jpg",
+  "license": "CC BY 3.0",
+  "artist": "Blender Foundation / Project Peach"
+ },
+ "bd-spring.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Spring_-_Blender_Open_Movie.webm",
+  "license": "CC BY 4.0",
+  "artist": "Andy Goralczyk / Blender Foundation"
+ },
+ "bd-sprite.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Sprite_Fright_-_Open_Movie_by_Blender_Studio.webm",
+  "license": "CC BY 4.0",
+  "artist": "Blender Studio"
+ },
+ "bd-charge.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Charge_-_Blender_Open_Movie-YouTube_thumbnail.jpg",
+  "license": "CC BY 4.0",
+  "artist": "Blender Studio"
+ },
+ "bd-ed.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Elephants_Dream_s5_both.jpg",
+  "license": "CC BY 2.5",
+  "artist": "Ton Roosendaal et al."
+ },
+ "bd-cam.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Caminandes_gran_dillama.png",
+  "license": "CC BY 3.0",
+  "artist": "Francesco Siddi, Pablo Vazquez"
+ },
+ "p-sintel.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Sintel_poster.jpg",
+  "license": "CC BY 3.0",
+  "artist": "(c) copyright Blender Foundation | durian.blender.org"
+ },
+ "p-bbb.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Big_buck_bunny_poster_big.jpg",
+  "license": "CC BY 3.0",
+  "artist": "(c) copyright Blender Foundation | peach.blender.org"
+ },
+ "p-tos.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Tos-poster.png",
+  "license": "CC BY 3.0",
+  "artist": "(CC) Blender Foundation | Project Mango"
+ },
+ "p-cosmos.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:CosmosLaundromatPoster.jpg",
+  "license": "CC BY 4.0",
+  "artist": "Andy Goralczyk and the Blender Foundation"
+ },
+ "p-sprite.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Sprite_Fright-movie_poster.jpg",
+  "license": "CC BY 4.0",
+  "artist": "Blender Studio"
+ },
+ "p-charge.jpg": {
+  "source": "https://commons.wikimedia.org/wiki/File:Charge-movie_poster.jpg",
+  "license": "CC BY 4.0",
+  "artist": "Blender Studio"
+ }
+}

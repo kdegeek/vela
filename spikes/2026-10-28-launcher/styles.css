@@ -1,0 +1,416 @@
+@font-face {
+  font-family: "Instrument Serif";
+  src: url("assets/fonts/instrument-serif-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "Manrope";
+  src: url("assets/fonts/manrope-var.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: block;
+}
+
+/* The tint is sampled per title; registering it lets the whole room fade between moods. */
+@property --tint {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: oklch(0.84 0.12 80);
+}
+
+:root {
+  --abyss: oklch(0.15 0.035 268);
+  --nebula: oklch(0.28 0.07 285);
+  --starlight: oklch(0.97 0.012 85);
+  --mist: color-mix(in oklch, var(--starlight) 72%, transparent);
+  --faint: color-mix(in oklch, var(--starlight) 38%, transparent);
+
+  --display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --ui: "Manrope", system-ui, sans-serif;
+
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --gutter: 6rem;
+
+  /* 1rem = 16px on a 1080p TV, 32px on 4K; layout never reflows, it scales. */
+  font-size: min(100vw / 120, 100vh / 67.5);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--abyss);
+  color: var(--starlight);
+  font-family: var(--ui);
+  -webkit-font-smoothing: antialiased;
+  cursor: none;
+}
+h1, h2, p { margin: 0; }
+img { display: block; }
+button { font: inherit; color: inherit; border: 0; padding: 0; background: none; }
+
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: clip;
+  background: var(--abyss);
+}
+
+/* ---------- Backdrop ---------- */
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+}
+.backdrop-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: 60% 35%;
+  opacity: 0;
+}
+.backdrop-layer.is-front { opacity: 1; }
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, color-mix(in oklch, var(--abyss) 70%, transparent), transparent 22%),
+    radial-gradient(ellipse 70% 60% at 8% 100%, color-mix(in oklch, var(--tint) 26%, transparent), transparent 70%),
+    linear-gradient(to top, var(--abyss) 8%, color-mix(in oklch, var(--abyss) 88%, transparent) 36%, transparent 68%),
+    linear-gradient(to right, color-mix(in oklch, var(--abyss) 92%, transparent) 0%, color-mix(in oklch, var(--abyss) 55%, transparent) 38%, transparent 68%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .backdrop-layer { transition: opacity 700ms var(--ease-out); }
+  .backdrop { animation: drift 48s ease-in-out infinite alternate; }
+  .stage { transition: --tint 900ms var(--ease-out); }
+}
+@keyframes drift {
+  from { scale: 1.03; translate: 0 0; }
+  to   { scale: 1.09; translate: -1.2% -0.8%; }
+}
+
+/* ---------- Top bar ---------- */
+
+.topbar {
+  position: absolute;
+  inset-block-start: 2.75rem;
+  inset-inline: var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.wordmark {
+  block-size: 2.4rem;
+  color: var(--starlight);
+  overflow: visible;
+}
+.wordmark .sail { opacity: 0.55; }
+.wordmark-text {
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 0.01em;
+}
+.status {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+.home-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 0.45rem;
+  padding-inline: 0.8rem 0.95rem;
+  border-radius: 99rem;
+  background: color-mix(in oklch, var(--abyss) 45%, transparent);
+  backdrop-filter: blur(0.8rem);
+  color: var(--mist);
+}
+.home-chip svg { inline-size: 1rem; }
+.clock {
+  font-size: 1.6rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+  position: absolute;
+  inset-block-start: 11rem;
+  inset-inline-start: var(--gutter);
+  max-inline-size: 46rem;
+  display: grid;
+  gap: 1.1rem;
+}
+.hero-source {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--mist);
+}
+.source-dot {
+  inline-size: 0.6rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.hero-title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 6.75rem;
+  line-height: 0.92;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  text-shadow: 0 0.2rem 2.5rem color-mix(in oklch, var(--abyss) 60%, transparent);
+}
+.hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--mist);
+}
+/* Tags past year/runtime read as quiet chips. */
+.hero-meta span:nth-child(n + 3),
+.hero-meta:not(:has(span:nth-child(2))) span {
+  padding-block: 0.15rem;
+  padding-inline: 0.6rem;
+  border: 1px solid var(--faint);
+  border-radius: 0.35rem;
+  font-size: 0.95rem;
+}
+.hero-blurb {
+  max-inline-size: 34rem;
+  font-size: 1.35rem;
+  line-height: 1.5;
+  color: var(--mist);
+  text-wrap: pretty;
+}
+.hero-progress {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-block-start: 0.4rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mist);
+}
+.hero-progress[hidden] { display: none; }
+.hero-progress .bar {
+  inline-size: 14rem;
+  block-size: 0.3rem;
+  border-radius: 99rem;
+  background: var(--faint);
+  overflow: clip;
+}
+.hero-progress .bar span {
+  display: block;
+  block-size: 100%;
+  background: var(--tint);
+}
+
+/* ---------- Rows ---------- */
+
+.rows {
+  position: absolute;
+  inset-block-start: 38.5rem;
+  inset-inline: 0;
+}
+.row {
+  padding-inline: var(--gutter);
+  padding-block-end: 2.25rem;
+}
+.row-label {
+  margin-block-end: 1rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--mist);
+}
+.track {
+  position: relative;
+  display: flex;
+  gap: 1.5rem;
+  inline-size: max-content;
+}
+.row:not(.is-active) { opacity: 0.55; }
+.row.is-past { opacity: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .rows, .track { transition: translate 480ms var(--ease-out); }
+  .row { transition: opacity 360ms var(--ease-out); }
+}
+
+/* ---------- Tiles ---------- */
+
+.tile {
+  position: relative;
+  flex: none;
+  border-radius: 0.9rem;
+  overflow: clip;
+  background: color-mix(in oklch, var(--nebula) 55%, transparent);
+  box-shadow: 0 1rem 2rem -1rem oklch(0 0 none / 0.6);
+}
+.tile:focus-visible {
+  outline: 0.22rem solid var(--starlight);
+  outline-offset: 0.35rem;
+  scale: 1.07;
+  box-shadow:
+    0 0 4rem 0.5rem color-mix(in oklch, var(--tint) 50%, transparent),
+    0 1.5rem 3rem -1rem oklch(0 0 none / 0.7);
+  z-index: 1;
+}
+.tile:active { scale: 1.02; }
+@media (prefers-reduced-motion: no-preference) {
+  .tile { transition: scale 260ms var(--ease-out), box-shadow 360ms var(--ease-out); }
+}
+
+/* Apps */
+.tile-app {
+  inline-size: 14rem;
+  block-size: 8.25rem;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.6rem;
+  background: color-mix(in oklch, var(--abyss) 50%, transparent);
+  backdrop-filter: blur(1.2rem) saturate(1.4);
+  border: 1px solid color-mix(in oklch, var(--starlight) 10%, transparent);
+}
+.app-glyph svg { inline-size: 3rem; display: block; }
+.app-name { font-size: 1.05rem; font-weight: 650; }
+
+/* Continue watching */
+.tile-wide {
+  inline-size: 22rem;
+  aspect-ratio: 16 / 9;
+}
+.tile-wide img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+.tile-wide::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, oklch(0 0 none / 0.8), transparent 55%);
+}
+.wide-info {
+  position: absolute;
+  inset-inline: 1.1rem;
+  inset-block-end: 1.15rem;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  text-align: start;
+}
+.wide-title {
+  font-family: var(--display);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+.wide-left {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--mist);
+  white-space: nowrap;
+}
+.progress {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 1;
+  block-size: 0.3rem;
+  background: oklch(1 0 none / 0.2);
+}
+.progress span {
+  display: block;
+  block-size: 100%;
+  background: var(--tint);
+}
+
+/* Posters */
+.tile-poster {
+  inline-size: 10.5rem;
+  aspect-ratio: 2 / 3;
+}
+.tile-poster img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* ---------- Hints ---------- */
+
+.hints {
+  display: flex;
+  margin-inline-end: 1rem;
+  gap: 1.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--faint);
+}
+kbd {
+  display: inline-block;
+  min-inline-size: 1.5rem;
+  margin-inline-end: 0.25rem;
+  padding-inline: 0.35rem;
+  border: 1px solid var(--faint);
+  border-radius: 0.3rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  line-height: 1.4rem;
+  text-align: center;
+}
+
+/* ---------- Launch overlay ---------- */
+
+.launch {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1.25rem;
+  background:
+    radial-gradient(circle at var(--ox) var(--oy), color-mix(in oklch, var(--brand) 45%, var(--abyss)), var(--abyss) 70%);
+}
+.launch[hidden] { display: none; }
+.launch-mark {
+  inline-size: 7rem;
+  color: var(--brand);
+}
+.launch-mark svg { display: block; inline-size: 100%; }
+.launch-title {
+  font-family: var(--display);
+  font-size: 4rem;
+  line-height: 1;
+}
+.launch-sub {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--mist);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .launch:not([hidden]) { animation: open 620ms var(--ease-out) both; }
+  .launch-mark { animation: rise 900ms var(--ease-out) both; }
+}
+@keyframes open {
+  from { clip-path: circle(0 at var(--ox) var(--oy)); }
+  to   { clip-path: circle(150% at var(--ox) var(--oy)); }
+}
+@keyframes rise {
+  from { opacity: 0; scale: 0.8; }
+  to   { opacity: 1; scale: 1; }
+}
