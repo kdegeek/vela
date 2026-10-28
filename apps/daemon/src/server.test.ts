@@ -6,6 +6,9 @@ import { buildServer } from "./server.js";
 import { loadConfig } from "./config.js";
 import { EventBus } from "./server.js";
 import type { AppRunner } from "./session/appRunner.js";
+import { NoTransmitter, NotFound } from "./devices/registry.js";
+import { TvUnreachable } from "./devices/homeAssistant.js";
+import { UnsupportedProtocol } from "./devices/ir/encode.js";
 
 const fakeRunner = {
   launch: async (id: string) => (id === "plex" ? { ok: true as const } : { ok: false as const, reason: "installing" as const }),
@@ -149,5 +152,48 @@ describe("server", () => {
     const app = buildServer(services());
     expect((await app.inject({ method: "GET", url: "/", headers: H })).statusCode).toBe(200);
     expect((await app.inject({ method: "GET", url: "/", headers: { host: "evil.example:7300" } })).statusCode).toBe(403);
+  });
+
+  describe("devices", () => {
+    const devs = (run: (id: string, c: string) => Promise<void>) => ({
+      list: () => [{ id: "tv", name: "TV", kind: "tv" as const, commands: ["mute"] }],
+      run,
+    });
+    const post = (app: ReturnType<typeof buildServer>, url = "/api/devices/tv/mute") => app.inject({ method: "POST", url, payload: {}, headers: H });
+
+    it("GET /api/devices lists devices", async () => {
+      const app = buildServer({ ...services(), devices: devs(async () => {}) });
+      const res = await app.inject({ method: "GET", url: "/api/devices", headers: H });
+      expect(res.json()).toEqual([{ id: "tv", name: "TV", kind: "tv", commands: ["mute"] }]);
+    });
+
+    it("GET /api/devices is empty when none are configured", async () => {
+      const res = await buildServer(services()).inject({ method: "GET", url: "/api/devices", headers: H });
+      expect(res.json()).toEqual([]);
+    });
+
+    it("POST runs the command and returns 204", async () => {
+      const calls: string[] = [];
+      const app = buildServer({ ...services(), devices: devs(async (i, c) => void calls.push(`${i}/${c}`)) });
+      expect((await post(app)).statusCode).toBe(204);
+      expect(calls).toEqual(["tv/mute"]);
+    });
+
+    it.each([
+      [new NotFound("command"), 404, "Unknown command."],
+      [new TvUnreachable(), 502, "The TV didn't respond. Check that it's on the network."],
+      [new NoTransmitter(), 503, "No IR transmitter found. Plug in the IR dongle or blaster and try again."],
+      [new UnsupportedProtocol("RC5"), 422, "IR protocol RC5 isn't supported yet."],
+      [new Error("boom"), 500, "boom"],
+    ])("maps %s to %i", async (err, code, msg) => {
+      const app = buildServer({ ...services(), devices: devs(async () => { throw err; }) });
+      const res = await post(app);
+      expect(res.statusCode).toBe(code);
+      expect(res.json()).toEqual({ error: msg });
+    });
+
+    it("POST without a devices service is 404", async () => {
+      expect((await post(buildServer(services()))).statusCode).toBe(404);
+    });
   });
 });

@@ -6,10 +6,13 @@ import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import type { VelaConfig } from "./config.js";
 import fastifyWebsocket from "@fastify/websocket";
-import { API, isMediaKey, type HomeState, type VelaEvent } from "@vela/shared";
+import { API, isMediaKey, type Device, type HomeState, type VelaEvent } from "@vela/shared";
 import { ART_WIDTHS, type JellyfinClient } from "./media/jellyfin.js";
 import type { AppManifest } from "./manifests.js";
 import type { AppRunner } from "./session/appRunner.js";
+import { TvUnreachable } from "./devices/homeAssistant.js";
+import { UnsupportedProtocol } from "./devices/ir/encode.js";
+import { NoTransmitter, NotFound } from "./devices/registry.js";
 
 /** Fan-out of daemon events to WS /api/events clients. */
 export class EventBus {
@@ -41,6 +44,8 @@ export interface Services {
   jellyfin?: JellyfinClient;
   /** Starts Jellyfin playback of an item; resolves once the request is accepted, not when playback ends. */
   play?: (itemId: string) => Promise<void>;
+  /** TVs and IR devices. */
+  devices?: { list(): Device[]; run(id: string, command: string): Promise<void> };
 }
 
 /** VELA_ASSETS_DIR overrides; default is apps/daemon/assets for both src/ and dist/. */
@@ -128,6 +133,24 @@ export function buildServer(s: Services): FastifyInstance {
   app.get(API.home, async (_req, reply) => {
     if (!s.home) return reply.code(503).send({ error: "home state unavailable" });
     return s.home();
+  });
+
+  app.get(API.devices, async () => s.devices?.list() ?? []);
+
+  app.post<{ Params: { id: string; command: string } }>(API.deviceCommand, async (req, reply) => {
+    if (!s.devices) return reply.code(404).send({ error: "Unknown device." });
+    try {
+      await s.devices.run(req.params.id, req.params.command);
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (e instanceof NotFound) return reply.code(404).send({ error: msg });
+      if (e instanceof TvUnreachable) return reply.code(502).send({ error: msg });
+      if (e instanceof NoTransmitter) return reply.code(503).send({ error: msg });
+      if (e instanceof UnsupportedProtocol) return reply.code(422).send({ error: msg });
+      console.error("vela: device command failed:", msg);
+      return reply.code(500).send({ error: msg });
+    }
+    return reply.code(204).send();
   });
 
   app.get<{ Params: { file: string } }>("/api/glyphs/:file", (req, reply) => sendAsset(path.join(assetsDir(), "glyphs"), req.params.file, reply));
