@@ -1,0 +1,42 @@
+#!/bin/sh
+# vela-ctl: control the Vela daemon from the shell (Sway keybinds, remotes).
+#   vela-ctl home | launch <id> | device <id> <command> | volume up|down|mute
+BASE="${VELA_URL:-http://127.0.0.1:7300}"
+
+die() { echo "vela-ctl: $*" >&2; exit 1; }
+
+# post <path> [json]; prints nothing on success, errors on failure.
+post() {
+  if [ -n "$2" ]; then
+    out=$(curl -sS -f -X POST -H 'Content-Type: application/json' -d "$2" "$BASE$1" 2>&1)
+  else
+    out=$(curl -sS -f -X POST "$BASE$1" 2>&1)
+  fi
+  rc=$?
+  if [ $rc -ne 0 ]; then
+    if [ $rc -eq 7 ]; then die "cannot reach the Vela daemon at $BASE. Check that vela-daemon is running."; fi
+    die "request to $1 failed: $out"
+  fi
+}
+
+case "$1" in
+  home) post /api/home/go ;;
+  launch)
+    [ -n "$2" ] || die "usage: vela-ctl launch <id>"
+    post /api/launch "{\"id\":\"$2\"}" ;;
+  device)
+    [ -n "$2" ] && [ -n "$3" ] || die "usage: vela-ctl device <id> <command>"
+    post "/api/devices/$2/$3" ;;
+  volume)
+    case "$2" in up|down|mute) ;; *) die "usage: vela-ctl volume up|down|mute" ;; esac
+    command -v jq >/dev/null 2>&1 || die "jq is required for the volume command"
+    list=$(curl -sS -f "$BASE/api/devices" 2>&1) || {
+      [ -n "$(echo "$list" | grep -i 'couldn.t connect\|failed to connect')" ] && die "cannot reach the Vela daemon at $BASE. Check that vela-daemon is running."
+      die "could not list devices: $list"
+    }
+    tv=$(printf '%s' "$list" | jq -r 'map(select(.kind=="tv")) | .[0].id // empty')
+    [ -n "$tv" ] || die "no TV device is configured"
+    case "$2" in up) cmd=volume-up ;; down) cmd=volume-down ;; mute) cmd=mute ;; esac
+    post "/api/devices/$tv/$cmd" ;;
+  *) die "usage: vela-ctl home | launch <id> | device <id> <command> | volume up|down|mute" ;;
+esac
