@@ -39,5 +39,6 @@ command -v swaymsg greetd sway Xwayland mpv ir-ctl wtype flatpak node curl jq ve
 
 # --- record what we built ---
 cat /etc/os-release
-rpm -q kernel-core t2fanrd t2linux-config t2linux-audio t2linux-scripts sway greetd chromium mpv nodejs ffmpeg intel-media-driver
+rpm -q kernel-core t2fanrd t2linux-config t2linux-audio t2linux-scripts sway greetd chromium mpv ffmpeg intel-media-driver
+rpm -q --whatprovides nodejs
 du -sh /usr/share/vela/irdb /usr/lib/vela

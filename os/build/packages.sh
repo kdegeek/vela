@@ -26,6 +26,7 @@ else
 fi
 dnf -y install intel-media-driver libva-utils
 
-rpm -q sway greetd chromium mpv nodejs ffmpeg intel-media-driver plymouth
+rpm -q sway greetd chromium mpv ffmpeg intel-media-driver plymouth
+rpm -q --whatprovides nodejs
 node --version
 dnf clean all
