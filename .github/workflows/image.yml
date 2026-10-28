@@ -67,8 +67,8 @@ jobs:
           containerfiles: os/Containerfile
           context: .
           platforms: linux/amd64
-          build-args: |
-            T2_KERNEL_SOURCE=${{ inputs.kernel_source || 'auto' }}
+          # Only a manual run overrides the Containerfile's T2_KERNEL_SOURCE default.
+          build-args: ${{ inputs.kernel_source && format('T2_KERNEL_SOURCE={0}', inputs.kernel_source) || '' }}
           oci: false
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
