@@ -54,7 +54,7 @@ export function haTv(entity: string, ha: HaOptions): TvController {
       await call(ha, `/api/services/media_player/${service}`, { method: "POST", body: JSON.stringify({ entity_id: entity, ...extra }) });
     },
     async state() {
-      const res = await call(ha, `/api/states/${entity}`, { method: "GET" });
+      const res = await call(ha, `/api/states/${encodeURIComponent(entity)}`, { method: "GET" });
       return String(((await res.json()) as { state?: unknown }).state ?? "unavailable");
     },
   };
@@ -62,7 +62,7 @@ export function haTv(entity: string, ha: HaOptions): TvController {
 
 /** "<state><unit>" for a temperature sensor, or undefined when the sensor has no usable reading. */
 export async function haInsideTemp(entity: string, ha: HaOptions): Promise<string | undefined> {
-  const res = await call(ha, `/api/states/${entity}`, { method: "GET" });
+  const res = await call(ha, `/api/states/${encodeURIComponent(entity)}`, { method: "GET" });
   const j = (await res.json()) as { state?: string; attributes?: { unit_of_measurement?: string } };
   if (!j.state || j.state === "unavailable" || j.state === "unknown") return undefined;
   return `${j.state}${j.attributes?.unit_of_measurement ?? ""}`;

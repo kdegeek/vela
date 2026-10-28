@@ -33,6 +33,7 @@ export interface RegistryDeps {
 }
 
 const POWER_ON_SETTLE_MS = 8000;
+const POWER_ON_POLL_MS = 1000;
 const norm = (s: string) => s.replace(/-/g, "_");
 
 export class DeviceRegistry {
@@ -77,15 +78,27 @@ export class DeviceRegistry {
       throw e;
     }
     if (!fallback) return;
-    // Some TVs accept turn_on over the network but stay in standby; give it a moment, then use the IR code.
-    await this.sleep(POWER_ON_SETTLE_MS);
-    let state: string | undefined;
-    try {
-      state = await tv.state();
-    } catch {
-      return; // can't tell; don't fire IR blindly
+    // Some TVs accept turn_on over the network but stay in standby. Poll until it reports on; at the cap, use the IR code.
+    for (let waited = 0; ; ) {
+      await this.sleep(POWER_ON_POLL_MS);
+      waited += POWER_ON_POLL_MS;
+      let state: string;
+      try {
+        state = await tv.state();
+      } catch {
+        return; // can't tell; don't fire IR blindly
+      }
+      if (state !== "off" && state !== "unavailable") return;
+      if (waited >= POWER_ON_SETTLE_MS) return this.sendIr(fallback);
     }
-    if (state === "off" || state === "unavailable") await this.sendIr(fallback);
+  }
+
+  private chain: Promise<unknown> = Promise.resolve();
+  /** Runs transmissions one at a time so two commands never overlap on the emitter. */
+  private serialized<T>(fn: () => Promise<T>): Promise<T> {
+    const r = this.chain.then(fn, fn);
+    this.chain = r.catch(() => {});
+    return r;
   }
 
   private async sendIr(ref: IrRef, preferred?: "irctl" | "audiojack"): Promise<void> {
@@ -102,6 +115,7 @@ export class DeviceRegistry {
     }
     const sig = parseFlipperIr(text).find((s) => s.name === ref.button);
     if (!sig) throw new Error(`Button ${ref.button} not found in ${ref.file}.`);
-    await t.send(encode(sig));
+    const timings = encode(sig);
+    await this.serialized(() => t.send(timings));
   }
 }

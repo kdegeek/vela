@@ -34,12 +34,46 @@ describe("DeviceRegistry", () => {
     expect(sleep).not.toHaveBeenCalled();
   });
 
-  it("power_on falls back to IR when the entity is still off after 8 s", async () => {
+  it("power_on falls back to IR after 8 s still off", async () => {
     const { reg, irctl, sleep, controller } = setup({ state: vi.fn(async () => "off") });
     await reg.run("tv", "power_on");
     expect(controller.command).toHaveBeenCalledWith("power_on");
-    expect(sleep).toHaveBeenCalledWith(8000);
+    expect(sleep).toHaveBeenCalledTimes(8);
+    expect(sleep).toHaveBeenCalledWith(1000);
     expect(irctl.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("power_on returns as soon as the TV reports on", async () => {
+    let t = 0;
+    const sleep = vi.fn(async (ms: number) => void (t += ms));
+    const state = vi.fn(async () => (t >= 2000 ? "on" : "off"));
+    const controller: TvController = { command: vi.fn(async () => {}), state };
+    const irctl = { send: vi.fn(async () => {}) };
+    const reg = new DeviceRegistry([tvCfg], { ha: () => controller, irdbRoot, transmitters: { irctl }, sleep });
+    await reg.run("tv", "power_on");
+    expect(irctl.send).not.toHaveBeenCalled();
+    expect(state.mock.calls.length).toBeLessThanOrEqual(3);
+  });
+
+  it("two concurrent IR sends run one after the other", async () => {
+    const log: string[] = [];
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => (release = r));
+    const irctl = {
+      send: vi.fn(async () => {
+        log.push("start");
+        if (log.length === 1) await gate;
+        log.push("end");
+      }),
+    };
+    const reg = new DeviceRegistry([irCfg], { irdbRoot, transmitters: { irctl } });
+    const a = reg.run("amp", "vol_up");
+    const b = reg.run("amp", "vol_up");
+    await new Promise((r) => setTimeout(r, 20));
+    expect(log).toEqual(["start"]);
+    release();
+    await Promise.all([a, b]);
+    expect(log).toEqual(["start", "end", "start", "end"]);
   });
 
   it("power_on does not use IR when the TV turns on", async () => {

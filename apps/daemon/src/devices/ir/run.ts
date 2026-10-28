@@ -5,5 +5,5 @@ export type Run = (cmd: string, args: string[]) => Promise<void>;
 
 export const defaultRun: Run = (cmd, args) =>
   new Promise((resolve, reject) => {
-    execFile(cmd, args, (err, _out, stderr) => (err ? reject(new Error(`${cmd} failed: ${stderr || err.message}`)) : resolve()));
+    execFile(cmd, args, { timeout: 10_000 }, (err, _out, stderr) => (err ? reject(new Error(`${cmd} failed: ${stderr || err.message}`)) : resolve()));
   });

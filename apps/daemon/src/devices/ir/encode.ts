@@ -26,7 +26,15 @@ function frame(lead: [number, number], bytes: number[]): number[] {
 }
 
 export function encode(sig: IrSignal): Timings {
-  if (sig.type === "raw") return { carrierHz: sig.frequency, durationsUs: [...sig.data] };
+  if (sig.type === "raw") {
+    const d = sig.data;
+    if (!Number.isFinite(sig.frequency) || sig.frequency <= 0) throw new Error(`Raw IR signal ${sig.name} has an invalid carrier frequency.`);
+    if (d.length === 0 || !d.every((n) => Number.isInteger(n) && n > 0)) {
+      throw new Error(`Raw IR signal ${sig.name} has invalid timing data. Every duration must be a positive whole number.`);
+    }
+    // A burst must end on a pulse; drop a trailing space.
+    return { carrierHz: sig.frequency, durationsUs: d.length % 2 === 0 ? d.slice(0, -1) : [...d] };
+  }
   const a = sig.address;
   const c = sig.command & 0xff;
   switch (sig.protocol) {

@@ -65,9 +65,18 @@ function lircDevice(): string | undefined {
     return undefined;
   }
 }
-const transmitters: Partial<Record<"irctl" | "audiojack", IrTransmitter>> = {
-  audiojack: audioJackTransmitter(process.env.VELA_AUDIOJACK_DEVICE ?? "default"),
-};
+/** True when the kernel lists a sound card; VELA_AUDIOJACK_DEVICE forces it on. */
+function haveAudioOutput(): boolean {
+  if (process.env.VELA_AUDIOJACK_DEVICE) return true;
+  try {
+    const cards = fs.readFileSync("/proc/asound/cards", "utf8");
+    return cards.trim() !== "" && !cards.includes("no soundcards");
+  } catch {
+    return false;
+  }
+}
+const transmitters: Partial<Record<"irctl" | "audiojack", IrTransmitter>> = {};
+if (haveAudioOutput()) transmitters.audiojack = audioJackTransmitter(process.env.VELA_AUDIOJACK_DEVICE ?? "default");
 const lirc = lircDevice();
 if (lirc) transmitters.irctl = irCtlTransmitter(lirc);
 const devices = new DeviceRegistry(config.devices, {

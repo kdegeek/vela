@@ -41,6 +41,19 @@ describe("encode", () => {
     expect(t).toEqual({ carrierHz: 36000, durationsUs: [1, 2, 3] });
   });
 
+  it("raw drops a trailing space so the burst ends on a pulse", () => {
+    const t = encode({ name: "r", type: "raw", frequency: 38000, dutyCycle: 0.33, data: [1, 2, 3, 4] });
+    expect(t.durationsUs).toEqual([1, 2, 3]);
+  });
+
+  it("raw rejects bad data", () => {
+    const raw = (data: number[]) => ({ name: "r", type: "raw" as const, frequency: 38000, dutyCycle: 0.33, data });
+    expect(() => encode(raw([100, -5, 100]))).toThrow(/invalid timing/);
+    expect(() => encode(raw([100, NaN, 100]))).toThrow(/invalid timing/);
+    expect(() => encode(raw([100, 1.5, 100]))).toThrow(/invalid timing/);
+    expect(() => encode(raw([]))).toThrow(/invalid timing/);
+  });
+
   it("RC5 throws UnsupportedProtocol", () => {
     expect(() => encode(parsed("RC5", 1, 1))).toThrow(UnsupportedProtocol);
     expect(() => encode(parsed("RC5", 1, 1))).toThrow(/RC5/);

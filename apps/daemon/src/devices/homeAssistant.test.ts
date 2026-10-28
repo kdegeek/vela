@@ -37,6 +37,12 @@ describe("haTv", () => {
     await expect(haTv("media_player.tv", { url: "http://ha", token: "t", fetch }).command("mute")).rejects.toBeInstanceOf(TvUnreachable);
   });
 
+  it("encodes the entity id in state URLs", async () => {
+    const fetch = vi.fn(async () => json({ state: "on" }));
+    await haTv("media_player.a/b?x", { url: "http://ha", token: "t", fetch }).state();
+    expect((fetch.mock.calls[0] as unknown as [string])[0]).toBe("http://ha/api/states/media_player.a%2Fb%3Fx");
+  });
+
   it("state reads GET /api/states/<entity>", async () => {
     const fetch = vi.fn(async () => json({ state: "off" }));
     expect(await haTv("media_player.tv", { url: "http://ha", token: "t", fetch }).state()).toBe("off");
