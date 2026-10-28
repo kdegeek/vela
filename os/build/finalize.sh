@@ -15,6 +15,8 @@ systemctl disable get-apple-firmware.service || true
 systemctl is-enabled greetd.service vela-flatpaks.service podman-auto-update.timer t2fanrd.service
 systemctl --global is-enabled vela-daemon.service
 systemctl is-enabled get-apple-firmware.service || true
+# Session audio: the PipeWire user units (normally enabled by package presets; make sure).
+systemctl --global enable pipewire.socket pipewire-pulse.socket wireplumber.service
 
 # Home Assistant quadlet must translate into a unit.
 /usr/lib/systemd/system-generators/podman-system-generator --dryrun 2>&1 | grep -A3 '^---homeassistant.service---'
