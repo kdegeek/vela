@@ -3,6 +3,7 @@ import { loadConfig, loadSecrets } from "./config.js";
 import { JellyfinClient, loginAndSave, toCard } from "./media/jellyfin.js";
 import { buildHomeState, startHomePolling } from "./media/homeState.js";
 import { createMockProvider } from "./media/mock.js";
+import { guideHandler, watchGamepads } from "./input/evdev.js";
 import { loadManifests } from "./manifests.js";
 import { buildServer, EventBus, PORT } from "./server.js";
 import { AppRunner, defaultSpawn } from "./session/appRunner.js";
@@ -62,3 +63,14 @@ app.listen({ host: config.server.listen, port: PORT }).then(
     process.exit(1);
   },
 );
+
+if (process.platform === "linux" && process.env.VELA_GAMEPAD !== "0") {
+  const guide = guideHandler({
+    goHome: () => void runner.goHome().catch((e) => console.error("vela: goHome", (e as Error).message)),
+    passthrough: () => manifests.find((m) => m.id === runner.current())?.homePassthrough === true,
+    now: () => Date.now(),
+  });
+  const stop = watchGamepads(guide);
+  process.once("SIGTERM", stop);
+  process.once("SIGINT", stop);
+}
