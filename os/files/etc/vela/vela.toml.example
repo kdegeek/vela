@@ -1,0 +1,44 @@
+# /etc/vela/vela.toml -- every field is optional; values shown are the defaults unless noted.
+
+[server]
+# Address the daemon binds (port is always 7300). The VM smoke test sets "0.0.0.0".
+listen = "127.0.0.1"
+
+[ui]
+# "auto" picks by GPU, "full" forces blur/glow effects, "lite" disables them.
+effects = "auto"
+# 24-hour clock in the status line.
+clock24h = false
+
+[media]
+# "mock" shows built-in sample content; "jellyfin" reads your server.
+provider = "mock"
+
+# [media.jellyfin]
+# url = "http://jellyfin.lan:8096"
+# username = "nate"   # the token is stored in /var/lib/vela/secrets.json, not here
+
+# [homeAssistant]
+# url = "http://homeassistant.local:8123"
+# insideTempEntity = "sensor.living_room_temperature"
+
+# Directories scanned for app manifests; later entries override earlier ones by id.
+# manifestDirs = ["/usr/share/vela/apps", "/etc/vela/apps"]
+
+# A TV controlled through Home Assistant.
+# [[devices]]
+# id = "tv"
+# name = "Living room TV"
+# kind = "tv"
+# entity = "media_player.living_room_tv"
+# powerOnFallback = { file = "samsung/tv.ir", button = "KEY_POWER" }   # relative to /usr/share/vela/irdb
+
+# An IR-controlled device.
+# [[devices]]
+# id = "soundbar"
+# name = "Soundbar"
+# kind = "ir"
+# transmitter = "irctl"            # or "audiojack"
+# [devices.codes]
+# power = { file = "sony/soundbar.ir", button = "KEY_POWER" }
+# volup = { file = "sony/soundbar.ir", button = "KEY_VOLUMEUP" }

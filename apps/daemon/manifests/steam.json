@@ -1,0 +1,13 @@
+{
+  "id": "steam",
+  "name": "Steam",
+  "glyph": "steam.svg",
+  "brandColor": "oklch(0.70 0.10 240)",
+  "kind": "flatpak",
+  "flatpak": "com.valvesoftware.Steam",
+  "args": [
+    "-gamepadui"
+  ],
+  "windowAppId": "steam",
+  "homePassthrough": true
+}

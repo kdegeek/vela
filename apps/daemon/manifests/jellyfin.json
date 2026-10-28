@@ -1,0 +1,16 @@
+{
+  "id": "jellyfin",
+  "name": "Jellyfin",
+  "glyph": "jellyfin.svg",
+  "brandColor": "oklch(0.66 0.17 300)",
+  "kind": "flatpak",
+  "flatpak": "com.github.iwalton3.jellyfin-media-player",
+  "args": [
+    "--tv",
+    "--fullscreen"
+  ],
+  "windowAppId": "jellyfin",
+  "feature": {
+    "kind": "jellyfin-resume"
+  }
+}

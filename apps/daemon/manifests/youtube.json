@@ -1,0 +1,16 @@
+{
+  "id": "youtube",
+  "name": "YouTube",
+  "glyph": "youtube.svg",
+  "brandColor": "oklch(0.63 0.24 28)",
+  "kind": "flatpak",
+  "flatpak": "com.google.Chrome",
+  "args": [
+    "--user-data-dir=/var/home/vela/.var/app/com.google.Chrome/profiles/youtube",
+    "--app=https://www.youtube.com/tv",
+    "--user-agent=Mozilla/5.0 (Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/6.0 TV Safari/538.1",
+    "--ozone-platform=wayland",
+    "--enable-features=VaapiVideoDecodeLinuxGL,VaapiVideoDecoder"
+  ],
+  "windowAppId": "^(google-chrome|chrome-www\\.youtube\\.com.*)$"
+}

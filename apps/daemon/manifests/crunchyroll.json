@@ -1,0 +1,14 @@
+{
+  "id": "crunchyroll",
+  "name": "Crunchyroll",
+  "glyph": "crunchyroll.svg",
+  "brandColor": "oklch(0.72 0.19 50)",
+  "kind": "flatpak",
+  "flatpak": "com.google.Chrome",
+  "args": [
+    "--user-data-dir=/var/home/vela/.var/app/com.google.Chrome/profiles/crunchyroll",
+    "--app=https://www.crunchyroll.com",
+    "--ozone-platform=wayland"
+  ],
+  "windowAppId": "^(google-chrome|chrome-www\\.crunchyroll\\.com.*)$"
+}

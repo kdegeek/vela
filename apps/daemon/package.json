@@ -1,0 +1,18 @@
+{
+  "name": "@vela/daemon",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fastify/static": "^9.0.0",
+    "@vela/shared": "workspace:*",
+    "fastify": "^5.6.0",
+    "smol-toml": "^1.4.0",
+    "zod": "^4.1.0"
+  }
+}

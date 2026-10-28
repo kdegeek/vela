@@ -1,0 +1,8 @@
+{
+  "id": "home",
+  "name": "Home",
+  "glyph": "home.svg",
+  "brandColor": "oklch(0.75 0.13 220)",
+  "kind": "builtin",
+  "windowAppId": "^$"
+}

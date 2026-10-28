@@ -1,0 +1,9 @@
+{
+  "id": "plex",
+  "name": "Plex",
+  "glyph": "plex.svg",
+  "brandColor": "oklch(0.80 0.16 80)",
+  "kind": "flatpak",
+  "flatpak": "tv.plex.PlexHTPC",
+  "windowAppId": "plex"
+}
