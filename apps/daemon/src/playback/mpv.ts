@@ -6,8 +6,10 @@ import path from "node:path";
 import type { Duplex } from "node:stream";
 
 export interface MpvSession {
-  onTime(cb: (sec: number, paused: boolean) => void): void;
-  onExit(cb: (lastSec: number) => void): void;
+  /** `fromTime` is true only when this update carried a real time-pos value (not just a pause change). */
+  onTime(cb: (sec: number, paused: boolean, fromTime: boolean) => void): void;
+  /** `ipcFailed` is true when mpv never accepted the IPC connection and was killed. */
+  onExit(cb: (lastSec: number, ipcFailed: boolean) => void): void;
   quit(): void;
 }
 
@@ -23,6 +25,7 @@ export interface MpvOpts {
 
 const CONNECT_RETRIES = 50;
 const CONNECT_DELAY_MS = 100;
+const DRAIN_MS = 500;
 
 function defaultSpawn(cmd: string, args: string[]): MpvProc {
   const p = nodeSpawn(cmd, args, { stdio: "ignore" });
@@ -47,15 +50,16 @@ export function startMpv(url: string, startSec: number, opts: MpvOpts = {}): Mpv
   const spawn = opts.spawn ?? defaultSpawn;
   const connect = opts.connect ?? defaultConnect;
   const sock = path.join(process.env.XDG_RUNTIME_DIR ?? os.tmpdir(), `vela-mpv-${process.pid}-${Math.random().toString(36).slice(2, 8)}.sock`);
-  const timeCbs: Array<(sec: number, paused: boolean) => void> = [];
-  const exitCbs: Array<(lastSec: number) => void> = [];
+  const timeCbs: Array<(sec: number, paused: boolean, fromTime: boolean) => void> = [];
+  const exitCbs: Array<(lastSec: number, ipcFailed: boolean) => void> = [];
   let lastSec = startSec;
   let paused = false;
   let exited = false;
+  let ipcFailed = false;
   let stream: Duplex | null = null;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const proc = spawn("mpv", ["--config-dir=/usr/share/vela/mpv", "--fs", "--hwdec=vaapi", `--start=${startSec}`, `--input-ipc-server=${sock}`, url]);
+  const proc = spawn("mpv", ["--config-dir=/usr/share/vela/mpv", "--fs", "--hwdec=vaapi", "--idle=yes", "--force-window=yes", `--input-ipc-server=${sock}`]);
 
   const send = (command: unknown[]): void => {
     try {
@@ -75,20 +79,21 @@ export function startMpv(url: string, startSec: number, opts: MpvOpts = {}): Mpv
     if (m.event !== "property-change") return;
     if (m.name === "time-pos" && typeof m.data === "number") {
       lastSec = m.data;
-      timeCbs.forEach((cb) => cb(lastSec, paused));
+      timeCbs.forEach((cb) => cb(lastSec, paused, true));
     } else if (m.name === "pause" && typeof m.data === "boolean") {
       paused = m.data;
-      timeCbs.forEach((cb) => cb(lastSec, paused));
+      timeCbs.forEach((cb) => cb(lastSec, paused, false));
     }
   };
 
   const attach = (attempt: number): void => {
     if (exited) return;
     const s = connect(sock);
+    s.setEncoding("utf8");
     let buf = "";
     let connected = false;
     s.on("connect", () => (connected = true));
-    s.on("data", (chunk: Buffer | string) => {
+    s.on("data", (chunk: string) => {
       connected = true;
       buf += chunk.toString();
       let i: number;
@@ -99,11 +104,18 @@ export function startMpv(url: string, startSec: number, opts: MpvOpts = {}): Mpv
       }
     });
     s.on("error", () => {
-      if (!connected && attempt < CONNECT_RETRIES && !exited) retryTimer = setTimeout(() => attach(attempt + 1), CONNECT_DELAY_MS);
+      if (connected || exited) return;
+      if (attempt < CONNECT_RETRIES) retryTimer = setTimeout(() => attach(attempt + 1), CONNECT_DELAY_MS);
+      else {
+        ipcFailed = true;
+        proc.kill();
+      }
     });
     stream = s;
     send(["observe_property", 1, "time-pos"]);
     send(["observe_property", 2, "pause"]);
+    // The URL (it carries the api_key) goes over IPC, never argv. mpv >= 0.38: loadfile <url> <flags> <index> <options>.
+    send(["loadfile", url, "replace", -1, `start=${startSec}`]);
   };
   attach(0);
 
@@ -111,13 +123,18 @@ export function startMpv(url: string, startSec: number, opts: MpvOpts = {}): Mpv
     if (exited) return;
     exited = true;
     clearTimeout(retryTimer);
-    try {
-      stream?.destroy();
-    } catch {
-      /* ignore */
-    }
-    fs.rmSync(sock, { force: true });
-    exitCbs.forEach((cb) => cb(lastSec));
+    let finished = false;
+    const finish = (): void => {
+      if (finished) return;
+      finished = true;
+      fs.rmSync(sock, { force: true });
+      exitCbs.forEach((cb) => cb(lastSec, ipcFailed));
+    };
+    // Let buffered time-pos lines arrive before reporting the final position.
+    if (!stream || stream.destroyed) return finish();
+    stream.once("close", finish);
+    setTimeout(finish, DRAIN_MS).unref();
+    stream.end();
   });
 
   return {

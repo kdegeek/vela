@@ -39,7 +39,7 @@ export interface Services {
   home?: () => Promise<HomeState>;
   /** Present when the media provider is jellyfin; backs the art proxy. */
   jellyfin?: JellyfinClient;
-  /** Starts Jellyfin playback of an item; resolves once mpv is launched, not when it ends. */
+  /** Starts Jellyfin playback of an item; resolves once the request is accepted, not when playback ends. */
   play?: (itemId: string) => Promise<void>;
 }
 

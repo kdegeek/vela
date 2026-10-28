@@ -41,8 +41,8 @@ export async function playJellyfin(itemId: string, deps: PlayDeps): Promise<void
   deps.onSession?.(session);
   jf.reportStart(itemId, startTicks).catch(quiet("start"));
 
-  session.onTime((sec, paused) => {
-    sawTime = true;
+  session.onTime((sec, paused, fromTime) => {
+    if (fromTime) sawTime = true;
     const t = now();
     if (paused !== lastPaused || t - lastReport >= PROGRESS_EVERY_MS) {
       lastPaused = paused;
@@ -51,37 +51,40 @@ export async function playJellyfin(itemId: string, deps: PlayDeps): Promise<void
     }
   });
 
-  const lastSec = await new Promise<number>((resolve) => session.onExit(resolve));
-  const failed = !sawTime && now() - startedAt < MIN_PLAY_MS;
+  const { lastSec, ipcFailed } = await new Promise<{ lastSec: number; ipcFailed: boolean }>((resolve) =>
+    session.onExit((lastSec, ipcFailed) => resolve({ lastSec, ipcFailed })),
+  );
+  const failed = ipcFailed || (!sawTime && now() - startedAt < MIN_PLAY_MS);
   await jf.reportStopped(itemId, ticks(lastSec)).catch(quiet("stopped"));
   if (failed) deps.emit?.({ type: "toast", message: START_FAILED });
   await deps.goHome();
 }
 
-/** One playback at a time: a new request quits the current one (which reports stopped) first. */
+/** One playback at a time: a new request quits the current one (which reports stopped) first. Plays are serialized synchronously. */
 export function createPlayer(deps: Omit<PlayDeps, "onSession"> & { runner: Pick<AppRunner, "expectPlayer"> }): (itemId: string) => Promise<void> {
   let current: { quit: () => void; done: Promise<void> } | null = null;
-  return async (itemId) => {
-    if (current) {
-      const prev = current;
-      prev.quit();
-      await prev.done;
-    }
-    deps.runner.expectPlayer();
+  return (itemId) => {
+    const prev = current;
     let session: MpvSession | undefined;
     let quitRequested = false;
-    const done = playJellyfin(itemId, {
-      ...deps,
-      onSession: (s) => {
-        session = s;
-        if (quitRequested) s.quit(); // superseded while still looking up the resume position
-      },
-    }).catch(quiet("playback"));
-    const entry = {
-      quit: () => ((quitRequested = true), session?.quit()),
-      done,
-    };
+    const done = (async () => {
+      if (prev) {
+        prev.quit();
+        await prev.done;
+      }
+      if (quitRequested) return; // superseded before it ever started
+      deps.runner.expectPlayer();
+      await playJellyfin(itemId, {
+        ...deps,
+        onSession: (s) => {
+          session = s;
+          if (quitRequested) s.quit(); // superseded while still looking up the resume position
+        },
+      });
+    })().catch(quiet("playback"));
+    const entry = { quit: () => ((quitRequested = true), session?.quit()), done };
     current = entry;
     void done.then(() => void (current === entry && (current = null)));
+    return Promise.resolve();
   };
 }
