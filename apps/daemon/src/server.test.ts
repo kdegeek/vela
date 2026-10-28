@@ -14,6 +14,8 @@ const fakeRunner = {
 } as unknown as AppRunner;
 const services = () => ({ config: loadConfig("/nonexistent/vela.toml"), manifests: [], runner: fakeRunner, bus: new EventBus() });
 
+const H = { host: "127.0.0.1:7300" };
+
 describe("server", () => {
   afterEach(() => {
     delete process.env.VELA_LAUNCHER_DIR;
@@ -21,7 +23,7 @@ describe("server", () => {
 
   it("GET /api/health returns {ok:true}", async () => {
     const app = buildServer(services());
-    const res = await app.inject({ method: "GET", url: "/api/health" });
+    const res = await app.inject({ method: "GET", url: "/api/health", headers: H });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ ok: true });
   });
@@ -39,21 +41,21 @@ describe("server", () => {
   it("starts without a launcher dir", async () => {
     process.env.VELA_LAUNCHER_DIR = "/nonexistent/launcher";
     const app = buildServer(services());
-    expect((await app.inject({ url: "/api/health" })).statusCode).toBe(200);
+    expect((await app.inject({ url: "/api/health", headers: H })).statusCode).toBe(200);
   });
 
   it("POST /api/launch returns 200 or 409 with reason", async () => {
     const app = buildServer(services());
-    const ok = await app.inject({ method: "POST", url: "/api/launch", payload: { id: "plex" } });
+    const ok = await app.inject({ method: "POST", url: "/api/launch", payload: { id: "plex" }, headers: H });
     expect(ok.statusCode).toBe(200);
-    const no = await app.inject({ method: "POST", url: "/api/launch", payload: { id: "x" } });
+    const no = await app.inject({ method: "POST", url: "/api/launch", payload: { id: "x" }, headers: H });
     expect(no.statusCode).toBe(409);
     expect(no.json()).toEqual({ reason: "installing" });
   });
 
   it("POST /api/home/go succeeds", async () => {
     const app = buildServer(services());
-    const res = await app.inject({ method: "POST", url: "/api/home/go" });
+    const res = await app.inject({ method: "POST", url: "/api/home/go", payload: {}, headers: H });
     expect(res.statusCode).toBe(200);
   });
 
@@ -61,11 +63,53 @@ describe("server", () => {
     const svc = services();
     const app = buildServer(svc);
     await app.ready();
-    const ws = await app.injectWS("/api/events");
+    const ws = await app.injectWS("/api/events", { headers: H });
     const got = new Promise<string>((r) => ws.once("message", (d) => r(String(d))));
     svc.bus.emit({ type: "toast", message: "hi" });
     expect(JSON.parse(await got)).toEqual({ type: "toast", message: "hi" });
     ws.terminate();
     await app.close();
+  });
+
+  it("rejects foreign Origin with 403", async () => {
+    const app = buildServer(services());
+    const res = await app.inject({ method: "POST", url: "/api/home/go", payload: {}, headers: { ...H, origin: "https://evil.example" } });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects bad Host with 403", async () => {
+    const app = buildServer(services());
+    const res = await app.inject({ method: "GET", url: "/api/health", headers: { host: "evil.example:7300" } });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("rejects form-encoded POST with 415", async () => {
+    const app = buildServer(services());
+    const res = await app.inject({ method: "POST", url: "/api/home/go", payload: "a=b", headers: { ...H, "content-type": "application/x-www-form-urlencoded" } });
+    expect(res.statusCode).toBe(415);
+  });
+
+  it("accepts curl-style request without Origin, and the launcher origin", async () => {
+    const app = buildServer(services());
+    const a = await app.inject({ method: "POST", url: "/api/home/go", payload: "{}", headers: { ...H, "content-type": "application/json" } });
+    expect(a.statusCode).toBe(200);
+    const b = await app.inject({ method: "POST", url: "/api/home/go", payload: {}, headers: { ...H, origin: "http://127.0.0.1:7300" } });
+    expect(b.statusCode).toBe(200);
+  });
+
+  it("rejects WS upgrade with foreign Origin", async () => {
+    const app = buildServer(services());
+    await app.ready();
+    await expect(app.injectWS("/api/events", { headers: { ...H, origin: "https://evil.example" } })).rejects.toThrow();
+    await app.close();
+  });
+
+  it("EventBus keeps delivering when a subscriber throws", () => {
+    const bus = new EventBus();
+    const got: string[] = [];
+    bus.subscribe(() => { throw new Error("boom"); });
+    bus.subscribe((e) => got.push(e.type));
+    bus.emit({ type: "home" });
+    expect(got).toEqual(["home"]);
   });
 });

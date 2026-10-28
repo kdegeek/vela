@@ -13,6 +13,7 @@ export interface Sway {
   windows(): Promise<SwayWindow[]>;
   /** "home" | `app-${id}` */
   showWorkspace(name: string): Promise<void>;
+  moveWindowToWorkspace(conId: number, name: string): Promise<void>;
   onWindowClosed(cb: (w: SwayWindow) => void): () => void;
   onWindowNew(cb: (w: SwayWindow) => void): () => void;
 }
@@ -94,6 +95,9 @@ export function createSway(): Sway {
     async showWorkspace(name) {
       await swaymsg([`workspace ${name}`]);
     },
+    async moveWindowToWorkspace(conId, name) {
+      await swaymsg([`[con_id=${conId}] move to workspace ${name}`]);
+    },
     onWindowNew(cb) {
       newCbs.add(cb);
       ensureSubscribed();
@@ -116,6 +120,7 @@ export function createNoopSway(): Sway {
     async showWorkspace(name) {
       console.log(`vela: [noop sway] workspace ${name}`);
     },
+    async moveWindowToWorkspace() {},
     onWindowNew: () => () => {},
     onWindowClosed: () => () => {},
   };

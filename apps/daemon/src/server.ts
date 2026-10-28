@@ -12,7 +12,13 @@ import type { AppRunner } from "./session/appRunner.js";
 export class EventBus {
   private subs = new Set<(e: VelaEvent) => void>();
   emit = (e: VelaEvent): void => {
-    this.subs.forEach((cb) => cb(e));
+    for (const cb of this.subs) {
+      try {
+        cb(e);
+      } catch (err) {
+        console.error("vela: event subscriber failed:", (err as Error).message);
+      }
+    }
   };
   subscribe(cb: (e: VelaEvent) => void): () => void {
     this.subs.add(cb);
@@ -33,9 +39,25 @@ function launcherDir(): string {
   return process.env.VELA_LAUNCHER_DIR ?? fileURLToPath(new URL("../../launcher/dist", import.meta.url));
 }
 
+export const PORT = 7300;
+
 export function buildServer(s: Services): FastifyInstance {
   const app = Fastify({ logger: false });
   app.decorate("services", s);
+
+  // Guard against web pages on this box (CSRF, cross-site WebSocket, DNS rebinding).
+  const listen = s.config.server.listen;
+  const hosts = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`, `${listen}:${PORT}`]);
+  const origins = new Set([`http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`]);
+  app.addHook("onRequest", async (req, reply) => {
+    if (!req.url.startsWith("/api/")) return;
+    if (listen !== "0.0.0.0" && !hosts.has(req.headers.host ?? "")) return reply.code(403).send({ error: "bad host" });
+    const origin = req.headers.origin;
+    if (origin !== undefined && !origins.has(origin)) return reply.code(403).send({ error: "bad origin" });
+    if (req.method === "POST" && !(req.headers["content-type"] ?? "").toLowerCase().startsWith("application/json")) {
+      return reply.code(415).send({ error: "content-type must be application/json" });
+    }
+  });
 
   app.register(fastifyWebsocket);
   app.register(async (a) => {

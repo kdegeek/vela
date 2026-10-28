@@ -13,13 +13,16 @@ function setup(status: AppStatus = "ready") {
   const newCbs: Array<(w: SwayWindow) => void> = [];
   const closeCbs: Array<(w: SwayWindow) => void> = [];
   const shown: string[] = [];
+  const ops: string[] = [];
   const sway: Sway = {
+    moveWindowToWorkspace: async (id, n) => void ops.push(`move:${id}:${n}`),
     windows: async () => wins,
-    showWorkspace: async (n) => void shown.push(n),
+    showWorkspace: async (n) => void (shown.push(n), ops.push(`show:${n}`)),
     onWindowNew: (cb) => (newCbs.push(cb), () => {}),
     onWindowClosed: (cb) => (closeCbs.push(cb), () => {}),
   };
-  const spawn = vi.fn((_cmd: string[], _env: Record<string, string>) => ({ pid: 42 }));
+  const errCbs: Array<(e: Error) => void> = [];
+  const spawn = vi.fn((_cmd: string[], _env: Record<string, string>) => ({ pid: 42, onError: (cb: (e: Error) => void) => void errCbs.push(cb) }));
   const events: VelaEvent[] = [];
   const runner = new AppRunner({ sway, manifests: [plex, steam, home], spawn, status: async () => status, emit: (e) => events.push(e) });
   const open = (w: Partial<SwayWindow>) => {
@@ -32,7 +35,7 @@ function setup(status: AppStatus = "ready") {
     wins = wins.filter((x) => x.id !== win.id);
     closeCbs.forEach((c) => c(win));
   };
-  return { runner, spawn, events, shown, open, close };
+  return { runner, spawn, events, shown, open, close, ops, errCbs };
 }
 const flush = () => new Promise<void>((r) => setImmediate(r));
 
@@ -135,5 +138,60 @@ describe("AppRunner", () => {
     await flush();
     await vi.advanceTimersByTimeAsync(11_000);
     expect(t.runner.current()).toBe("plex");
+  });
+
+  it("moves the window to its workspace before switching", async () => {
+    const t = setup();
+    await t.runner.launch("plex");
+    t.open({ id: 7, appId: "plex" });
+    await flush();
+    expect(t.ops).toEqual(["move:7:app-plex", "show:app-plex"]);
+  });
+
+  it("moves a matching window even with no launch pending, without switching", async () => {
+    const t = setup();
+    t.open({ id: 9, appId: "plex" });
+    await flush();
+    expect(t.ops).toEqual(["move:9:app-plex"]);
+    expect(t.runner.current()).toBe("home");
+    expect(t.events).toContainEqual({ type: "app-state", id: "plex", status: "running" });
+  });
+
+  it("late window after timeout still switches when user is still home", async () => {
+    const t = setup();
+    await t.runner.launch("plex");
+    await vi.advanceTimersByTimeAsync(10_000);
+    t.ops.length = 0;
+    t.events.length = 0;
+    t.open({ id: 3, appId: "plex" });
+    await flush();
+    expect(t.ops).toEqual(["move:3:app-plex", "show:app-plex"]);
+    expect(t.runner.current()).toBe("plex");
+    expect(t.events).toContainEqual({ type: "app-state", id: "plex", status: "running" });
+  });
+
+  it("late window does not switch if the user left home", async () => {
+    const t = setup();
+    await t.runner.launch("plex");
+    await vi.advanceTimersByTimeAsync(10_000);
+    await t.runner.launch("steam");
+    t.open({ id: 4, appId: "steam" });
+    await flush();
+    t.ops.length = 0;
+    t.open({ id: 5, appId: "plex" });
+    await flush();
+    expect(t.ops).toEqual(["move:5:app-plex"]);
+    expect(t.runner.current()).toBe("steam");
+  });
+
+  it("goes home immediately with a toast when spawn errors", async () => {
+    const t = setup();
+    await t.runner.launch("plex");
+    t.errCbs.forEach((cb) => cb(new Error("ENOENT")));
+    await flush();
+    expect(t.events).toContainEqual({ type: "toast", message: "Plex didn't start" });
+    expect(t.shown).toEqual(["home"]);
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(t.events.filter((e) => e.type === "toast")).toHaveLength(1);
   });
 });

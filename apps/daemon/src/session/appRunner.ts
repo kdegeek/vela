@@ -8,24 +8,26 @@ const LAUNCH_TIMEOUT_MS = 10_000;
 export interface AppRunnerDeps {
   sway: Sway;
   manifests: AppManifest[];
-  spawn: (cmd: string[], env: Record<string, string>) => { pid: number };
+  spawn: (cmd: string[], env: Record<string, string>) => { pid: number; onError?: (cb: (e: Error) => void) => void };
   status: (m: AppManifest) => Promise<AppStatus>;
   emit: (e: VelaEvent) => void;
 }
 
 export type LaunchResult = { ok: true } | { ok: false; reason: "unknown" | "installing" | "missing" };
 
-export function defaultSpawn(cmd: string[], env: Record<string, string>): { pid: number } {
+export function defaultSpawn(cmd: string[], env: Record<string, string>): { pid: number; onError: (cb: (e: Error) => void) => void } {
   const [bin = "", ...args] = cmd;
   const p = nodeSpawn(bin, args, { env: { ...process.env, ...env }, detached: true, stdio: "ignore" });
   p.on("error", (e) => console.error(`vela: failed to spawn ${bin}: ${e.message}`));
   p.unref();
-  return { pid: p.pid ?? 0 };
+  return { pid: p.pid ?? 0, onError: (cb) => void p.on("error", cb) };
 }
 
 export class AppRunner {
   private cur: string = "home";
   private pending = new Map<string, ReturnType<typeof setTimeout>>();
+  /** ids whose launch timed out; a late window still switches if the user is still home. */
+  private timedOut = new Set<string>();
 
   constructor(private deps: AppRunnerDeps) {
     deps.sway.onWindowNew((w) => void this.onNew(w).catch(this.logErr));
@@ -74,15 +76,22 @@ export class AppRunner {
     }
     if (this.pending.has(id)) return { ok: true }; // already starting
 
-    this.pending.set(
-      id,
-      setTimeout(() => {
-        this.pending.delete(id);
-        this.deps.emit({ type: "toast", message: `${m.name} didn't start` });
-        void this.goHome().catch(this.logErr);
-      }, LAUNCH_TIMEOUT_MS),
-    );
-    this.deps.spawn(this.argv(m), { VELA_APP_ID: id, VELA_WORKSPACE: `app-${id}` });
+    this.timedOut.delete(id);
+    const fail = (): void => {
+      const t = this.pending.get(id);
+      if (t === undefined) return;
+      clearTimeout(t);
+      this.pending.delete(id);
+      this.timedOut.add(id);
+      this.deps.emit({ type: "toast", message: `${m.name} didn't start` });
+      void this.goHome().catch(this.logErr);
+    };
+    this.pending.set(id, setTimeout(fail, LAUNCH_TIMEOUT_MS));
+    try {
+      this.deps.spawn(this.argv(m), {}).onError?.(fail);
+    } catch {
+      fail();
+    }
     return { ok: true };
   }
 
@@ -95,11 +104,15 @@ export class AppRunner {
   private async onNew(w: SwayWindow): Promise<void> {
     const m = this.appFor(w);
     if (!m) return;
+    const ws = `app-${m.id}`;
+    await this.deps.sway.moveWindowToWorkspace(w.id, ws); // always before any switch
     const timer = this.pending.get(m.id);
-    if (timer) {
-      clearTimeout(timer);
+    const late = this.timedOut.has(m.id) && this.cur === "home";
+    if (timer || late) {
+      if (timer) clearTimeout(timer);
       this.pending.delete(m.id);
-      await this.deps.sway.showWorkspace(`app-${m.id}`);
+      this.timedOut.delete(m.id);
+      await this.deps.sway.showWorkspace(ws);
       this.cur = m.id;
     }
     this.deps.emit({ type: "app-state", id: m.id, status: "running" });
