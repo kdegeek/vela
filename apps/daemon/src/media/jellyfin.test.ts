@@ -54,6 +54,15 @@ describe("toCard", () => {
     expect(card.key).toBe("jellyfin:i1");
     expect(card.backdropUrl).toBe("/api/art/jellyfin/i1/Backdrop?w=3840");
   });
+
+  it("toCard uses the fallback backdrop when the item has none", () => {
+    const item: JellyfinItem = { id: "i2", name: "No art", genres: ["Drama"], overview: "Text", hasBackdrop: false, hasPrimary: true };
+    const c = toCard(item, "/api/art/mock/bd-x.jpg");
+    expect(c.backdropUrl).toBe("/api/art/mock/bd-x.jpg");
+    expect(c.title).toBe("No art");
+    expect(c.blurb).toBe("Text");
+    expect(c.posterUrl).toBe("/api/art/jellyfin/i2/Primary?w=704");
+  });
 });
 
 describe("art proxy", () => {
@@ -87,6 +96,20 @@ describe("art proxy", () => {
     expect(seen!.auth).toContain('Token="t"');
   });
 
+  it("proxy rejects text/html upstream with 502", async () => {
+    const fake = (async () => new Response("<script>alert(1)</script>", { headers: { "content-type": "text/html" } })) as unknown as typeof fetch;
+    const r = await mk(fake).inject({ url: "/api/art/jellyfin/0123456789abcdef0123456789abcdef/Backdrop?w=3840", headers: H });
+    expect(r.statusCode).toBe(502);
+  });
+
+  it("proxied image carries nosniff and CSP", async () => {
+    const fake = (async () => new Response(new Uint8Array([1]), { headers: { "content-type": "image/webp" } })) as unknown as typeof fetch;
+    const r = await mk(fake).inject({ url: "/api/art/jellyfin/0123456789abcdef0123456789abcdef/Primary?w=704", headers: H });
+    expect(r.statusCode).toBe(200);
+    expect(r.headers["x-content-type-options"]).toBe("nosniff");
+    expect(r.headers["content-security-policy"]).toBe("default-src 'none'; sandbox");
+  });
+
   it("rejects odd ids and types", async () => {
     const app = mk((async () => json({})) as unknown as typeof fetch);
     expect((await app.inject({ url: "/api/art/jellyfin/0123456789abcdef0123456789abcdef/Logo?w=3840", headers: H })).statusCode).toBe(400);
@@ -105,5 +128,9 @@ describe("static asset routes", () => {
     expect(art.statusCode).toBe(200);
     expect(art.headers["content-type"]).toBe("image/jpeg");
     expect((await app.inject({ url: "/api/art/mock/..%2Fx.jpg", headers: H })).statusCode).toBe(404);
+    for (const r of [art, await app.inject({ url: "/api/glyphs/plex.svg", headers: H })]) {
+      expect(r.headers["x-content-type-options"]).toBe("nosniff");
+      expect(r.headers["content-security-policy"]).toBe("default-src 'none'; sandbox");
+    }
   });
 });

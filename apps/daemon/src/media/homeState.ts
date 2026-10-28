@@ -1,8 +1,10 @@
 import type { AppStatus, AppTile, HeroItem, HomeState, MediaCard, Row, VelaEvent } from "@vela/shared";
 import type { AppManifest } from "../manifests.js";
+import { JellyfinAuthError } from "./jellyfin.js";
 import type { MockProvider } from "./mock.js";
 
 export const JELLYFIN_DOWN = "Jellyfin isn't reachable. Check that the server is on.";
+export const JELLYFIN_AUTH_FAILED = "Jellyfin sign-in failed. Check the username and password in /etc/vela/vela.toml.";
 const FALLBACK_SLUG = "charge";
 
 export interface HomeDeps {
@@ -24,8 +26,8 @@ export async function buildHomeState(d: HomeDeps): Promise<HomeState> {
   if (d.media) {
     try {
       resume = await d.media.resume();
-    } catch {
-      line = JELLYFIN_DOWN;
+    } catch (e) {
+      line = e instanceof JellyfinAuthError ? JELLYFIN_AUTH_FAILED : JELLYFIN_DOWN;
     }
   }
 

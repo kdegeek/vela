@@ -46,7 +46,7 @@ const home = () =>
   buildHomeState({
     manifests,
     status,
-    media: jf ? { resume: async () => (await jf.resume()).map(toCard) } : null,
+    media: jf ? { resume: async () => (await jf.resume()).map((i) => toCard(i, mock.hero("sintel").backdropUrl)) } : null,
     mock,
   });
 startHomePolling(home, bus.emit);

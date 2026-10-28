@@ -18,7 +18,7 @@
         "Your library"
       ],
       "blurb": "Pick up where you left off.",
-      "backdropUrl": "/api/art/mock/bd-tos-3.jpg",
+      "backdropUrl": "/api/art/mock/bd-bbb-2.jpg",
       "tint": "oklch(0.80 0.08 240)",
       "label": "Your library"
     }

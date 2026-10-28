@@ -46,6 +46,13 @@ function assetsDir(): string {
   return process.env.VELA_ASSETS_DIR ?? fileURLToPath(new URL("../assets", import.meta.url));
 }
 
+const ALLOWED_PROXY_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+/** Headers that stop a served file from being treated as a page, even if its type were wrong. */
+function hardened(reply: import("fastify").FastifyReply) {
+  return reply.header("x-content-type-options", "nosniff").header("content-security-policy", "default-src 'none'; sandbox");
+}
+
 const SAFE_FILE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const MIME: Record<string, string> = { ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png" };
 
@@ -54,7 +61,7 @@ async function sendAsset(dir: string, file: string, reply: import("fastify").Fas
   const mime = MIME[path.extname(file).toLowerCase()];
   const full = path.join(dir, file);
   if (!SAFE_FILE.test(file) || !mime || !fs.existsSync(full)) return reply.code(404).send({ error: "not found" });
-  return reply.header("content-type", mime).header("cache-control", "max-age=86400").send(fs.readFileSync(full));
+  return hardened(reply).header("content-type", mime).header("cache-control", "max-age=86400").send(fs.readFileSync(full));
 }
 
 /** VELA_LAUNCHER_DIR overrides; default is the sibling launcher build in the monorepo. */
@@ -126,8 +133,13 @@ export function buildServer(s: Services): FastifyInstance {
       return reply.code(502).send({ error: "Jellyfin isn't reachable" });
     }
     if (!up.ok || !up.body) return reply.code(up.status === 404 ? 404 : 502).send({ error: "image unavailable" });
-    return reply
-      .header("content-type", up.headers.get("content-type") ?? "image/jpeg")
+    const type_ = (up.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
+    if (!ALLOWED_PROXY_TYPES.has(type_)) {
+      await up.body.cancel();
+      return reply.code(502).send({ error: "unexpected content type from Jellyfin" });
+    }
+    return hardened(reply)
+      .header("content-type", type_)
       .header("cache-control", "max-age=86400")
       .send(Readable.fromWeb(up.body as import("node:stream/web").ReadableStream));
   });

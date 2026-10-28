@@ -13,7 +13,7 @@
         "Your home"
       ],
       "blurb": "Everything at home is quiet.",
-      "backdropUrl": "/api/art/mock/bd-tos-4.jpg",
+      "backdropUrl": "/api/art/mock/bd-sintel-2.jpg",
       "tint": "oklch(0.86 0.07 230)",
       "label": "Your home"
     }

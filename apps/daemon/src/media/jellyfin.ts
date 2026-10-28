@@ -15,6 +15,9 @@ export interface JellyfinItem {
   container?: string;
 }
 
+/** The server answered but rejected our credentials (or we have none). */
+export class JellyfinAuthError extends Error {}
+
 export const ART_WIDTHS = [3840, 1280, 704] as const;
 const TICKS_PER_MIN = 600_000_000;
 
@@ -68,6 +71,7 @@ export class JellyfinClient {
 
   private async req(path: string, init: RequestInit = {}): Promise<Response> {
     const res = await this.f(`${this.url}${path}`, { signal: AbortSignal.timeout(10_000), ...init });
+    if (res.status === 401 || res.status === 403) throw new JellyfinAuthError(`Jellyfin rejected the sign-in (${res.status})`);
     if (!res.ok) throw new Error(`Jellyfin ${init.method ?? "GET"} ${path.split("?")[0]} failed: ${res.status}`);
     return res;
   }
@@ -85,7 +89,7 @@ export class JellyfinClient {
   }
 
   async resume(limit = 12): Promise<JellyfinItem[]> {
-    if (!this.userId) throw new Error("Jellyfin client has no user id");
+    if (!this.userId) throw new JellyfinAuthError("Jellyfin client is not signed in");
     const q = new URLSearchParams({ userId: this.userId, limit: String(limit), mediaTypes: "Video", fields: "Overview,Genres", enableImageTypes: "Backdrop,Primary" });
     const res = await this.req(`/UserItems/Resume?${q}`, { headers: this.headers() });
     const j = (await res.json()) as { Items?: RawItem[] };
@@ -143,7 +147,8 @@ export class JellyfinClient {
   }
 }
 
-export function toCard(item: JellyfinItem): MediaCard {
+/** `fallbackBackdrop` stands in when the item has no backdrop image; a poster blown up to 4K would look soft. */
+export function toCard(item: JellyfinItem, fallbackBackdrop?: string): MediaCard {
   const run = item.runTimeTicks;
   const pos = item.positionTicks;
   const hasRun = run !== undefined && run > 0;
@@ -156,7 +161,7 @@ export function toCard(item: JellyfinItem): MediaCard {
     runtimeMin: hasRun ? Math.round(run / TICKS_PER_MIN) : undefined,
     tags: item.genres.slice(0, 3),
     blurb: item.overview,
-    backdropUrl: `${art(item.hasBackdrop || !item.hasPrimary ? "Backdrop" : "Primary")}3840`,
+    backdropUrl: item.hasBackdrop || !fallbackBackdrop ? `${art("Backdrop")}3840` : fallbackBackdrop,
     posterUrl: item.hasPrimary ? `${art("Primary")}704` : undefined,
     kicker: "Continue watching",
     sourceId: "jellyfin",

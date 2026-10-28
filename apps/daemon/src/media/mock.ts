@@ -13,15 +13,37 @@ interface MockTitle {
   blurb: string;
   tint: string;
   backdrop: string;
-  poster: string;
+  poster?: string;
   /** App the title pretends to belong to. */
   sourceId: string;
 }
 
 const art = (f: string): string => `/api/art/mock/${f}`;
 
-// Facts are from the Blender Foundation / Blender Studio releases. Only films with a backdrop of at least 3840 px have art here.
+// Facts are from the Blender Foundation / Blender Studio releases. Backdrops are true 4K frames (see assets/mock/CREDITS.md).
+// Sintel has no poster of at least 1056 px on Commons, so it appears only in wide rows.
 const TITLES: Record<string, MockTitle> = {
+  sintel: {
+    title: "Sintel",
+    year: 2010,
+    runtimeMin: 15,
+    tags: ["4K", "Fantasy"],
+    blurb: "A young woman befriends a baby dragon, then sets out to find him after he is taken.",
+    tint: "oklch(0.84 0.12 80)",
+    backdrop: art("bd-sintel-1.jpg"),
+    sourceId: "jellyfin",
+  },
+  bbb: {
+    title: "Big Buck Bunny",
+    year: 2008,
+    runtimeMin: 10,
+    tags: ["4K", "Comedy"],
+    blurb: "A gentle giant of a rabbit gets even with the three rodents who made his morning miserable.",
+    tint: "oklch(0.84 0.13 110)",
+    backdrop: art("bd-bbb-1.jpg"),
+    poster: art("p-bbb.jpg"),
+    sourceId: "plex",
+  },
   tos: {
     title: "Tears of Steel",
     year: 2012,
@@ -37,20 +59,13 @@ const TITLES: Record<string, MockTitle> = {
     title: "Charge",
     year: 2022,
     runtimeMin: 4,
-    tags: ["Sci-fi", "Action"],
-    blurb: "In a dystopian future, an old man defends his last energy source from a relentless robot.",
+    tags: ["4K", "Sci-fi"],
+    blurb: "A wounded man in a dystopian future fights to keep hold of his last energy cell.",
     tint: "oklch(0.72 0.17 265)",
-    backdrop: art("bd-charge.jpg"),
+    backdrop: art("bd-charge-1.jpg"),
     poster: art("p-charge.jpg"),
     sourceId: "jellyfin",
   },
-};
-
-/** Extra hero-only frames from Tears of Steel, so app tiles do not all show the same still. */
-const TOS_FRAMES: Record<string, string> = {
-  "tos-2": art("bd-tos-2.jpg"),
-  "tos-3": art("bd-tos-3.jpg"),
-  "tos-4": art("bd-tos-4.jpg"),
 };
 
 function toHero(t: MockTitle, extra: Partial<HeroItem> = {}): HeroItem {
@@ -73,30 +88,22 @@ function card(slug: string, extra: Partial<MediaCard> = {}): MediaCard {
 }
 
 export function createMockProvider(): MockProvider {
+  const k = "Continue watching";
   return {
-    hero(slug) {
-      const base = slug.startsWith("tos-") ? "tos" : slug;
-      const t = TITLES[base] ?? TITLES.tos!;
-      return toHero(t, TOS_FRAMES[slug] ? { backdropUrl: TOS_FRAMES[slug] } : {});
-    },
-    rows() {
-      return [
-        {
-          id: "continue",
-          title: "Continue watching",
-          layout: "wide",
-          items: [
-            card("charge", { kicker: "Continue watching", progress: 0.55, remainingMin: 2 }),
-            card("tos", { kicker: "Continue watching", progress: 0.72, remainingMin: 3, sourceId: "plex" }),
-          ],
-        },
-        {
-          id: "recent",
-          title: "Recently added",
-          layout: "poster",
-          items: [card("tos"), card("charge")],
-        },
-      ];
-    },
+    hero: (slug) => toHero(TITLES[slug] ?? TITLES.tos!),
+    rows: () => [
+      {
+        id: "continue",
+        title: k,
+        layout: "wide",
+        items: [
+          card("sintel", { kicker: k, progress: 0.41, remainingMin: 9 }),
+          card("tos", { kicker: k, progress: 0.72, remainingMin: 4 }),
+          card("bbb", { kicker: k, progress: 0.3, remainingMin: 7 }),
+          card("charge", { kicker: k, progress: 0.55, remainingMin: 2 }),
+        ],
+      },
+      { id: "recent", title: "Recently added", layout: "poster", items: [card("bbb"), card("tos"), card("charge")] },
+    ],
   };
 }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { JellyfinAuthError } from "./jellyfin.js";
 import { buildHomeState, startHomePolling } from "./homeState.js";
 import { createMockProvider } from "./mock.js";
 import { EventBus } from "../server.js";
@@ -31,6 +32,12 @@ describe("buildHomeState", () => {
     expect(s.rows.find((r) => r.id === "continue")).toBeUndefined();
     expect(s.status.line).toBe("Jellyfin isn't reachable. Check that the server is on.");
     expect(s.apps.find((a) => a.id === "jellyfin")?.feature).not.toBeNull(); // mock hero fallback
+  });
+
+  it("says sign-in failed, not unreachable, when Jellyfin rejects the credentials", async () => {
+    const s = await buildHomeState({ manifests, status: async () => "ready", media: { resume: async () => { throw new JellyfinAuthError("401"); } }, mock });
+    expect(s.status.line).toBe("Jellyfin sign-in failed. Check the username and password in /etc/vela/vela.toml.");
+    expect(s.rows.find((r) => r.id === "continue")).toBeUndefined();
   });
 
   it("uses Jellyfin resume for the continue row when reachable", async () => {
