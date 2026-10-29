@@ -1,0 +1,11 @@
+# VM smoke test only. Waits for the kiosk, records state, crashes sway, records it again.
+[Unit]
+Description=Vela VM smoke diagnostics
+After=greetd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/vela-smoke/diag
+
+[Install]
+WantedBy=multi-user.target

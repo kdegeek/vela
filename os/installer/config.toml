@@ -1,0 +1,8 @@
+# bootc-image-builder config for the installer ISO (`--type anaconda-iso`). image.yml puts the
+# text of os/installer/kickstart.ks in place of the placeholder line below before the build. It
+# is a TOML literal string (no escapes), so the kickstart must not contain three single quotes
+# in a row.
+[customizations.installer.kickstart]
+contents = '''
+@KICKSTART@
+'''

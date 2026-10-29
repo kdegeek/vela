@@ -1,0 +1,11 @@
+# VM smoke-test image: the real Vela image plus test-only config. Never published.
+#   podman build --build-arg BASE=ghcr.io/kdegeek/vela:latest -t localhost/vela-vmtest dev/vm/test-image
+ARG BASE=ghcr.io/kdegeek/vela:latest
+FROM ${BASE}
+COPY files/ /
+# Flatpaks and the Home Assistant image are multi-GB first-boot downloads the smoke test doesn't
+# exercise; the diag service reports state over the serial console and the screen.
+RUN systemctl mask vela-flatpaks.service homeassistant.service \
+ && systemctl enable vela-smoke-diag.service \
+ && chmod 0755 /usr/libexec/vela-smoke/diag \
+ && bootc container lint

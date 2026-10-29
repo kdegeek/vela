@@ -1,0 +1,11 @@
+# VM smoke test only: the image's session with wlroots' software renderer (no GPU in the VM).
+[terminal]
+vt = 1
+
+[initial_session]
+user = "vela"
+command = "env WLR_RENDERER=pixman WLR_NO_HARDWARE_CURSORS=1 sway --config /usr/share/vela/sway/config"
+
+[default_session]
+user = "vela"
+command = "env WLR_RENDERER=pixman WLR_NO_HARDWARE_CURSORS=1 sway --config /usr/share/vela/sway/config"

@@ -82,6 +82,21 @@ jobs:
           echo "bytes: $(podman image inspect --format '{{.Size}}' "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}")"
           df -h /
 
+      - name: Save the image for the VM jobs
+        run: |
+          podman save --format docker-archive -o "$RUNNER_TEMP/vela-image.tar" "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha_tag }}"
+          zstd -T0 -3 --rm "$RUNNER_TEMP/vela-image.tar" -o vela-image.tar.zst
+          ls -l vela-image.tar.zst
+
+      - name: Upload the image for the VM jobs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vela-image
+          path: vela-image.tar.zst
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
       - name: Log in to GHCR
         if: steps.meta.outputs.push == 'true'
         uses: redhat-actions/podman-login@50c2d9a331bb67c8fdab99b86455fad05e2e3252 # v2.0
@@ -96,3 +111,110 @@ jobs:
         with:
           image: ${{ steps.build.outputs.image }}
           tags: ${{ steps.build.outputs.tags }}
+
+  # Boots the image built above in QEMU at 3840x2160 (dev/vm/). Uses this run's image, not GHCR.
+  vm-smoke:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -l /dev/kvm
+
+      - name: Install QEMU
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends qemu-system-x86 qemu-utils ovmf python3-numpy python3-pil
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vela-image
+
+      - name: Load the image (rootful, for bootc-image-builder)
+        run: |
+          zstd -dc vela-image.tar.zst | sudo podman load
+          rm vela-image.tar.zst
+          sudo podman images
+
+      - name: Build the test disk (qcow2)
+        run: dev/vm/build-qcow2.sh "${{ needs.build.outputs.image }}:${{ needs.build.outputs.sha_tag }}" "$RUNNER_TEMP/vm"
+
+      - name: Boot and check
+        run: dev/vm/run-smoke.sh "$RUNNER_TEMP/vm/qcow2/disk.qcow2" vm-artifacts
+
+      - name: Upload the home screen screenshot
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vm-home-3840
+          path: vm-artifacts/vm-home-3840.png
+          if-no-files-found: warn
+
+      - name: Upload the VM logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vm-smoke-logs
+          path: vm-artifacts/
+          if-no-files-found: warn
+
+  # The wipe installer (os/installer/), on version tags and manual runs.
+  installer:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: vela-image
+
+      - name: Load the image as ghcr.io/<owner>/vela:latest
+        run: |
+          zstd -dc vela-image.tar.zst | sudo podman load
+          rm vela-image.tar.zst
+          # bootc-image-builder makes the installed system follow the name it was built from.
+          sudo podman tag "${{ needs.build.outputs.image }}:${{ needs.build.outputs.sha_tag }}" "${{ needs.build.outputs.image }}:latest"
+
+      - name: Render the installer config
+        run: |
+          mkdir -p "$RUNNER_TEMP/iso"
+          python3 - "$RUNNER_TEMP/iso/config.toml" <<'PY'
+          import pathlib, sys, tomllib
+          cfg = pathlib.Path("os/installer/config.toml").read_text()
+          ks = pathlib.Path("os/installer/kickstart.ks").read_text()
+          assert "\'\'\'" not in ks, "kickstart.ks must not contain three single quotes in a row"
+          out = cfg.replace("@KICKSTART@", ks.rstrip("\n"))
+          assert tomllib.loads(out)["customizations"]["installer"]["kickstart"]["contents"].strip() == ks.strip()
+          pathlib.Path(sys.argv[1]).write_text(out)
+          PY
+          pipx run --spec pykickstart ksvalidator -v F44 os/installer/kickstart.ks
+
+      - name: Build the installer ISO
+        run: |
+          out="$RUNNER_TEMP/iso"
+          sudo podman run --rm --privileged \
+            --security-opt label=type:unconfined_t \
+            -v "$out/config.toml:/config.toml:ro" \
+            -v "$out:/output" \
+            -v /var/lib/containers/storage:/var/lib/containers/storage \
+            quay.io/centos-bootc/bootc-image-builder@sha256:b858892139e0779d48869a4dd8cbbc4e257da49f5a4b502824a55d221ed65a55 \
+            --type anaconda-iso --rootfs xfs "${{ needs.build.outputs.image }}:latest"
+          sudo mv "$out/bootiso/install.iso" vela-installer.iso
+          sudo chown "$(id -u):$(id -g)" vela-installer.iso
+          ls -l vela-installer.iso
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vela-installer
+          path: vela-installer.iso
+          compression-level: 0
+          if-no-files-found: error

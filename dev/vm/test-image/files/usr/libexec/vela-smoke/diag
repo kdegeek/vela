@@ -1,0 +1,122 @@
+#!/bin/bash
+# VM smoke test only (vela-smoke-diag.service, runs as root). Reports over the serial console,
+# which dev/vm/run-smoke.sh reads:
+#   1. wait for the kiosk Chromium window on workspace "home", record state  -> "VELA-SMOKE PHASE1"
+#   2. give the runner time for its screenshot, then crash sway (SIGSEGV)
+#   3. wait for greetd's new sway and the kiosk to come back, record state  -> "VELA-SMOKE PHASE2"
+#   4. print the whole report between "VELA-SMOKE DIAG BEGIN/END", then "VELA-SMOKE DONE"
+# Each assertion is a "CHECK <name> PASS|FAIL" line; the runner fails the job on any FAIL.
+set -u
+out=/var/lib/vela/smoke
+mkdir -p "$out"
+report="$out/diag.txt"
+: > "$report"
+serial=/dev/ttyS0
+
+say() { printf '%s\n' "$*" > "$serial" 2>/dev/null || true; printf '%s\n' "$*" >> "$report"; }
+log() { printf '%s\n' "$*" >> "$report"; }
+check() { # check <name> <command...>
+  local name=$1; shift
+  if "$@" >/dev/null 2>&1; then say "CHECK $name PASS"; else say "CHECK $name FAIL"; fi
+}
+
+uid=$(id -u vela)
+rt=/run/user/$uid
+swaysock() { ls -t "$rt"/sway-ipc.*.sock 2>/dev/null | head -n1; }
+sm() { SWAYSOCK=$(swaysock) swaymsg "$@"; }
+sway_pid() { pgrep -u vela -x sway | head -n1; }
+sway_running() { [ -n "$(sway_pid)" ]; }
+userctl() { # systemctl --user for vela, with a fallback that doesn't need machined
+  systemctl --user -M vela@ "$@" 2>/dev/null \
+    || setpriv --reuid="$uid" --regid="$(id -g vela)" --init-groups \
+         env XDG_RUNTIME_DIR="$rt" DBUS_SESSION_BUS_ADDRESS="unix:path=$rt/bus" systemctl --user "$@"
+}
+userjournal() {
+  journalctl -b --no-pager _UID="$uid" -n 120 2>/dev/null
+}
+# The sway assign rule in /usr/share/vela/sway/config, applied to workspace "home".
+kiosk_on_home() {
+  sm -t get_tree | jq -e '
+    [recurse(.nodes[]?, .floating_nodes[]?) | select(.type == "workspace" and .name == "home")
+     | recurse(.nodes[]?, .floating_nodes[]?)
+     | select((.app_id // "") | test("^(chrome-127\\.0\\.0\\.1|chromium)"))] | length > 0'
+}
+units_active() { userctl is-active --quiet vela-daemon.service vela-kiosk.service; }
+
+capture() {
+  log ""
+  log "################ $1 ($(date -Is), uptime $(cut -d' ' -f1 /proc/uptime) s)"
+  {
+    echo "--- swaymsg -t get_outputs"; sm -t get_outputs -r | jq -c '.[] | {name, current_mode, scale}'
+    echo "--- swaymsg -t get_workspaces"; sm -t get_workspaces -r | jq -c '.[] | {name, focused, output}'
+    echo "--- windows (from get_tree)"
+    sm -t get_tree -r | jq -c '
+      recurse(.nodes[]?, .floating_nodes[]?) | select(.type == "workspace") as $ws
+      | $ws | recurse(.nodes[]?, .floating_nodes[]?) | select(.pid? != null)
+      | {workspace: $ws.name, app_id, class: .window_properties.class, name, pid, fullscreen_mode, focused, rect}'
+    echo "--- swaymsg -t get_tree (full)"; sm -t get_tree -r
+    echo "--- systemctl --user status"
+    userctl status --no-pager --lines=15 vela-session.target vela-daemon.service vela-kiosk.service
+    echo "--- systemctl --user --failed"; userctl --failed --no-pager
+    echo "--- loginctl"; loginctl list-sessions --no-pager
+    for s in $(loginctl list-sessions --no-legend | awk '{print $1}'); do
+      loginctl show-session "$s" -p Id -p Name -p Type -p Class -p State -p Seat -p VTNr -p Service -p Remote
+    done
+    echo "--- ps -eZ (sway, chromium, node, greetd)"
+    ps -eZ -o label,pid,ppid,user,comm | grep -E 'LABEL|sway|chrom|node|greetd'
+    echo "--- SELinux"; getenforce
+    echo "--- sshd / firewalld (docs/install.md relies on SSH for later config edits)"
+    rpm -q openssh-server firewalld; systemctl is-enabled sshd.service firewalld.service; systemctl is-active sshd.service
+    echo "--- bootc status"; bootc status 2>&1 | head -n 30
+    echo "--- kernel command line"; cat /proc/cmdline
+    echo "--- AVC denials this boot (audit transport)"
+    journalctl -b --no-pager _TRANSPORT=audit -g 'avc:' 2>/dev/null | tail -n 60
+    echo "--- AVC denials this boot (all journal)"
+    journalctl -b --no-pager -g 'avc: +denied' 2>/dev/null | tail -n 60
+    if command -v ausearch >/dev/null; then echo "--- ausearch -m avc -ts boot"; ausearch -m avc -ts boot 2>&1 | tail -n 60; fi
+    echo "--- vela user journal (tail)"; userjournal
+    echo "--- greetd journal (tail)"; journalctl -b --no-pager -u greetd -n 40
+  } >> "$report" 2>&1
+}
+
+wait_for() { # wait_for <seconds> <command...>
+  local deadline=$(( $(date +%s) + $1 )); shift
+  while [ "$(date +%s)" -lt "$deadline" ]; do "$@" >/dev/null 2>&1 && return 0; sleep 2; done
+  return 1
+}
+
+say "VELA-SMOKE START uptime=$(cut -d' ' -f1 /proc/uptime)"
+
+# --- 1. first boot -------------------------------------------------------------------------------
+wait_for 600 kiosk_on_home
+say "VELA-SMOKE kiosk-window uptime=$(cut -d' ' -f1 /proc/uptime)"
+sleep 30  # let the launcher page load and paint before the screenshot
+capture "PHASE 1: first boot"
+check kiosk_on_home_first_boot kiosk_on_home
+check units_active_first_boot units_active
+check sway_running_first_boot sway_running
+old_pid=$(sway_pid)
+say "VELA-SMOKE PHASE1 sway_pid=${old_pid:-none}"
+sleep 75  # the runner takes vm-home-3840.png now
+
+# --- 2. crash sway; greetd starts a new one, session-start restarts the daemon and the kiosk ---
+say "VELA-SMOKE crashing sway (SIGSEGV) pid=${old_pid:-none}"
+[ -n "$old_pid" ] && kill -SEGV "$old_pid"
+new_sway() { p=$(sway_pid); [ -n "$p" ] && [ "$p" != "$old_pid" ]; }
+wait_for 180 new_sway
+wait_for 180 kiosk_on_home
+sleep 30
+capture "PHASE 2: after the sway crash"
+check sway_restarted new_sway
+check kiosk_on_home_after_crash kiosk_on_home
+check units_active_after_crash units_active
+say "VELA-SMOKE PHASE2 sway_pid=$(sway_pid)"
+sleep 45  # the runner takes vm-after-crash.png now
+
+# --- 3. the report ---------------------------------------------------------------------------------
+{
+  echo "VELA-SMOKE DIAG BEGIN"
+  cat "$report"
+  echo "VELA-SMOKE DIAG END"
+  echo "VELA-SMOKE DONE"
+} > "$serial" 2>/dev/null

@@ -1,0 +1,2 @@
+# VM smoke test only: boot and journal output on the serial console the runner captures.
+kargs = ["console=tty0", "console=ttyS0,115200"]
