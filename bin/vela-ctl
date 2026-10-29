@@ -39,10 +39,13 @@ case "$1" in
     code=$(printf '%s' "$list" | tail -n 1)
     list=$(printf '%s' "$list" | sed '$d')
     case "$code" in 2??) ;; *) die "could not list devices (HTTP $code): $list" ;; esac
-    tv=$(printf '%s' "$list" | jq -r 'map(select(.kind=="tv")) | .[0].id // empty')
-    [ -n "$tv" ] || die "no TV device is configured"
     case "$2" in up) cmd=volume-up ;; down) cmd=volume-down ;; mute) cmd=mute ;; esac
-    post "/api/devices/$tv/$cmd" ;;
+    want=$(printf '%s' "$cmd" | tr - _)
+    # The daemon lists the volume device first (volumeDevice in vela.toml, else the first TV);
+    # take the first device that has this command (IR code names may use - or _).
+    dev=$(printf '%s' "$list" | jq -r --arg c "$want" 'map(select(.commands | map(gsub("-"; "_")) | index($c))) | .[0].id // empty')
+    [ -n "$dev" ] || die "no device with $want is configured (see volumeDevice in /etc/vela/vela.toml)"
+    post "/api/devices/$dev/$cmd" ;;
   acceptance)
     case "$2" in
       hw-check|perf-check|playback-check|tv-check|ir-check) ;;

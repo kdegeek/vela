@@ -47,6 +47,8 @@ const ConfigSchema = z.object({
     })
     .default({}),
   devices: z.array(Device).default([]),
+  /** Device id the volume keys (vela-ctl volume) control; the first TV when unset. */
+  volumeDevice: z.string().min(1).optional(),
   manifestDirs: z.array(z.string()).default(["/usr/share/vela/apps", "/etc/vela/apps"]),
 });
 

@@ -28,7 +28,8 @@ const SERVICES: Record<TvCommand, { service: string; extra?: Record<string, unkn
   power_off: { service: "turn_off" },
   volume_up: { service: "volume_up" },
   volume_down: { service: "volume_down" },
-  mute: { service: "volume_mute", extra: { is_volume_muted: true } },
+  // is_volume_muted is filled in per call: mute toggles.
+  mute: { service: "volume_mute" },
 };
 
 async function call(ha: HaOptions, path: string, init: RequestInit): Promise<Response> {
@@ -48,14 +49,19 @@ async function call(ha: HaOptions, path: string, init: RequestInit): Promise<Res
 }
 
 export function haTv(entity: string, ha: HaOptions): TvController {
+  const read = async () => {
+    const res = await call(ha, `/api/states/${encodeURIComponent(entity)}`, { method: "GET" });
+    return (await res.json()) as { state?: unknown; attributes?: { is_volume_muted?: unknown } };
+  };
   return {
     async command(cmd) {
       const { service, extra } = SERVICES[cmd];
-      await call(ha, `/api/services/media_player/${service}`, { method: "POST", body: JSON.stringify({ entity_id: entity, ...extra }) });
+      let body: Record<string, unknown> = { entity_id: entity, ...extra };
+      if (cmd === "mute") body = { ...body, is_volume_muted: (await read()).attributes?.is_volume_muted !== true };
+      await call(ha, `/api/services/media_player/${service}`, { method: "POST", body: JSON.stringify(body) });
     },
     async state() {
-      const res = await call(ha, `/api/states/${encodeURIComponent(entity)}`, { method: "GET" });
-      return String(((await res.json()) as { state?: unknown }).state ?? "unavailable");
+      return String((await read()).state ?? "unavailable");
     },
   };
 }

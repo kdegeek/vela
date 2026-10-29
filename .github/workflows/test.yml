@@ -52,4 +52,4 @@ jobs:
       - name: shellcheck
         run: shellcheck -x -P scripts/acceptance -S warning scripts/acceptance/*.sh bin/vela-ctl
       - name: bats
-        run: bats scripts/acceptance/lib.bats
+        run: bats scripts/acceptance/lib.bats bin/vela-ctl.bats

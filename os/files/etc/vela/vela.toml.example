@@ -1,5 +1,10 @@
 # /etc/vela/vela.toml -- every field is optional; values shown are the defaults unless noted.
 
+# Which device the remote's volume and mute keys control (a [[devices]] id below). Unset: the
+# first kind = "tv" device. An IR device needs codes named volume_up, volume_down and mute.
+# (Top-level keys like this one must come before the first [section].)
+# volumeDevice = "soundbar"
+
 [server]
 # Address the daemon binds (port is always 7300). The VM smoke test sets "0.0.0.0".
 listen = "127.0.0.1"

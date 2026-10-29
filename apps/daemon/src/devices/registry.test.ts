@@ -26,6 +26,16 @@ describe("DeviceRegistry", () => {
     ]);
   });
 
+  it("lists the volume device first: the configured volumeDevice, else the first TV", () => {
+    const soundbar: DeviceConfig = { id: "bar", name: "Soundbar", kind: "ir", transmitter: "irctl", codes: { volume_up: { file: "samsung.ir", button: "Vol_up" } } };
+    const deps = { irdbRoot, transmitters: {} };
+    expect(new DeviceRegistry([soundbar, tvCfg, irCfg], deps).list().map((d) => d.id)).toEqual(["tv", "bar", "amp"]);
+    expect(new DeviceRegistry([tvCfg, irCfg, soundbar], { ...deps, volumeDevice: "bar" }).list().map((d) => d.id)).toEqual(["bar", "tv", "amp"]);
+    // An unknown volumeDevice is ignored.
+    expect(new DeviceRegistry([soundbar, tvCfg], { ...deps, volumeDevice: "nope" }).list().map((d) => d.id)).toEqual(["tv", "bar"]);
+    expect(new DeviceRegistry([soundbar], deps).list().map((d) => d.id)).toEqual(["bar"]);
+  });
+
   it("power_on falls back to IR when HA turn_on fails", async () => {
     const { reg, irctl, sleep } = setup({ command: vi.fn(async () => { throw new TvUnreachable(); }) });
     await reg.run("tv", "power_on");

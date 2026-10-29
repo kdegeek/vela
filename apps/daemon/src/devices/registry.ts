@@ -30,6 +30,8 @@ export interface RegistryDeps {
   /** Only the transmitters that are actually present. */
   transmitters: Partial<Record<"irctl" | "audiojack", IrTransmitter>>;
   sleep?: (ms: number) => Promise<void>;
+  /** config.volumeDevice: listed first, so the volume keys use it. */
+  volumeDevice?: string;
 }
 
 const POWER_ON_SETTLE_MS = 8000;
@@ -42,8 +44,12 @@ export class DeviceRegistry {
     this.sleep = deps.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
   }
 
+  /** The volume device (config.volumeDevice, else the first TV) comes first: vela-ctl volume uses the first device with the command. */
   list(): Device[] {
-    return this.cfg.map((d) => ({
+    const want = this.deps.volumeDevice;
+    const vol = (want && this.cfg.find((d) => d.id === want)) || this.cfg.find((d) => d.kind === "tv");
+    const ordered = vol ? [vol, ...this.cfg.filter((d) => d !== vol)] : this.cfg;
+    return ordered.map((d) => ({
       id: d.id,
       name: d.name,
       kind: d.kind,

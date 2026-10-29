@@ -21,7 +21,8 @@ computer, and it remembers the mapping itself; then you plug it into the Mac min
 | Volume down | `XF86AudioLowerVolume` (Volume Down media key) | TV volume down |
 | Mute | `XF86AudioMute` (Mute media key) | Mute the TV |
 
-The volume keys change the **TV's** volume (through Home Assistant or IR), not the Mac's.
+The volume keys change the **TV's** volume (through Home Assistant or IR), not the Mac's. Mute
+toggles. To send them to a soundbar instead, set `volumeDevice` in `/etc/vela/vela.toml`.
 Home and the volume keys work even while an app is full screen.
 
 ### Recording the mapping

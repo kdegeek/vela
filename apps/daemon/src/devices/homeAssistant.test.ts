@@ -19,10 +19,20 @@ describe("haTv", () => {
     const tv = haTv("media_player.tv", { url: "http://ha", token: "t", fetch });
     await tv.command("power_on");
     await tv.command("power_off");
-    await tv.command("mute");
     const calls = fetch.mock.calls as unknown as [string, RequestInit][];
-    expect(calls.map((c) => c[0].split("/").pop())).toEqual(["turn_on", "turn_off", "volume_mute"]);
-    expect(JSON.parse(calls[2]![1].body as string)).toEqual({ entity_id: "media_player.tv", is_volume_muted: true });
+    expect(calls.map((c) => c[0].split("/").pop())).toEqual(["turn_on", "turn_off"]);
+  });
+
+  it.each([
+    [false, true],
+    [true, false],
+    [undefined, true],
+  ])("mute toggles: is_volume_muted %s sends %s", async (muted, sent) => {
+    const fetch = vi.fn(async (url: string) => (url.includes("/api/states/") ? json({ state: "on", attributes: muted === undefined ? {} : { is_volume_muted: muted } }) : json([])));
+    await haTv("media_player.tv", { url: "http://ha", token: "t", fetch: fetch as unknown as typeof globalThis.fetch }).command("mute");
+    const calls = fetch.mock.calls as unknown as [string, RequestInit][];
+    expect(calls.map((c) => c[0])).toEqual(["http://ha/api/states/media_player.tv", "http://ha/api/services/media_player/volume_mute"]);
+    expect(JSON.parse(calls[1]![1].body as string)).toEqual({ entity_id: "media_player.tv", is_volume_muted: sent });
   });
 
   it("HTTP 500 rejects with TvUnreachable", async () => {

@@ -32,6 +32,13 @@ describe("config", () => {
     expect(loadConfig(p).media.jellyfin?.url).toBe("http://jf:8096"); // older files still load
   });
 
+  it("volumeDevice is optional", () => {
+    expect(loadConfig(path.join(tmp(), "nope.toml")).volumeDevice).toBeUndefined();
+    const p = path.join(tmp(), "vela.toml");
+    fs.writeFileSync(p, `volumeDevice = "soundbar"\n`);
+    expect(loadConfig(p).volumeDevice).toBe("soundbar");
+  });
+
   it("ir.audioJackSink is optional", () => {
     expect(loadConfig(path.join(tmp(), "nope.toml")).ir.audioJackSink).toBeUndefined();
     const p = path.join(tmp(), "vela.toml");

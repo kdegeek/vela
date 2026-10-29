@@ -71,7 +71,11 @@ const devices = new DeviceRegistry(config.devices, {
   ha: haOpts ? (entity) => haTv(entity, haOpts) : undefined,
   irdbRoot: process.env.VELA_IRDB ?? "/usr/share/vela/irdb",
   transmitters,
+  volumeDevice: config.volumeDevice,
 });
+if (config.volumeDevice && !config.devices.some((d) => d.id === config.volumeDevice)) {
+  console.error(`vela: volumeDevice "${config.volumeDevice}" is not a configured device; the volume keys use the first TV`);
+}
 
 const mock = createMockProvider();
 const glyphs = loadGlyphs(manifests, path.join(assetsDir(), "glyphs"));
