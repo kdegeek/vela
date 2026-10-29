@@ -31,9 +31,10 @@ export class SetupSession {
     return "done";
   }
 
-  status(url: string | null): SetupStatus {
+  /** `showPin` false leaves the PIN out (the main API is reachable beyond this box). */
+  status(url: string | null, showPin = true): SetupStatus {
     const server = this.media?.provider === "jellyfin" ? this.media.server : undefined;
-    return { pin: this.pin.current(), url, step: this.step(), ...(server ? { jellyfinServer: server } : {}), keyCount: this.keys.length };
+    return { ...(showPin ? { pin: this.pin.current() } : {}), url, step: this.step(), ...(server ? { jellyfinServer: server } : {}), keyCount: this.keys.length };
   }
 
   progress(): SetupProgress {

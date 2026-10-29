@@ -82,6 +82,7 @@ if (config.volumeDevice && !config.devices.some((d) => d.id === config.volumeDev
 
 // Setup mode: root creates the gate when there is no vela.toml (or on `vela-ctl setup`) and removes it on commit.
 const setup = startSetupMode({
+  apiListen: config.server.listen,
   gatePath: process.env.VELA_SETUP_GATE ?? "/run/vela-setup/open",
   port: SETUP_PORT,
   secretsPath: SECRETS_PATH,

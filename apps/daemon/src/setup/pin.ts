@@ -13,11 +13,24 @@ export function pinMatches(guess: string, pin: string): boolean {
 
 export type PinResult = "ok" | "wrong" | "locked";
 
-/** The setup PIN. Five wrong guesses in a row give a new PIN (onChange tells the TV) and refuse every guess for 30 s. */
+/** Most sources tracked at once; past this the stalest are forgotten. */
+export const MAX_SOURCES = 1024;
+
+interface Source {
+  wrong: number;
+  lockedUntil: number;
+  last: number;
+}
+
+/**
+ * The setup PIN. Every fifth wrong guess, from any source, gives a new PIN (onChange tells the TV): that is what
+ * defeats guessing. Five wrong guesses in a row from one IP also refuse that IP for 30 s. The lockout is per IP, so
+ * someone else on the LAN can't lock the owner's phone out; it can only make the PIN change.
+ */
 export class PinGuard {
   private pin = newPin();
-  private wrong = 0;
-  private lockedUntil = 0;
+  private wrongSinceNew = 0;
+  private sources = new Map<string, Source>();
 
   constructor(
     private onChange: () => void = () => {},
@@ -28,22 +41,48 @@ export class PinGuard {
     return this.pin;
   }
 
-  /** Seconds left in a lockout, 0 when guesses are accepted. */
-  retryAfter(): number {
-    return Math.max(0, Math.ceil((this.lockedUntil - this.now()) / 1000));
+  /** Seconds left in this IP's lockout, 0 when its guesses are accepted. */
+  retryAfter(ip: string): number {
+    const s = this.sources.get(ip);
+    return s ? Math.max(0, Math.ceil((s.lockedUntil - this.now()) / 1000)) : 0;
   }
 
-  check(guess: string): PinResult {
-    if (this.retryAfter() > 0) return "locked";
+  /** Forgets sources idle for longer than a lockout (their count would have expired anyway), then the stalest past the cap. */
+  private prune(): void {
+    const t = this.now();
+    for (const [ip, s] of this.sources) if (s.lockedUntil <= t && t - s.last > LOCKOUT_MS) this.sources.delete(ip);
+    // Map order is insertion order and entries are re-inserted on use, so the first ones are the stalest.
+    for (const ip of this.sources.keys()) {
+      if (this.sources.size < MAX_SOURCES) break; // room for the one check() may add
+      this.sources.delete(ip);
+    }
+  }
+
+  sourceCount(): number {
+    return this.sources.size;
+  }
+
+  check(guess: string, ip: string): PinResult {
+    this.prune();
+    if (this.retryAfter(ip) > 0) return "locked";
+    const t = this.now();
     if (pinMatches(guess, this.pin)) {
-      this.wrong = 0;
+      this.sources.delete(ip);
       return "ok";
     }
-    if (++this.wrong >= MAX_WRONG) {
-      this.wrong = 0;
+    const s = this.sources.get(ip) ?? { wrong: 0, lockedUntil: 0, last: t };
+    this.sources.delete(ip);
+    s.wrong++;
+    s.last = t;
+    this.sources.set(ip, s);
+    if (++this.wrongSinceNew >= MAX_WRONG) {
+      this.wrongSinceNew = 0;
       this.pin = newPin();
-      this.lockedUntil = this.now() + LOCKOUT_MS;
       this.onChange();
+    }
+    if (s.wrong >= MAX_WRONG) {
+      s.wrong = 0;
+      s.lockedUntil = t + LOCKOUT_MS;
       return "locked";
     }
     return "wrong";

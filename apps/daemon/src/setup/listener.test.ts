@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { API, SETUP_API, type VelaEvent } from "@vela/shared";
-import { BODY_LIMIT, buildSetupServer, setupUrl, startSetupMode, type SetupDeps } from "./listener.js";
+import { BODY_LIMIT, buildSetupServer, isLoopback, setupUrl, startSetupMode, type SetupDeps } from "./listener.js";
 import { SetupSession } from "./state.js";
 
 const PORT = 7301;
@@ -113,19 +113,22 @@ describe("setup listener guard", () => {
     }
   });
 
-  it("five wrong PINs: a new PIN for the TV and 429 with Retry-After, even for the new PIN", async () => {
+  it("five wrong PINs from one IP: a new PIN for the TV, 429 with Retry-After for that IP only", async () => {
     const app = buildSetupServer(deps);
     const first = session.pin.current();
     const wrong = first === "000000" ? "111111" : "000000";
-    for (let i = 0; i < 4; i++) expect((await app.inject({ url: SETUP_API.state, headers: { ...H(), authorization: `Pin ${wrong}` } })).statusCode).toBe(401);
+    const attacker = { remoteAddress: "192.168.1.66" };
+    for (let i = 0; i < 4; i++) expect((await app.inject({ url: SETUP_API.state, headers: { ...H(), authorization: `Pin ${wrong}` }, ...attacker })).statusCode).toBe(401);
     expect(changes).toBe(0);
-    const fifth = await app.inject({ url: SETUP_API.state, headers: { ...H(), authorization: `Pin ${wrong}` } });
+    const fifth = await app.inject({ url: SETUP_API.state, headers: { ...H(), authorization: `Pin ${wrong}` }, ...attacker });
     expect(fifth.statusCode).toBe(429);
     expect(Number(fifth.headers["retry-after"])).toBe(30);
     expect(changes).toBe(1);
-    const again = await app.inject({ url: SETUP_API.state, headers: H() });
+    const again = await app.inject({ url: SETUP_API.state, headers: H(), ...attacker });
     expect(again.statusCode).toBe(429);
     expect(again.json().error).toMatch(/new one/);
+    // The owner's phone, with the new PIN from the TV, still gets in.
+    expect((await app.inject({ url: SETUP_API.state, headers: H(), remoteAddress: "192.168.1.30" })).statusCode).toBe(200);
   });
 });
 
@@ -211,6 +214,27 @@ describe("setup API", () => {
 });
 
 describe("setup mode", () => {
+  it("publishes the PIN on the main API only when it listens on loopback", async () => {
+    expect(["127.0.0.1", "127.8.0.1", "::1", "[::1]", "localhost", "::ffff:127.0.0.1"].filter((a) => !isLoopback(a))).toEqual([]);
+    expect(["0.0.0.0", "::", "192.168.1.20", "128.0.0.1", "127.0.0.1.evil", "localhost.example"].filter(isLoopback)).toEqual([]);
+    const d = tmp();
+    const gatePath = path.join(d, "open");
+    fs.writeFileSync(gatePath, "");
+    const events: VelaEvent[] = [];
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const mode = startSetupMode({ apiListen: "0.0.0.0", gatePath, port: 1, secretsPath: path.join(d, "s.json"), stagingDir: path.join(d, "setup"), staticDir: "/nonexistent", emit: (e) => events.push(e), intervalMs: 60_000 });
+    try {
+      const s = mode.status()!;
+      expect(s.step).toBe("media");
+      expect(s).not.toHaveProperty("pin");
+      for (const e of events) expect(JSON.stringify(e)).not.toMatch(/"pin"/);
+      expect(errors.mock.calls.map((c) => String(c[0]))).toContain("vela: the setup PIN can't be shown safely while the API listens on 0.0.0.0; set server.listen to 127.0.0.1");
+    } finally {
+      await mode.stop();
+      errors.mockRestore();
+    }
+  });
+
   afterEach(() => vi.useRealTimers());
 
   it("the URL is the box's first IPv4 address, or null", () => {
@@ -228,7 +252,7 @@ describe("setup mode", () => {
     const d = tmp();
     const gatePath = path.join(d, "open");
     const events: VelaEvent[] = [];
-    const mode = startSetupMode({ gatePath, port, secretsPath: path.join(d, "s.json"), stagingDir: path.join(d, "setup"), staticDir: "/nonexistent", emit: (e) => events.push(e), intervalMs: 20 });
+    const mode = startSetupMode({ apiListen: "127.0.0.1", gatePath, port, secretsPath: path.join(d, "s.json"), stagingDir: path.join(d, "setup"), staticDir: "/nonexistent", emit: (e) => events.push(e), intervalMs: 20 });
     try {
       expect(mode.status()).toBeUndefined();
       expect(events).toEqual([{ type: "setup", setup: null }]);

@@ -67,6 +67,7 @@ const KeysBody = z.object({ keys: z.array(z.string().max(16_384)).max(64) });
  * /setup/api/*. None of the main API's routes are registered on it.
  */
 export function buildSetupServer(d: SetupDeps): FastifyInstance {
+  // No trustProxy: req.ip is the socket's peer, which the per-IP PIN lockout relies on.
   const app = Fastify({ logger: false, bodyLimit: BODY_LIMIT });
   const { session } = d;
   const addresses = d.addresses ?? boxAddresses;
@@ -105,10 +106,10 @@ export function buildSetupServer(d: SetupDeps): FastifyInstance {
     api.addHook("onRequest", async (req, reply) => {
       const m = /^Pin (\S{1,32})$/.exec(req.headers.authorization ?? "");
       if (!m) return reply.code(401).send({ error: "Enter the PIN shown on the TV." });
-      const r = session.pin.check(m[1]!);
+      const r = session.pin.check(m[1]!, req.ip);
       if (r === "locked") {
-        const s = session.pin.retryAfter();
-        return reply.code(429).header("retry-after", String(s)).send({ error: `Too many wrong PINs. The TV shows a new one; try again in ${s} seconds.` });
+        const s = session.pin.retryAfter(req.ip);
+        return reply.code(429).header("retry-after", String(s)).send({ error: `Too many wrong PINs from this device. The TV shows a new one; try again in ${s} seconds.` });
       }
       if (r === "wrong") return reply.code(401).send({ error: "That PIN is wrong. Check the PIN on the TV." });
     });
@@ -182,7 +183,15 @@ export function buildSetupServer(d: SetupDeps): FastifyInstance {
   return app;
 }
 
+/** True for 127.0.0.0/8, ::1 and localhost: addresses only this box can reach. */
+export function isLoopback(listen: string): boolean {
+  const a = listen.trim().toLowerCase().replace(/^\[|\]$/g, "").replace(/^::ffff:(?=\d)/, "");
+  return a === "localhost" || a === "::1" || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(a);
+}
+
 export interface SetupModeOptions {
+  /** config.server.listen: the PIN is published on the main API only when that is loopback. */
+  apiListen: string;
   gatePath: string;
   port: number;
   secretsPath: string;
@@ -204,7 +213,8 @@ export function startSetupMode(o: SetupModeOptions) {
   let lastUrl: string | null = null;
   let lastError: string | undefined;
 
-  const status = (): SetupStatus | undefined => session?.status(setupUrl(o.port));
+  const showPin = isLoopback(o.apiListen);
+  const status = (): SetupStatus | undefined => session?.status(setupUrl(o.port), showPin);
   const publish = () => {
     const s = status();
     lastUrl = s?.url ?? null;
@@ -240,6 +250,7 @@ export function startSetupMode(o: SetupModeOptions) {
     (open) => {
       if (open) {
         session = new SetupSession(publish);
+        if (!showPin) console.error(`vela: the setup PIN can't be shown safely while the API listens on ${o.apiListen}; set server.listen to 127.0.0.1`);
       } else {
         session = undefined;
         if (app) {

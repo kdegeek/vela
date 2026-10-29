@@ -61,7 +61,8 @@ export type SetupStep = "media" | "ssh" | "done" | "committing";
 
 /** What the TV shows during setup. */
 export interface SetupStatus {
-  pin: string;
+  /** Left out when the main API listens beyond loopback (config server.listen), where others could read it. */
+  pin?: string;
   /** http://<box ip>:7301/ (the QR code adds `#pin=<pin>`); null while the box has no IPv4 address. */
   url: string | null;
   step: SetupStep;
