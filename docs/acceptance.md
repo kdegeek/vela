@@ -47,6 +47,31 @@ holds the output of every script run so far, so the last one you make is the one
    dongle (`/dev/lirc*`) and the headphone-jack blaster. A phone camera shows an IR blaster's light
    flashing.
 
+## Remote-only walkthrough
+
+The scripts check the parts; this checks the whole thing the way it will be used. Put the
+keyboard and the laptop away and use only the Flirc remote (and a phone where noted). Print this
+or copy it into a note and tick each box. A box you can't tick is a failure: write down what you
+saw instead.
+
+| # | Goal | Do this with the remote | It passes if | Pass |
+|---|---|---|---|---|
+| 1 | Boot to Vela | Turn the Mac mini off and on (power button). Don't touch anything. | The Vela logo, then the home screen. No desktop, login prompt, text, terminal or mouse pointer at any point. The TV's info button shows 3840x2160 at 60 Hz. | [ ] |
+| 2 | Smooth at 4K | On the home screen, hold Right for 5 seconds, then Left, then press Down and Up a few times. | Focus and the backdrop crossfade move without stutter or tearing; nothing looks soft or blurry. | [ ] |
+| 3a | Launch real apps | Select each app tile in turn: YouTube, Plex, Jellyfin, Crunchyroll, Steam. | Each opens the real app full screen (YouTube in its TV layout, Steam in Big Picture) within about 10 seconds, with no window borders. | [ ] |
+| 3b | Home always works | Inside each app, press Home. | The Vela home screen is back every time, including from Steam and from a playing movie (which stops). | [ ] |
+| 3c | Back works in apps | Inside each app, move a few screens in, then press Back. | Each app goes back one step, the way it does on a TV. | [ ] |
+| 3d | Home tile | Select the Home tile. | A panel opens with your TVs and devices; Back closes it. | [ ] |
+| 4a | Real media data | Go down to Continue watching. | It lists your own half-watched Jellyfin titles with sharp 4K art. | [ ] |
+| 4b | Resume at the right spot | Select the first card. Note how many minutes it said were left. | The title starts where you stopped, not from the beginning. | [ ] |
+| 4c | Progress is reported | Let it play a minute, press Back (or Home). Open Jellyfin on your phone. | The home screen shows less time left on that card, and Jellyfin on the phone shows the same position. | [ ] |
+| 5 | 4K playback | Play a 4K HEVC title from Continue watching for 2 minutes, then a 4K YouTube video (Stats for nerds on). | No stutter or dropped frames; YouTube's stats show 2160p. | [ ] |
+| 6a | TV on and off | Select the Home tile and choose your TV's power off, then power on (for each TV). | Each TV turns off, then on again (a Samsung may need the IR blaster for on: that still counts). | [ ] |
+| 6b | TV volume | Press Volume up, Volume down and Mute on the remote. | The TV's volume changes, and Mute mutes and then unmutes it. | [ ] |
+| 7 | IR control | From the Home tile, send a command to an IR device (for example soundbar power). | The device reacts. | [ ] |
+| 8 | Reproducible install | Hand [install.md](install.md) to someone else with a blank Mac mini (or follow it yourself word for word). | They reach this walkthrough's step 1 without asking you anything. Note every step that needed a guess. | [ ] |
+| - | Never stuck | At any point above, if a dialog, a black screen or an app that ignores Home appears, note it here. | Nothing like that happened. | [ ] |
+
 ## What a failure most likely means
 
 ### hw-check
