@@ -2,6 +2,7 @@
 # vela-ctl: control the Vela daemon from the shell (Sway keybinds, remotes).
 #   vela-ctl home | launch <id> | device <id> <command> | volume up|down|mute
 #   vela-ctl acceptance hw-check|perf-check|playback-check|tv-check|ir-check [args]
+#   vela-ctl setup   (root) open phone setup again
 BASE="${VELA_URL:-http://127.0.0.1:7300}"
 
 die() { echo "vela-ctl: $*" >&2; exit 1; }
@@ -61,5 +62,19 @@ case "$1" in
         HOME=/var/home/vela XDG_RUNTIME_DIR="/run/user/$vuid" "$script" "$@"
     fi
     exec "$script" "$@" ;;
-  *) die "usage: vela-ctl home | launch <id> | device <id> <command> | volume up|down|mute | acceptance <name>" ;;
+  setup)
+    # Opens phone setup, as vela-setup-gate.service does on a box without vela.toml. The gate is
+    # root's so a compromised vela session can't reopen setup (and add root SSH keys) itself.
+    [ "$(id -u)" = 0 ] || die "setup must run as root (over SSH as root, or with sudo)"
+    gate="${VELA_SETUP_GATE:-/run/vela-setup/open}"
+    install -d -m 0755 "$(dirname "$gate")" && install -m 0644 /dev/null "$gate" || die "could not create $gate"
+    # -M vela@ needs machined's stdio bridge; else vela's own user bus.
+    systemctl --user -M vela@ restart vela-daemon.service 2>/dev/null || {
+      vuid=$(id -u vela) && runuser -u vela -- env XDG_RUNTIME_DIR="/run/user/$vuid" \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$vuid/bus" systemctl --user restart vela-daemon.service
+    } || die "setup is open, but vela-daemon did not restart; it shows setup within a few seconds anyway"
+    echo "Setup is open: the TV now shows a QR code, an address and a PIN."
+    echo "Scan the code with your phone (or open the address) and enter the PIN to choose the media server and SSH keys."
+    echo "Finish replaces /etc/vela/vela.toml (the old one is kept as vela.toml.before-setup) and adds the keys to root's authorized_keys." ;;
+  *) die "usage: vela-ctl home | launch <id> | device <id> <command> | volume up|down|mute | acceptance <name> | setup" ;;
 esac

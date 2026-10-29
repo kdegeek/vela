@@ -1,0 +1,9 @@
+[Unit]
+Description=Install the files Vela's phone setup staged (vela.toml, root's SSH keys)
+# A start-limit hit here would put vela-setup-commit.path into failed state and stop watching.
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/vela/setup-commit
+TimeoutStartSec=2min

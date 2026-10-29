@@ -46,3 +46,36 @@ SH
   echo "$output" | grep -q "no device with volume_up is configured"
   [ ! -e "$FAKE_LOG" ]
 }
+
+# vela-ctl setup: id and systemctl are faked too; FAKE_UID is what `id -u` says.
+fake_root() {
+  cat > "$bin/id" <<'SH'
+#!/bin/sh
+[ "$*" = "-u" ] && [ -n "$FAKE_UID" ] && { echo "$FAKE_UID"; exit 0; }
+exec /usr/bin/id "$@"
+SH
+  cat > "$bin/systemctl" <<'SH'
+#!/bin/sh
+echo "systemctl $*" >> "$FAKE_LOG"
+SH
+  chmod +x "$bin/id" "$bin/systemctl"
+  export VELA_SETUP_GATE="$bin/run/vela-setup/open"
+}
+
+@test "setup opens the gate, restarts the daemon and says what to do next" {
+  fake_root
+  FAKE_UID=0 run "$ctl" setup
+  [ "$status" -eq 0 ]
+  [ -f "$VELA_SETUP_GATE" ]
+  [ "$(cat "$FAKE_LOG")" = "systemctl --user -M vela@ restart vela-daemon.service" ]
+  echo "$output" | grep -q "the TV now shows a QR code"
+}
+
+@test "setup refuses to run as anyone but root" {
+  fake_root
+  FAKE_UID=1000 run "$ctl" setup
+  [ "$status" -ne 0 ]
+  echo "$output" | grep -q "setup must run as root"
+  [ ! -e "$VELA_SETUP_GATE" ]
+  [ ! -e "$FAKE_LOG" ]
+}

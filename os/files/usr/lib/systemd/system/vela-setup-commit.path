@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch for Vela's phone setup asking root to install its files
+
+[Path]
+# Written by the daemon (user vela) last, after vela.toml and authorized_keys are staged.
+PathExists=/var/lib/vela/setup/commit
+Unit=vela-setup-commit.service
+
+[Install]
+WantedBy=multi-user.target

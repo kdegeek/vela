@@ -1,0 +1,16 @@
+[Unit]
+Description=Open Vela's phone setup on a box that has never been configured
+# Never configured = no vela.toml. A vela.toml that doesn't parse is degraded mode instead.
+ConditionPathExists=!/etc/vela/vela.toml
+# The daemon (in the session greetd starts) must find setup open on its first look.
+Before=greetd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Root's: the daemon (user vela) can see setup is open but can't open or close it.
+ExecStart=/usr/bin/install -d -o root -g root -m 0755 /run/vela-setup
+ExecStart=/usr/bin/install -o root -g root -m 0644 /dev/null /run/vela-setup/open
+
+[Install]
+WantedBy=multi-user.target
