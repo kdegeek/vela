@@ -18,6 +18,9 @@ systemctl --global is-enabled vela-daemon.service vela-kiosk.service
 test -L /etc/systemd/user/vela-session.target.wants/vela-daemon.service
 test -L /etc/systemd/user/vela-session.target.wants/vela-kiosk.service
 systemctl is-enabled get-apple-firmware.service || true
+# A config typo or crash loop must never park the session units in "start limit hit".
+grep -qx 'StartLimitIntervalSec=0' /usr/lib/systemd/user/vela-daemon.service
+grep -qx 'StartLimitIntervalSec=0' /usr/lib/systemd/user/vela-kiosk.service
 # Session audio: the PipeWire user units (normally enabled by package presets; make sure).
 systemctl --global enable pipewire.socket pipewire-pulse.socket wireplumber.service
 

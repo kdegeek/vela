@@ -4,6 +4,8 @@
 #   1. wait for the kiosk Chromium window on workspace "home", record state  -> "VELA-SMOKE PHASE1"
 #   2. give the runner time for its screenshot, then crash sway (SIGSEGV)
 #   3. wait for greetd's new sway and the kiosk to come back, record state  -> "VELA-SMOKE PHASE2"
+#   3b. break /etc/vela/vela.toml, restart vela-daemon: it must still serve the launcher and say
+#       which file to fix (degraded mode), then restore the file and check it recovers
 #   4. print the whole report between "VELA-SMOKE DIAG BEGIN/END", then "VELA-SMOKE DONE"
 # Each assertion is a "CHECK <name> PASS|FAIL" line; the runner fails the job on any FAIL.
 set -u
@@ -158,6 +160,28 @@ check acceptance_hw_check_runs run_hw_check
 check acceptance_hw_check_bundle hw_bundle
 check acceptance_hw_check_kiosk_window hw_kiosk_check
 { echo "################ hw-check output"; cat "$out/hw-check.txt"; } >> "$report"
+
+# --- 2c. degraded mode: a typo in vela.toml must not take the home screen down ----------------------
+# The broken file falls back to listen = 127.0.0.1, so this is checked from inside the VM only, after
+# the runner's host-side probes. The file is rewritten in place (not moved) to keep its SELinux label.
+cfg=/etc/vela/vela.toml
+cp -a "$cfg" "$out/vela.toml.orig"
+printf '[ui]\neffects = "banana"\n' > "$cfg"
+userctl restart vela-daemon.service
+api_home() { curl -fsS -m 5 http://127.0.0.1:7300/api/home; }
+degraded_line() { api_home | jq -e '.status.line | test("vela\\.toml")'; }
+degraded_apps() { api_home | jq -e '(.apps | length) == 6'; }
+launcher_page() { curl -fsS -m 5 http://127.0.0.1:7300/ | grep -qi '<!doctype html'; }
+wait_for 90 degraded_line
+{ echo "--- degraded /api/home status"; api_home | jq -c .status; } >> "$report" 2>&1
+check degraded_status_line_names_vela_toml degraded_line
+check degraded_home_lists_apps degraded_apps
+check degraded_serves_launcher launcher_page
+cat "$out/vela.toml.orig" > "$cfg"
+userctl restart vela-daemon.service
+recovered() { api_home | jq -e '.status.line == null and (.apps | length) == 6'; }
+wait_for 90 recovered
+check restored_config_recovers recovered
 
 # --- 3. the report ---------------------------------------------------------------------------------
 {

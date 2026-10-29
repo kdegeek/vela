@@ -67,6 +67,15 @@ describe("buildHomeState", () => {
     expect(s.rows.find((r) => r.id === "continue")).toBeUndefined();
   });
 
+  it("a settings problem (degraded mode) wins over the Jellyfin line", async () => {
+    const problem = "Vela couldn't read /var/lib/vela/secrets.json: not valid JSON. Fix the file and restart.";
+    const s = await buildHomeState({ manifests, status: async () => "ready", media: { resume: async () => { throw new JellyfinAuthError("401"); } }, mock, problem });
+    expect(s.status.line).toBe(problem);
+    const plain = await buildHomeState({ manifests, status: async () => "ready", media: null, mock, problem });
+    expect(plain.status.line).toBe(problem);
+    expect(plain.rows.length).toBeGreaterThan(0); // mock rows still show
+  });
+
   it("uses Jellyfin resume for the continue row when reachable", async () => {
     const s = await buildHomeState({ manifests, status: async () => "ready", media: { resume: async () => [card("a"), card("b")] }, mock });
     expect(s.rows.find((r) => r.id === "continue")?.items.map((i) => i.title)).toEqual(["a", "b"]);

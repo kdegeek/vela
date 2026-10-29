@@ -1,6 +1,8 @@
 [Unit]
 Description=Vela daemon (launcher, apps, playback, devices)
 PartOf=vela-session.target
+# Restart=always forever: hitting the start limit would leave a dead screen until a reboot.
+StartLimitIntervalSec=0
 After=vela-session.target
 
 [Service]

@@ -9,6 +9,8 @@
 #     (vm-after-crash.png is the screen after the recovery)
 #   - hw-check.sh (the owner's acceptance script) exits with 0 or 1 and leaves a report bundle
 #     (most of its checks fail in a VM; only the end-to-end run is asserted)
+#   - degraded mode: with a broken /etc/vela/vela.toml the restarted daemon still serves the
+#     launcher and /api/home, and its status line names vela.toml; restoring the file recovers
 # Everything lands in <artifact-dir>: the PNGs, serial.log and diag.txt.
 #
 # Usage: run-smoke.sh <disk.qcow2> <artifact-dir>
@@ -111,9 +113,9 @@ else
   shot vm-after-crash.png || true
   fail=1
 fi
-wait_serial 'VELA-SMOKE DONE' 240 || fail=1
+wait_serial 'VELA-SMOKE DONE' 480 || fail=1
 
 checks=$(grep -a 'CHECK ' "$serial" | tr -d '\r' | sort -u)
 grep -q ' FAIL' <<<"$checks" && fail=1
-[ "$(grep -c ' PASS' <<<"$checks")" -ge 16 ] || { echo "expected 16 passing CHECK lines" >&2; fail=1; }
+[ "$(grep -c ' PASS' <<<"$checks")" -ge 20 ] || { echo "expected 20 passing CHECK lines" >&2; fail=1; }
 finish

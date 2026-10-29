@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { loadConfig, loadSecrets } from "./config.js";
+import { loadSettings } from "./config.js";
 import { JellyfinClient, loginAndSave, toCard } from "./media/jellyfin.js";
 import { buildHomeState, startHomePolling } from "./media/homeState.js";
 import { loadGlyphs } from "./media/glyphs.js";
@@ -19,7 +19,11 @@ import { irCtlTransmitter, type IrTransmitter } from "./devices/ir/irctl.js";
 import { DeviceRegistry } from "./devices/registry.js";
 import { createNoopSway, createSway } from "./session/sway.js";
 
-const config = loadConfig(process.env.VELA_CONFIG ?? "/etc/vela/vela.toml");
+const SECRETS_PATH = process.env.VELA_SECRETS ?? "/var/lib/vela/secrets.json";
+// Never throws: a broken file gives defaults and a status line saying which file to fix.
+const settings = loadSettings(process.env.VELA_CONFIG ?? "/etc/vela/vela.toml", SECRETS_PATH);
+const { config, problem } = settings;
+let secrets = settings.secrets;
 const manifests = loadManifests(config.manifestDirs);
 const bus = new EventBus();
 
@@ -36,10 +40,8 @@ const sway = process.env.VELA_SWAY === "noop" || !haveSwaymsg() ? createNoopSway
 const status = async (m: (typeof manifests)[number]) => (m.kind === "flatpak" ? flatpakStatus(m.flatpak!) : "ready" as const);
 const runner = new AppRunner({ sway, manifests, spawn: defaultSpawn, status, emit: bus.emit });
 
-const SECRETS_PATH = process.env.VELA_SECRETS ?? "/var/lib/vela/secrets.json";
 let jellyfin: JellyfinClient | undefined;
 if (config.media.provider === "jellyfin" && config.media.jellyfin) {
-  let secrets = loadSecrets(SECRETS_PATH);
   jellyfin = new JellyfinClient({ url: config.media.jellyfin.url, token: secrets.jellyfinToken, userId: secrets.jellyfinUserId });
   const pw = process.env.VELA_JELLYFIN_PASSWORD;
   if (!secrets.jellyfinToken && pw) {
@@ -52,7 +54,7 @@ if (config.media.provider === "jellyfin" && config.media.jellyfin) {
 }
 const jf = jellyfin;
 
-const haToken = loadSecrets(SECRETS_PATH).homeAssistantToken;
+const haToken = secrets.homeAssistantToken;
 const haOpts = config.homeAssistant && haToken ? { url: config.homeAssistant.url, token: haToken } : undefined;
 const insideTempEntity = config.homeAssistant?.insideTempEntity;
 const insideTemp = haOpts && insideTempEntity ? () => haInsideTemp(insideTempEntity, haOpts) : undefined;
@@ -99,6 +101,7 @@ const home = () =>
     clock24h: config.ui.clock24h,
     effects: config.ui.effects,
     glyphs,
+    problem,
   });
 startHomePolling(home, bus.emit);
 const play = jf ? createPlayer({ jf, start: startMpv, goHome: () => runner.goHome(), emit: bus.emit, runner }) : undefined;

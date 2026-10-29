@@ -20,6 +20,8 @@ export interface HomeDeps {
   effects?: "auto" | "full" | "lite";
   /** Glyph data URLs from loadGlyphs(), by file name. */
   glyphs?: ReadonlyMap<string, string>;
+  /** A settings file Vela couldn't use (degraded mode); shown instead of any other status line. */
+  problem?: string;
 }
 
 function heroFrom(c: MediaCard, appId: string): HeroItem {
@@ -60,7 +62,7 @@ export async function buildHomeState(d: HomeDeps): Promise<HomeState> {
   );
 
   const status: HomeState["status"] = { clock24h: d.clock24h ?? false, effects: d.effects ?? "auto" };
-  if (line) status.line = line;
+  if (d.problem ?? line) status.line = d.problem ?? line;
   if (d.insideTemp) {
     try {
       const t = await d.insideTemp();
