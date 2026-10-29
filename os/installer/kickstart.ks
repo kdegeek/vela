@@ -24,7 +24,8 @@ lang en_US.UTF-8
 keyboard us
 rootpw --lock
 
-# Copy the owner's files into the installed system: Broadcom Wi-Fi/Bluetooth firmware, vela.toml,
+# Copy the owner's files into the installed system: Broadcom Wi-Fi/Bluetooth firmware (optional:
+# without it, vela-wifi-firmware.service downloads it on first boot), vela.toml,
 # secrets.json, and authorized_keys (SSH public keys for root, required: the only way to edit
 # vela.toml/secrets.json later, as the box has no terminal; a loud warning is logged without it).
 #
@@ -86,7 +87,7 @@ else
 fi
 
 if [ -z "$src" ]; then
-  note "no vela.toml, secrets.json or vela-firmware/ found; Wi-Fi needs firmware (see docs/install.md)"
+  note "no vela.toml, secrets.json, authorized_keys or vela-firmware/ found on any stick"
 else
   note "copying from $src"
   if [ -d "$src/vela-firmware" ]; then
@@ -123,7 +124,7 @@ if [ ! -s "$var/roothome/.ssh/authorized_keys" ]; then
   for line in "########################################################################" \
               "WARNING: no authorized_keys file was found on the VELA stick." \
               "WARNING: SSH login is impossible, so vela.toml and secrets.json can't be edited later." \
-              "WARNING: Reinstall with authorized_keys on the stick (docs/install.md, step 5)." \
+              "WARNING: Reinstall with authorized_keys on the stick (docs/install.md, step 4)." \
               "########################################################################"; do
     note "$line"
     echo "$line" > /dev/console 2>/dev/null || true

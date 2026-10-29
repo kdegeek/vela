@@ -5,14 +5,15 @@ set -euxo pipefail
 
 # --- services ---
 systemctl set-default graphical.target
-systemctl enable greetd.service vela-flatpaks.service podman-auto-update.timer t2fanrd.service
+systemctl enable greetd.service vela-flatpaks.service vela-wifi-firmware.service podman-auto-update.timer t2fanrd.service
 systemctl --global enable vela-daemon.service vela-kiosk.service
 # No text console: greetd owns tty1 and nothing spawns gettys on the others.
 systemctl mask getty@tty1.service autovt@.service
 # get-apple-firmware copies blobs from a macOS partition into /usr/lib/firmware; the disk is wiped
-# and /usr is read-only. Firmware goes to /var/lib/vela/firmware instead (kargs, Task 11).
+# and /usr is read-only. vela-wifi-firmware.service downloads it to /var/lib/vela/firmware instead
+# (firmware_class.path in kargs.d).
 systemctl disable get-apple-firmware.service || true
-systemctl is-enabled greetd.service vela-flatpaks.service podman-auto-update.timer t2fanrd.service
+systemctl is-enabled greetd.service vela-flatpaks.service vela-wifi-firmware.service podman-auto-update.timer t2fanrd.service
 systemctl --global is-enabled vela-daemon.service vela-kiosk.service
 # Both must be pulled in by the session target that session-start restarts.
 test -L /etc/systemd/user/vela-session.target.wants/vela-daemon.service
@@ -64,8 +65,8 @@ grep 't2bce' /tmp/initrd.txt || echo "note: t2bce modules are not in the initram
 # --- the kiosk and the daemon ---
 command -v chromium-browser || command -v chromium
 grep -qx "VELA_KERNEL=$(rpm -q --qf '%{VERSION}-%{RELEASE}' kernel-core)" /usr/lib/os-release
-test -x /usr/libexec/vela/session-start -a -x /usr/libexec/vela/launcher-kiosk -a -x /usr/libexec/vela/install-flatpaks
-command -v swaymsg greetd sway Xwayland mpv ir-ctl wtype flatpak node curl jq vela-ctl grim lsusb vainfo wpctl aplay busctl pw-play pw-dump
+test -x /usr/libexec/vela/session-start -a -x /usr/libexec/vela/launcher-kiosk -a -x /usr/libexec/vela/install-flatpaks -a -x /usr/libexec/vela/fetch-wifi-firmware
+command -v swaymsg greetd sway Xwayland mpv ir-ctl wtype flatpak node curl jq zstd sha256sum vela-ctl grim lsusb vainfo wpctl aplay busctl pw-play pw-dump
 test -x /usr/libexec/vela/acceptance/hw-check.sh -a -r /usr/libexec/vela/acceptance/lib.sh
 /ctx/smoke-daemon.sh /usr/bin/node /usr/lib/vela/daemon /usr/share/vela/assets /usr/share/vela/apps /usr/lib/vela/launcher
 

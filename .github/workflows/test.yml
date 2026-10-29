@@ -50,6 +50,13 @@ jobs:
       - name: Install bats and shellcheck
         run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends bats shellcheck
       - name: shellcheck
-        run: shellcheck -x -P scripts/acceptance -S warning scripts/acceptance/*.sh bin/vela-ctl
+        run: |
+          shellcheck -x -P scripts/acceptance -S warning scripts/acceptance/*.sh bin/vela-ctl
+          shellcheck -S warning os/files/usr/libexec/vela/fetch-wifi-firmware os/test/*.bats
       - name: bats
-        run: bats scripts/acceptance/lib.bats bin/vela-ctl.bats
+        run: bats scripts/acceptance/lib.bats bin/vela-ctl.bats os/test/fetch-wifi-firmware.bats
+      - name: The pinned Wi-Fi firmware download still matches its checksum
+        run: |
+          dir=$(mktemp -d)
+          VELA_FIRMWARE_DIR="$dir" VELA_FIRMWARE_NO_RELOAD=1 os/files/usr/libexec/vela/fetch-wifi-firmware
+          ls "$dir"/brcm/brcmfmac4364b2-pcie.apple,*.bin

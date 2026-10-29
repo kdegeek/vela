@@ -118,5 +118,5 @@ wait_serial 'VELA-SMOKE DONE' 480 || fail=1
 
 checks=$(grep -a 'CHECK ' "$serial" | tr -d '\r' | sort -u)
 grep -q ' FAIL' <<<"$checks" && fail=1
-[ "$(grep -c ' PASS' <<<"$checks")" -ge 21 ] || { echo "expected 21 passing CHECK lines" >&2; fail=1; }
+[ "$(grep -c ' PASS' <<<"$checks")" -ge 22 ] || { echo "expected 22 passing CHECK lines" >&2; fail=1; }
 finish

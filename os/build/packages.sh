@@ -10,7 +10,8 @@ dnf -y install \
 # Brief list, plus what it implies on a minimal bootc base: an audio server for the session
 # (t2linux-audio is a PipeWire config), XWayland for Steam, the Plymouth script plugin for the
 # splash, portals for Flatpak apps, greetd's SELinux policy, Wi-Fi support in NetworkManager, and
-# grim (screenshots) and usbutils (lsusb) for the acceptance scripts.
+# grim (screenshots) and usbutils (lsusb) for the acceptance scripts, and zstd to unpack the
+# Wi-Fi firmware package (vela-wifi-firmware.service).
 dnf -y install \
   sway swaybg greetd greetd-selinux chromium mpv wtype v4l-utils pipewire-utils alsa-utils \
   podman flatpak nodejs plymouth jq curl \
@@ -18,7 +19,7 @@ dnf -y install \
   pipewire wireplumber pipewire-pulseaudio pipewire-alsa \
   xdg-desktop-portal-wlr xdg-desktop-portal-gtk \
   NetworkManager-wifi \
-  grim usbutils
+  grim usbutils zstd
 
 # Full ffmpeg instead of the patent-trimmed build, and Intel's VA-API driver (iHD) for UHD 630.
 if rpm -q ffmpeg-free >/dev/null; then
