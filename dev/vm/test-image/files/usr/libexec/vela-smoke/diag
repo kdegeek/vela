@@ -140,6 +140,22 @@ check portal_after_crash portal_call
 say "VELA-SMOKE PHASE2 sway_pid=$(sway_pid)"
 sleep 45  # the runner takes vm-after-crash.png now
 
+# --- 2b. the owner-run hardware check, as the vela user inside the session -----------------------------
+# Most of its checks fail in a VM (no T2, no Flirc, no VA-API); this only proves it runs end to end
+# and leaves a report bundle.
+accept_dir=/var/home/vela
+run_hw_check() {
+  rm -f "$accept_dir"/vela-report-*.tar.gz
+  { echo "################ hw-check"; timeout 200 setpriv --reuid="$uid" --regid="$(id -g vela)" --init-groups \
+      env HOME="$accept_dir" XDG_RUNTIME_DIR="$rt" DBUS_SESSION_BUS_ADDRESS="unix:path=$rt/bus" \
+      /usr/bin/vela-ctl acceptance hw-check; echo "hw-check exit status $?"; } > "$out/hw-check.txt" 2>&1
+  tail -n 1 "$out/hw-check.txt" | grep -q 'exit status [01]$'
+}
+hw_bundle() { tar tzf "$accept_dir"/vela-report-*.tar.gz | grep -q 'hw-check.txt'; }
+check acceptance_hw_check_runs run_hw_check
+check acceptance_hw_check_bundle hw_bundle
+{ echo "################ hw-check output"; cat "$out/hw-check.txt"; } >> "$report"
+
 # --- 3. the report ---------------------------------------------------------------------------------
 {
   echo "VELA-SMOKE DIAG BEGIN"

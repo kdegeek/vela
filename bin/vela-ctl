@@ -1,6 +1,7 @@
 #!/bin/sh
 # vela-ctl: control the Vela daemon from the shell (Sway keybinds, remotes).
 #   vela-ctl home | launch <id> | device <id> <command> | volume up|down|mute
+#   vela-ctl acceptance hw-check|perf-check|playback-check|tv-check|ir-check [args]
 BASE="${VELA_URL:-http://127.0.0.1:7300}"
 
 die() { echo "vela-ctl: $*" >&2; exit 1; }
@@ -42,5 +43,18 @@ case "$1" in
     [ -n "$tv" ] || die "no TV device is configured"
     case "$2" in up) cmd=volume-up ;; down) cmd=volume-down ;; mute) cmd=mute ;; esac
     post "/api/devices/$tv/$cmd" ;;
-  *) die "usage: vela-ctl home | launch <id> | device <id> <command> | volume up|down|mute" ;;
+  acceptance)
+    case "$2" in
+      hw-check|perf-check|playback-check|tv-check|ir-check) ;;
+      *) die "usage: vela-ctl acceptance hw-check|perf-check|playback-check|tv-check|ir-check [args]" ;;
+    esac
+    script="${VELA_ACCEPTANCE_DIR:-/usr/libexec/vela/acceptance}/$2.sh"
+    [ -x "$script" ] || die "$script is not installed"
+    shift 2
+    # The scripts talk to the kiosk session, so they run as the vela user (from root over SSH, too).
+    if [ "$(id -u)" = 0 ] && [ -z "$VELA_ACCEPTANCE_DIR" ]; then
+      exec runuser -u vela -- env HOME=/var/home/vela "$script" "$@"
+    fi
+    exec "$script" "$@" ;;
+  *) die "usage: vela-ctl home | launch <id> | device <id> <command> | volume up|down|mute | acceptance <name>" ;;
 esac

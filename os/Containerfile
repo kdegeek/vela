@@ -70,6 +70,9 @@ COPY --from=app /src/apps/launcher/dist /usr/lib/vela/launcher
 COPY --from=app /src/apps/daemon/manifests /usr/share/vela/apps
 COPY --from=app /src/apps/daemon/assets /usr/share/vela/assets
 COPY --chmod=0755 bin/vela-ctl /usr/bin/vela-ctl
+# Owner-run acceptance scripts (docs/acceptance.md): vela-ctl acceptance <name>.
+COPY --chmod=0755 scripts/acceptance/hw-check.sh scripts/acceptance/perf-check.sh scripts/acceptance/playback-check.sh scripts/acceptance/tv-check.sh scripts/acceptance/ir-check.sh /usr/libexec/vela/acceptance/
+COPY --chmod=0644 scripts/acceptance/lib.sh /usr/libexec/vela/acceptance/lib.sh
 
 # 6. System files and the IR database.
 COPY --from=irdb /irdb /usr/share/vela/irdb

@@ -43,3 +43,13 @@ jobs:
         run: node --experimental-strip-types dev/jellyfin/seed.ts
       - name: Integration test
         run: pnpm exec vitest run apps/daemon/test/jellyfin.integration.test.ts
+  acceptance-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install bats and shellcheck
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends bats shellcheck
+      - name: shellcheck
+        run: shellcheck -x scripts/acceptance/*.sh bin/vela-ctl
+      - name: bats
+        run: bats scripts/acceptance/lib.bats
