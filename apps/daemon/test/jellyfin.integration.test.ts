@@ -41,12 +41,12 @@ describe.skipIf(!process.env.JELLYFIN_URL)("jellyfin integration", () => {
     await client.reportProgress(before!.id, Math.round(run * 0.2), false);
     await client.reportStopped(before!.id, target);
     let after: number | undefined;
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 15; i++) {
       after = (await client.resume()).find((x) => x.id === before!.id)?.positionTicks;
       if (after !== undefined && Math.abs(after - target) < TICKS_PER_SEC) break;
       await new Promise((r) => setTimeout(r, 1000));
     }
     expect(after, `resume position after reportStopped (target ${target}, was ${before!.positionTicks})`).toBeDefined();
-    expect(Math.abs(after! - target)).toBeLessThan(TICKS_PER_SEC);
-  });
+    expect(Math.abs(after! - target), `resume position ${after}, target ${target}, was ${before!.positionTicks}`).toBeLessThan(TICKS_PER_SEC);
+  }, 30_000);
 });
