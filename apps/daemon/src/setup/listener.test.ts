@@ -236,7 +236,7 @@ describe("setup mode", () => {
     fs.writeFileSync(gatePath, "");
     const events: VelaEvent[] = [];
     const errors = vi.spyOn(console, "error").mockImplementation(() => {});
-    const mode = startSetupMode({ apiListen: "0.0.0.0", gatePath, port: 1, secretsPath: path.join(d, "s.json"), stagingDir: path.join(d, "setup"), staticDir: "/nonexistent", emit: (e) => events.push(e), intervalMs: 60_000 });
+    const mode = startSetupMode({ apiListen: "0.0.0.0", gatePath, port: 1, secretsPath: path.join(d, "s.json"), stagingDir: path.join(d, "setup"), staticDir: "/nonexistent", configured: () => false, emit: (e) => events.push(e), intervalMs: 60_000 });
     try {
       const s = mode.status()!;
       expect(s.step).toBe("media");
@@ -266,7 +266,7 @@ describe("setup mode", () => {
     const d = tmp();
     const gatePath = path.join(d, "open");
     const events: VelaEvent[] = [];
-    const mode = startSetupMode({ apiListen: "127.0.0.1", gatePath, port, secretsPath: path.join(d, "s.json"), stagingDir: path.join(d, "setup"), staticDir: "/nonexistent", emit: (e) => events.push(e), intervalMs: 20 });
+    const mode = startSetupMode({ apiListen: "127.0.0.1", gatePath, port, secretsPath: path.join(d, "s.json"), stagingDir: path.join(d, "setup"), staticDir: "/nonexistent", configured: () => false, emit: (e) => events.push(e), intervalMs: 20 });
     try {
       expect(mode.status()).toBeUndefined();
       expect(events).toEqual([{ type: "setup", setup: null }]);
@@ -288,6 +288,53 @@ describe("setup mode", () => {
       await vi.waitFor(async () => expect(await fetch(`http://127.0.0.1:${port}/`).then(() => "open", () => "closed")).toBe("closed"));
     } finally {
       await mode.stop();
+    }
+  });
+
+  it("reports a timed-out setup while the box is unconfigured, the gate is gone and root's marker exists", async () => {
+    const d = tmp();
+    const gatePath = path.join(d, "open");
+    const expiredPath = path.join(d, "expired");
+    fs.writeFileSync(expiredPath, "1793300000\n");
+    let configured = false;
+    const events: VelaEvent[] = [];
+    const mode = startSetupMode({ apiListen: "127.0.0.1", gatePath, expiredPath, configured: () => configured, port: 1, secretsPath: path.join(d, "s.json"), stagingDir: path.join(d, "setup"), staticDir: "/nonexistent", emit: (e) => events.push(e), intervalMs: 20 });
+    try {
+      // Cold start after expiry: the TV gets the timed-out screen at once, with no PIN or address.
+      expect(mode.status()).toEqual({ expired: true, url: null, step: "media", keyCount: 0 });
+      expect(events).toEqual([{ type: "setup", setup: { expired: true, url: null, step: "media", keyCount: 0 } }]);
+
+      // The marker goes away (vela-ctl setup removes it): the event says so without a gate change.
+      fs.rmSync(expiredPath);
+      await vi.waitFor(() => expect(events.at(-1)).toEqual({ type: "setup", setup: null }));
+
+      // A configured box never shows it, marker or not.
+      configured = true;
+      fs.writeFileSync(expiredPath, "1793300000\n");
+      await new Promise((r) => setTimeout(r, 80));
+      expect(mode.status()).toBeUndefined();
+      expect(events.at(-1)).toEqual({ type: "setup", setup: null });
+    } finally {
+      await mode.stop();
+    }
+  });
+
+  it("defaults the expired marker to the gate's directory and ignores it while the gate is open", async () => {
+    const d = tmp();
+    const gatePath = path.join(d, "open");
+    fs.writeFileSync(path.join(d, "expired"), "1\n");
+    const events: VelaEvent[] = [];
+    const mode = startSetupMode({ apiListen: "127.0.0.1", gatePath, configured: () => false, port: 1, secretsPath: path.join(d, "s.json"), stagingDir: path.join(d, "setup"), staticDir: "/nonexistent", emit: (e) => events.push(e), intervalMs: 20 });
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(mode.status()?.expired).toBe(true);
+      fs.writeFileSync(gatePath, "");
+      await vi.waitFor(() => expect(mode.status()?.pin).toMatch(/^\d{6}$/));
+      expect(mode.status()).not.toHaveProperty("expired");
+      expect((events.at(-1) as { setup: object }).setup).not.toHaveProperty("expired");
+    } finally {
+      await mode.stop();
+      errors.mockRestore();
     }
   });
 });

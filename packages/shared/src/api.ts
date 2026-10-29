@@ -69,6 +69,11 @@ export interface SetupStatus {
   /** The Jellyfin server's name once sign-in worked. */
   jellyfinServer?: string;
   keyCount: number;
+  /**
+   * Setup was never finished and its 2-hour window closed (root left /run/vela-setup/expired). The listener is off,
+   * there is no PIN or URL, and the TV says how to open setup again.
+   */
+  expired?: true;
 }
 
 /** An SSH public key as the phone shows it for confirmation. */

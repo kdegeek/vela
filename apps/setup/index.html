@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0e1f" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Set up Vela</title>
+    <link rel="preload" href="/fonts/instrument-serif-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/manrope-var.woff2" as="font" type="font/woff2" crossorigin />
+  </head>
+  <body>
+    <svg class="sky" aria-hidden="true"></svg>
+    <header class="top">
+      <svg class="wordmark" viewBox="0 0 120 28" role="img" aria-label="Vela">
+        <g class="sail" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 22 L12 6 L20 18 L14 24 Z" />
+        </g>
+        <g fill="currentColor">
+          <circle cx="4" cy="22" r="1.8" /><circle cx="12" cy="6" r="2.2" />
+          <circle cx="20" cy="18" r="1.6" /><circle cx="14" cy="24" r="1.4" />
+        </g>
+        <text x="30" y="20" class="wordmark-text" fill="currentColor">Vela</text>
+      </svg>
+      <nav class="progress" aria-label="Setup steps"></nav>
+    </header>
+    <main id="app" tabindex="-1"></main>
+    <noscript><p class="noscript">Turn on JavaScript in your phone's browser to set up Vela.</p></noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

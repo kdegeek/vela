@@ -21,8 +21,9 @@ import { createNoopSway, createSway } from "./session/sway.js";
 import { SETUP_PORT, startSetupMode } from "./setup/listener.js";
 
 const SECRETS_PATH = process.env.VELA_SECRETS ?? "/var/lib/vela/secrets.json";
+const CONFIG_PATH = process.env.VELA_CONFIG ?? "/etc/vela/vela.toml";
 // Never throws: a broken file gives defaults and a status line saying which file to fix.
-const settings = loadSettings(process.env.VELA_CONFIG ?? "/etc/vela/vela.toml", SECRETS_PATH);
+const settings = loadSettings(CONFIG_PATH, SECRETS_PATH);
 const { config, secrets, problem } = settings;
 const manifests = loadManifests(config.manifestDirs);
 const bus = new EventBus();
@@ -84,6 +85,9 @@ if (config.volumeDevice && !config.devices.some((d) => d.id === config.volumeDev
 const setup = startSetupMode({
   apiListen: config.server.listen,
   gatePath: process.env.VELA_SETUP_GATE ?? "/run/vela-setup/open",
+  // Root's marker that setup timed out (setup-gate expire); default: next to the gate.
+  expiredPath: process.env.VELA_SETUP_EXPIRED,
+  configured: () => fs.existsSync(CONFIG_PATH),
   port: SETUP_PORT,
   secretsPath: SECRETS_PATH,
   stagingDir: process.env.VELA_SETUP_STAGING ?? "/var/lib/vela/setup",

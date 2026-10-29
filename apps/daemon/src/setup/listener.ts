@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import os from "node:os";
+import path from "node:path";
 import Fastify, { type FastifyInstance, type FastifyReply } from "fastify";
 import fastifyStatic from "@fastify/static";
 import { z } from "zod";
@@ -194,6 +195,10 @@ export interface SetupModeOptions {
   /** config.server.listen: the PIN is published on the main API only when that is loopback. */
   apiListen: string;
   gatePath: string;
+  /** Left by root when the setup window closed unfinished; defaults to `expired` next to the gate. */
+  expiredPath?: string;
+  /** True once /etc/vela/vela.toml exists: a configured box never shows the timed-out screen. */
+  configured: () => boolean;
   port: number;
   secretsPath: string;
   stagingDir: string;
@@ -201,6 +206,9 @@ export interface SetupModeOptions {
   emit: (e: VelaEvent) => void;
   intervalMs?: number;
 }
+
+/** What the TV shows after the setup window closed unfinished: no PIN, no address, how to open it again. */
+export const EXPIRED_STATUS: SetupStatus = { expired: true, url: null, step: "media", keyCount: 0 };
 
 /**
  * Setup mode follows the gate file: while it exists the setup listener runs on 0.0.0.0:<port> with a fresh PIN;
@@ -212,13 +220,20 @@ export function startSetupMode(o: SetupModeOptions) {
   let app: FastifyInstance | undefined;
   let starting = false;
   let lastUrl: string | null = null;
+  let lastExpired = false;
   let lastError: string | undefined;
 
   const showPin = isLoopback(o.apiListen);
-  const status = (): SetupStatus | undefined => session?.status(setupUrl(o.port), showPin);
+  const expiredPath = o.expiredPath ?? path.join(path.dirname(o.gatePath), "expired");
+  const expired = () => !o.configured() && fs.existsSync(expiredPath);
+  const status = (): SetupStatus | undefined => {
+    if (session) return session.status(setupUrl(o.port), showPin);
+    return expired() ? EXPIRED_STATUS : undefined;
+  };
   const publish = () => {
     const s = status();
     lastUrl = s?.url ?? null;
+    lastExpired = s?.expired === true;
     o.emit({ type: "setup", setup: s ?? null });
   };
   const close = (a: FastifyInstance) => a.close().catch((e) => console.error("vela: setup listener close:", (e as Error).message));
@@ -265,6 +280,7 @@ export function startSetupMode(o: SetupModeOptions) {
     () => {
       if (session && !app && !starting) start(session);
       if (session && setupUrl(o.port) !== lastUrl) publish();
+      else if (!session && expired() !== lastExpired) publish();
     },
     o.intervalMs,
   );
