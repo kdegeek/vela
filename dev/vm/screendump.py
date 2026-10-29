@@ -2,12 +2,16 @@
 """Take a QMP screendump of the VM's display, save it as PNG and check it isn't blank.
 
 Usage: screendump.py <qmp-socket> <out.png> [--width W --height H] [--glyph-box X0,Y0,X1,Y1]
+                     [--qr-box X0,Y0,X1,Y1]
 
 Fails (exit 1) if the picture is not W x H (default 3840 x 2160), if 98 % or more of its pixels
 are one colour (a black or blank screen), or, with --glyph-box, if the box is near-uniform: the
 largest per-channel spread (max - min) inside it must reach --min-spread (default 80). Measured on
-the Home tile's glyph: about 200 with the glyph drawn, 2 without. Needs python3-numpy and
-python3-pil.
+the Home tile's glyph: about 200 with the glyph drawn, 2 without. With --qr-box, the box must
+look like the setup screen's QR code: at least --qr-share (default 0.25) of its pixels light
+(luma >= 200) and at least as many dark (luma <= 80). Measured on the launcher's 4K screenshots
+(apps/launcher/screenshots) inside 2700,750,3450,1550: 0.53 light / 0.47 dark on the setup
+screen, at most 0.10 light on every other screen. Needs python3-numpy and python3-pil.
 """
 import argparse
 import json
@@ -56,6 +60,8 @@ def main() -> int:
     ap.add_argument("--height", type=int, default=2160)
     ap.add_argument("--glyph-box", help="x0,y0,x1,y1 in pixels: a region that must not be uniform")
     ap.add_argument("--min-spread", type=int, default=80)
+    ap.add_argument("--qr-box", help="x0,y0,x1,y1 in pixels: a region that must hold a QR code")
+    ap.add_argument("--qr-share", type=float, default=0.25)
     a = ap.parse_args()
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -87,6 +93,16 @@ def main() -> int:
         print(f"glyph box {a.glyph_box}: spread {spread} (need >= {a.min_spread})")
         if spread < a.min_spread:
             print("FAIL: the glyph box is near-uniform (glyph not drawn)", file=sys.stderr)
+            ok = False
+    if a.qr_box:
+        x0, y0, x1, y1 = (int(v) for v in a.qr_box.split(","))
+        box = np.asarray(img)[y0:y1, x0:x1].astype(np.int32)
+        luma = (box[..., 0] * 299 + box[..., 1] * 587 + box[..., 2] * 114) // 1000
+        light = float((luma >= 200).mean()) if luma.size else 0.0
+        dark = float((luma <= 80).mean()) if luma.size else 0.0
+        print(f"QR box {a.qr_box}: {light:.2f} light, {dark:.2f} dark (need >= {a.qr_share} each)")
+        if light < a.qr_share or dark < a.qr_share:
+            print("FAIL: no QR code in the QR box (not the setup screen)", file=sys.stderr)
             ok = False
     return 0 if ok else 1
 

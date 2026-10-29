@@ -1,5 +1,12 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { SETUP_API } from "@vela/shared";
+import { loadSecrets } from "../src/config.js";
 import { JellyfinClient, toCard } from "../src/media/jellyfin.js";
+import { buildSetupServer } from "../src/setup/listener.js";
+import { SetupSession } from "../src/setup/state.js";
 
 // Runs in CI against a seeded jellyfin/jellyfin container (see dev/jellyfin/seed.ts), which also
 // creates the "Vela" API key that docs/install.md tells the owner to make.
@@ -48,5 +55,31 @@ describe.skipIf(!process.env.JELLYFIN_URL)("jellyfin integration", () => {
     }
     expect(after, `resume position after reportStopped (target ${target}, was ${before!.positionTicks})`).toBeDefined();
     expect(Math.abs(after! - target), `resume position ${after}, target ${target}, was ${before!.positionTicks}`).toBeLessThan(TICKS_PER_SEC);
+  }, 30_000);
+
+  it("phone setup signs in with the seeded user, and the stored token loads the resume row", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vela-setup-ci-"));
+    const secretsPath = path.join(dir, "secrets.json");
+    const session = new SetupSession();
+    // Its own DeviceId: Jellyfin replaces a device's earlier token when the same device signs in again.
+    const app = buildSetupServer({ session, port: 7301, secretsPath, stagingDir: path.join(dir, "setup"), deviceId: "vela-setup-ci" });
+    const headers = { host: "localhost:7301", authorization: `Pin ${session.pin.current()}` };
+    const wrong = await app.inject({ method: "POST", url: SETUP_API.jellyfin, headers, payload: { url: URL_, username: "vela", password: "not-the-password" } });
+    expect(wrong.statusCode, wrong.body).toBe(422);
+    const res = await app.inject({ method: "POST", url: SETUP_API.jellyfin, headers, payload: { url: URL_, username: "vela", password: "vela" } });
+    expect(res.statusCode, res.body).toBe(200);
+    expect(session.status(null).jellyfinServer).toBeTruthy();
+
+    const secrets = loadSecrets(secretsPath);
+    expect(secrets.jellyfinToken).toBeTruthy();
+    expect(secrets.jellyfinUserId).toBeTruthy();
+    // What main.ts builds from secrets.json after the commit restarts the daemon.
+    const client = new JellyfinClient({ url: URL_, token: secrets.jellyfinToken, userId: secrets.jellyfinUserId, deviceId: "vela-setup-ci" });
+    const items = await client.resume();
+    expect(items.map((i) => i.name)).toContain("Sintel");
+    const fin = await app.inject({ method: "POST", url: SETUP_API.sshSkip, headers, payload: {} });
+    expect(fin.statusCode).toBe(200);
+    expect((await app.inject({ method: "POST", url: SETUP_API.finish, headers, payload: {} })).statusCode).toBe(200);
+    expect(fs.readFileSync(path.join(dir, "setup", "vela.toml"), "utf8")).toContain(`url = "${URL_}"`);
   }, 30_000);
 });

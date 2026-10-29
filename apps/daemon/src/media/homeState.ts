@@ -1,4 +1,4 @@
-import type { AppStatus, AppTile, HeroItem, HomeState, MediaCard, Row, VelaEvent } from "@vela/shared";
+import type { AppStatus, AppTile, HeroItem, HomeState, MediaCard, Row, SetupStatus, VelaEvent } from "@vela/shared";
 import type { AppManifest } from "../manifests.js";
 import { glyphUrl } from "./glyphs.js";
 import { JellyfinAuthError } from "./jellyfin.js";
@@ -22,6 +22,8 @@ export interface HomeDeps {
   glyphs?: ReadonlyMap<string, string>;
   /** A settings file Vela couldn't use (degraded mode); shown instead of any other status line. */
   problem?: string;
+  /** What the TV's setup screen shows, while setup mode is on. */
+  setup?: () => SetupStatus | undefined;
 }
 
 function heroFrom(c: MediaCard, appId: string): HeroItem {
@@ -71,7 +73,8 @@ export async function buildHomeState(d: HomeDeps): Promise<HomeState> {
       // temperature is optional; leave it out
     }
   }
-  return { apps, rows, status };
+  const setup = d.setup?.();
+  return setup ? { apps, rows, status, setup } : { apps, rows, status };
 }
 
 /** Rebuilds home state periodically and emits home-state-changed when it differs from the last build. */

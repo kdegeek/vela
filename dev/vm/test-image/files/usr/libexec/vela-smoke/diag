@@ -1,6 +1,12 @@
 #!/bin/bash
 # VM smoke test only (vela-smoke-diag.service, runs as root). Reports over the serial console,
 # which dev/vm/run-smoke.sh reads:
+#   0. phone setup: the image has no vela.toml, so the box boots into setup. Wait for the setup
+#      screen and print its PIN -> "VELA-SMOKE SETUP-PIN <pin>" (again whenever it changes); the
+#      runner takes vm-setup-3840.png and drives the setup API from the host (port 7301: skip
+#      media, add its throwaway SSH key, finish). Wait for root's vela-setup-commit, check what it
+#      installed, then append the test-only [server] settings and restart the daemon
+#      -> "VELA-SMOKE PHASE0" (the runner then checks SSH with its key and the API on port 7300)
 #   1. wait for the kiosk Chromium window on workspace "home", record state  -> "VELA-SMOKE PHASE1"
 #   2. give the runner time for its screenshot, then crash sway (SIGSEGV)
 #   3. wait for greetd's new sway and the kiosk to come back, record state  -> "VELA-SMOKE PHASE2"
@@ -108,6 +114,92 @@ wait_for() { # wait_for <seconds> <command...>
 
 say "VELA-SMOKE START uptime=$(cut -d' ' -f1 /proc/uptime)"
 
+# --- 0. phone setup --------------------------------------------------------------------------------
+# The PIN is in /api/home only while the main API listens on loopback, which it does until the
+# [server] settings below are appended. This serial console is test-only, so printing it is fine.
+gate=/run/vela-setup/open
+cfg=/etc/vela/vela.toml
+api_home() { curl -fsS -m 5 http://127.0.0.1:7300/api/home; }
+setup_pin() { api_home | jq -r '.setup.pin // empty' 2>/dev/null | grep -xE '[0-9]{6}'; }
+# The setup screen with a QR code: an address (null = "Connect Ethernet") and a PIN.
+setup_ready() { kiosk_on_home && api_home | jq -e '.setup.url != null and (.setup.pin | type) == "string"'; }
+setup_expire_armed() { [ -e "$gate" ] && systemctl is-active --quiet vela-setup-expire.timer; }
+commit_journal() { journalctl -b --no-pager -o cat -u vela-setup-commit.service 2>/dev/null; }
+# setup-commit removes the gate before it restarts the daemon, so "done" is its last line.
+commit_done() { commit_journal | grep -qE 'vela-setup-commit: (restarted vela-daemon|could not restart|REFUSED)'; }
+setup_committed() {
+  commit_journal | grep -q 'vela-setup-commit: restarted vela-daemon' && ! commit_journal | grep -q 'REFUSED'
+}
+mode_of() { stat -c '%U:%G %a' "$1" 2>/dev/null; }
+# The runner's key has the comment "vela-smoke-runner" (run-smoke.sh).
+setup_files_installed() {
+  [ "$(mode_of "$cfg")" = "root:root 644" ] \
+    && [ "$(mode_of /var/roothome/.ssh)" = "root:root 700" ] \
+    && [ "$(mode_of /var/roothome/.ssh/authorized_keys)" = "root:root 600" ] \
+    && grep -q ' vela-smoke-runner$' /var/roothome/.ssh/authorized_keys
+}
+setup_gate_closed() { [ ! -e "$gate" ] && ! systemctl is-active --quiet vela-setup-expire.timer; }
+# ss must work and list nothing: a missing ss is a failure, not a pass.
+setup_port_closed() { local l; l=$(ss -Hltn 'sport = :7301') && [ -z "$l" ]; }
+setup_avcs() {
+  { journalctl -b --no-pager -g 'avc: +denied' 2>/dev/null
+    if command -v ausearch >/dev/null; then ausearch -m avc -ts boot 2>/dev/null | grep 'avc: *denied'; fi
+  } | grep -E 'setup-commit|setup-gate|runuser'
+}
+setup_no_avc() { ! setup_avcs; }
+home_after_setup() { api_home | jq -e '.setup == null and (.apps | length) == 6'; }
+
+if wait_for 600 setup_ready; then
+  sleep 30  # let the setup screen paint before the runner's screenshot
+else
+  say "VELA-SMOKE setup screen not ready after 10 minutes"
+fi
+{ echo "--- setup (before the runner): /api/home .setup, gate, timer"
+  api_home | jq -c '.setup | del(.pin)'; ls -l "$gate"; cat "$gate"
+  systemctl show -p ActiveState -p NextElapseUSecMonotonic -p NextElapseUSecRealtime vela-setup-expire.timer
+  systemctl status --no-pager --lines=5 vela-setup-gate.service; } >> "$report" 2>&1
+check setup_expire_armed setup_expire_armed
+pin=$(setup_pin)
+say "VELA-SMOKE SETUP-PIN ${pin:-none}"
+# A new PIN (five wrong tries, or a daemon restart) is printed again for the runner.
+( last=$pin
+  while [ -e "$gate" ]; do
+    p=$(setup_pin)
+    if [ -n "$p" ] && [ "$p" != "$last" ]; then say "VELA-SMOKE SETUP-PIN $p"; last=$p; fi
+    sleep 2
+  done ) &
+pin_watch=$!
+wait_for 300 commit_done
+kill "$pin_watch" 2>/dev/null
+wait_for 30 setup_gate_closed
+wait_for 30 setup_port_closed
+{ echo "--- vela-setup-commit journal"; commit_journal
+  echo "--- installed files"
+  ls -lZd "$cfg" /var/roothome/.ssh /var/roothome/.ssh/authorized_keys; cat "$cfg"
+  echo "--- after setup: gate, timer, port 7301"
+  ls -la /run/vela-setup; systemctl is-active vela-setup-expire.timer; ss -Hltn 'sport = :7301'
+  echo "--- AVC denials mentioning setup"; setup_avcs; } >> "$report" 2>&1
+commit_journal | tail -n 12 | while IFS= read -r line; do say "VELA-SMOKE commit: $line"; done
+check setup_committed setup_committed
+check setup_files_installed setup_files_installed
+check setup_gate_closed setup_gate_closed
+check setup_port_closed setup_port_closed
+check setup_no_avc setup_no_avc
+# Test-only settings setup can't produce: append [server] listen = 0.0.0.0 (appended in place, so
+# the file keeps the label and mode setup-commit gave it) and restart the daemon. If setup never
+# wrote vela.toml, its checks failed above; write a mock config and close setup so the rest of the
+# run still produces a report.
+if [ ! -s "$cfg" ]; then
+  say "VELA-SMOKE no vela.toml after setup; writing the test config so the later phases run"
+  printf '[media]\nprovider = "mock"\n' > "$cfg"
+  rm -f "$gate"
+fi
+{ echo; cat /usr/share/vela-smoke/vela-server.toml; } >> "$cfg"
+userctl restart vela-daemon.service
+wait_for 120 home_after_setup
+{ echo "--- /api/home after setup"; api_home | jq -c '{setup, status, apps: (.apps | length)}'; } >> "$report" 2>&1
+say "VELA-SMOKE PHASE0"
+
 # --- 1. first boot -------------------------------------------------------------------------------
 wait_for 600 kiosk_on_home
 say "VELA-SMOKE kiosk-window uptime=$(cut -d' ' -f1 /proc/uptime)"
@@ -188,11 +280,9 @@ check wifi_firmware_downloaded wifi_firmware
 # --- 2c. degraded mode: a typo in vela.toml must not take the home screen down ----------------------
 # The broken file falls back to listen = 127.0.0.1, so this is checked from inside the VM only, after
 # the runner's host-side probes. The file is rewritten in place (not moved) to keep its SELinux label.
-cfg=/etc/vela/vela.toml
 cp -a "$cfg" "$out/vela.toml.orig"
 printf '[ui]\neffects = "banana"\n' > "$cfg"
 userctl restart vela-daemon.service
-api_home() { curl -fsS -m 5 http://127.0.0.1:7300/api/home; }
 degraded_line() { api_home | jq -e '.status.line | test("vela\\.toml")'; }
 degraded_apps() { api_home | jq -e '(.apps | length) == 6'; }
 launcher_page() { curl -fsS -m 5 http://127.0.0.1:7300/ | grep -qi '<!doctype html'; }

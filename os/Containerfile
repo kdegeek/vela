@@ -17,7 +17,7 @@ ARG IRDB_COMMIT=d126fb1b6f1e114c52b4a8c19839ea65e3a9c24d
 FROM scratch AS ctx
 COPY os/build /
 
-# --- pnpm workspace: daemon + launcher ---------------------------------------
+# --- pnpm workspace: daemon, launcher, setup page ---------------------------
 FROM docker.io/library/node:22 AS app
 WORKDIR /src
 RUN npm install -g pnpm@12.8.1
@@ -25,6 +25,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json tsconfig
 COPY packages/shared/package.json packages/shared/
 COPY apps/daemon/package.json apps/daemon/
 COPY apps/launcher/package.json apps/launcher/
+COPY apps/setup/package.json apps/setup/
 RUN pnpm install --frozen-lockfile
 COPY packages packages
 COPY apps apps
@@ -67,6 +68,8 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
 # 5. Daemon, launcher, manifests, assets, vela-ctl.
 COPY --from=app /out/daemon /usr/lib/vela/daemon
 COPY --from=app /src/apps/launcher/dist /usr/lib/vela/launcher
+# The phone setup page, served by the daemon's setup listener (:7301) only in setup mode.
+COPY --from=app /src/apps/setup/dist /usr/lib/vela/setup
 COPY --from=app /src/apps/daemon/manifests /usr/share/vela/apps
 COPY --from=app /src/apps/daemon/assets /usr/share/vela/assets
 COPY --chmod=0755 bin/vela-ctl /usr/bin/vela-ctl

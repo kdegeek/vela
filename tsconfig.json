@@ -1,4 +1,4 @@
 {
   "files": [],
-  "references": [{ "path": "packages/shared" }, { "path": "apps/daemon" }, { "path": "apps/launcher" }]
+  "references": [{ "path": "packages/shared" }, { "path": "apps/daemon" }, { "path": "apps/launcher" }, { "path": "apps/setup" }]
 }

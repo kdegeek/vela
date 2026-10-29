@@ -1,0 +1,184 @@
+#!/bin/bash
+# Installs the files phone setup staged, as root. Run by vela-setup-commit.service when the daemon
+# (user vela) writes /var/lib/vela/setup/commit after the owner taps Finish.
+#
+# Staged by the daemon in /var/lib/vela/setup/ (all owned by vela, 0600):
+#   vela.toml        required; becomes /etc/vela/vela.toml (root, 0644) once check-config.js accepts it
+#   authorized_keys  optional (absent when the owner skipped SSH); merged into root's authorized_keys
+#   commit           the request; removed first, on every outcome
+#
+# Everything under the staging dir is hostile input from an unprivileged user: it is only read
+# (and deleted) as vela, refused if it is a symlink, not a regular file, not owned by vela or too
+# big, and copied into a root-only work dir before it is validated, so it can't change between
+# the check and the install. Nothing happens unless setup is open (/run/vela-setup/open, root's)
+# and was opened less than 2 hours ago (the epoch seconds setup-gate wrote into it).
+#
+# On a refusal: log why, leave setup open so the phone can retry, exit 0. Every line logged
+# starts with "vela-setup-commit:"; refusals with "vela-setup-commit: REFUSED".
+set -euo pipefail
+
+GATE=${VELA_SETUP_GATE:-/run/vela-setup/open}
+STAGE=${VELA_SETUP_STAGE:-/var/lib/vela/setup}
+CONFIG=${VELA_CONFIG_DEST:-/etc/vela/vela.toml}
+SSH_DIR=${VELA_ROOT_SSH_DIR:-/var/roothome/.ssh}
+WORK_PARENT=${VELA_SETUP_WORK:-/run}
+OWNER=${VELA_SETUP_OWNER:-vela}
+NODE=${VELA_NODE:-/usr/bin/node}
+CHECK_CONFIG=${VELA_CHECK_CONFIG:-/usr/lib/vela/daemon/dist/check-config.js}
+SSH_KEYGEN=${VELA_SSH_KEYGEN:-ssh-keygen}
+SYSTEMCTL=${VELA_SYSTEMCTL:-systemctl}
+MAX_AGE=${VELA_SETUP_MAX_AGE:-7200}
+# Commands that take a path under the staging dir run as vela, so a symlink swapped in after the
+# checks reaches only what vela could reach anyway. timeout: a FIFO swapped in would block a read.
+# Unset = the default; set to "" (bats) = run directly.
+read -r -a AS_OWNER <<< "${VELA_SETUP_AS_OWNER-timeout 10 runuser -u vela --}"
+
+MAX_BYTES=65536
+MAX_KEYS=16
+KEY_TYPES='ssh-ed25519|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521|sk-ssh-ed25519@openssh\.com|sk-ecdsa-sha2-nistp256@openssh\.com|ssh-rsa'
+KEY_LINE="^($KEY_TYPES) [A-Za-z0-9+/]+={0,3}( [[:print:]]*)?\$"
+
+log() { echo "vela-setup-commit: $*"; }
+refuse() {
+  log "REFUSED: $*; setup stays open so the phone can try again"
+  exit 0
+}
+# (The +-form: bash 3.2, which macOS runs the bats tests with, calls an empty array unbound.)
+as_owner() { ${AS_OWNER[@]+"${AS_OWNER[@]}"} "$@"; }
+
+# Consume the request first: a trap at exit could delete a fresh commit the daemon wrote meanwhile.
+# Never through a symlinked staging dir: remove the symlink itself (as vela), so the path unit
+# doesn't keep firing on whatever it points at.
+if [ -L "$STAGE" ]; then
+  as_owner rm -f -- "$STAGE" || log "could not remove the symlink $STAGE"
+  refuse "$STAGE is a symlink"
+fi
+# -r: a commit made a directory would otherwise retrigger the path unit until it gives up.
+if [ -d "$STAGE" ]; then as_owner rm -rf -- "$STAGE/commit" || log "could not remove $STAGE/commit"; fi
+
+[ -e "$GATE" ] || { log "REFUSED: setup is not open ($GATE is missing); nothing installed"; exit 0; }
+# The window is 2 hours from the opening time root wrote into the gate (vela-setup-expire.timer
+# closes it too; this check doesn't depend on the timer having run). Same rule as setup-gate.
+opened=$(head -c 32 "$GATE" 2>/dev/null | tr -d '\n') || opened=""
+now=$(date +%s)
+if ! [[ "$opened" =~ ^[1-9][0-9]{0,11}$ ]] || [ "$((now - opened))" -ge "$MAX_AGE" ] || [ "$((opened - now))" -gt 300 ]; then
+  log "REFUSED: setup expired (the gate says it opened at '$opened', more than $((MAX_AGE / 60)) minutes ago or unreadable); run vela-ctl setup to open it again"
+  exit 0
+fi
+
+# --- the staging dir and its files ---
+[ -n "$(find "$STAGE" -maxdepth 0 -type d -user "$OWNER" 2>/dev/null)" ] ||
+  refuse "$STAGE is not a directory owned by $OWNER"
+
+work=$(mktemp -d "$WORK_PARENT/vela-setup-commit.XXXXXX")
+trap 'rm -rf "$work"' EXIT
+
+# copy_in <name>: copies $STAGE/<name> to $work/<name>. 0 = copied, 1 = absent; refuses anything odd.
+copy_in() {
+  local src="$STAGE/$1" size
+  if [ -L "$src" ]; then refuse "$src is a symlink"; fi
+  [ -e "$src" ] || return 1
+  [ -n "$(find "$src" -maxdepth 0 -type f -user "$OWNER" 2>/dev/null)" ] ||
+    refuse "$src is not a regular file owned by $OWNER"
+  as_owner head -c "$((MAX_BYTES + 1))" -- "$src" > "$work/$1" || refuse "could not read $src"
+  size=$(wc -c < "$work/$1")
+  [ "$((size))" -le "$MAX_BYTES" ] || refuse "$src is bigger than $MAX_BYTES bytes"
+  return 0
+}
+
+copy_in vela.toml || refuse "$STAGE/vela.toml is missing"
+have_keys=0
+if copy_in authorized_keys; then have_keys=1; fi
+
+# --- vela.toml: the daemon's own schema ---
+if ! problem=$("$NODE" "$CHECK_CONFIG" "$work/vela.toml" 2>&1 >/dev/null); then
+  refuse "vela.toml does not pass check-config: $(printf '%s' "$problem" | head -c 500 | tr '\n' ' ')"
+fi
+
+# --- authorized_keys: plain keys of allowed types, each one parsed by ssh-keygen ---
+if [ "$have_keys" = 1 ]; then
+  n=0 lineno=0
+  : > "$work/keys"
+  while IFS= read -r line || [ -n "$line" ]; do
+    lineno=$((lineno + 1))
+    case "$line" in '' | '#'*) continue ;; esac
+    # Line numbers only: the journal shouldn't carry what an unprivileged user typed.
+    [[ "$line" =~ $KEY_LINE ]] ||
+      refuse "authorized_keys line $lineno is not '<type> <base64> [comment]' with an allowed key type (no options)"
+    n=$((n + 1))
+    [ "$n" -le "$MAX_KEYS" ] || refuse "authorized_keys has more than $MAX_KEYS keys"
+    # One key per file: on a multi-line file ssh-keygen -l succeeds if any line parses.
+    printf '%s\n' "$line" > "$work/one.pub"
+    "$SSH_KEYGEN" -l -f "$work/one.pub" > /dev/null 2>&1 ||
+      refuse "authorized_keys line $lineno is not a valid SSH public key (ssh-keygen -l)"
+    printf '%s\n' "$line" >> "$work/keys"
+  done < "$work/authorized_keys"
+  [ "$n" -gt 0 ] || refuse "authorized_keys has no keys (it should be absent when SSH is skipped)"
+fi
+
+log "staged files are valid; installing"
+
+# --- install ---
+owned_by_root() { if [ "$(id -u)" = 0 ]; then chown 0:0 "$@"; fi; }
+
+install -d -m 0755 "$(dirname "$CONFIG")"
+if [ -e "$CONFIG" ]; then
+  # vela-ctl setup on a configured box: keep the old file next to the new one.
+  cp -p "$CONFIG" "$CONFIG.before-setup"
+  log "kept the previous config as $CONFIG.before-setup"
+fi
+install -m 0644 "$work/vela.toml" "$CONFIG.new"
+owned_by_root "$CONFIG.new"
+mv -f "$CONFIG.new" "$CONFIG"
+log "installed $CONFIG"
+
+if [ "$have_keys" = 1 ]; then
+  install -d -m 0700 "$SSH_DIR"
+  chmod 0700 "$SSH_DIR"
+  owned_by_root "$SSH_DIR"
+  keys="$SSH_DIR/authorized_keys"
+  # Root's existing keys (the VELA stick) stay as they are, options included; a staged key is
+  # added unless its type and blob already appear together on one of those lines.
+  if [ -f "$keys" ]; then cp "$keys" "$work/merged"; else : > "$work/merged"; fi
+  added=0
+  while IFS= read -r line; do
+    read -r ktype kblob _ <<< "$line"
+    if awk -v t="$ktype" -v b="$kblob" '{ for (i = 1; i < NF; i++) if ($i == t && $(i + 1) == b) found = 1 } END { exit !found }' "$work/merged"; then
+      continue
+    fi
+    # The existing file may lack a final newline.
+    if [ -s "$work/merged" ] && [ -n "$(tail -c 1 "$work/merged")" ]; then echo >> "$work/merged"; fi
+    printf '%s\n' "$line" >> "$work/merged"
+    added=$((added + 1))
+  done < "$work/keys"
+  install -m 0600 "$work/merged" "$keys.new"
+  owned_by_root "$keys.new"
+  mv -f "$keys.new" "$keys"
+  log "installed $keys ($added key(s) added, $(grep -c . "$work/keys") staged)"
+fi
+
+if command -v restorecon > /dev/null; then
+  restorecon -F "$CONFIG" || log "restorecon failed for $CONFIG"
+  if [ "$have_keys" = 1 ]; then restorecon -RF "$SSH_DIR" || log "restorecon failed for $SSH_DIR"; fi
+fi
+
+# Setup is done: close it (the daemon closes port 7301 within a second), clear the stage, and
+# restart the daemon so it loads the new config.
+rm -f "$GATE"
+"$SYSTEMCTL" --no-block stop vela-setup-expire.timer || true
+log "setup closed ($GATE removed)"
+as_owner rm -f -- "$STAGE/vela.toml" "$STAGE/authorized_keys"
+# -M vela@ needs machined's stdio bridge; fall back to vela's own user bus (as the VM diag does).
+restart_daemon() {
+  "$SYSTEMCTL" --user -M vela@ restart vela-daemon.service && return 0
+  local uid
+  uid=$(id -u vela 2>/dev/null) || return 1
+  runuser -u vela -- env XDG_RUNTIME_DIR="/run/user/$uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+    "$SYSTEMCTL" --user restart vela-daemon.service
+}
+if restart_daemon; then
+  log "restarted vela-daemon"
+else
+  log "could not restart vela-daemon; it loads the new config at the next restart"
+  exit 1
+fi

@@ -18,10 +18,12 @@ import { audioJackTransmitter, jackSinkFinder } from "./devices/ir/audioJack.js"
 import { irCtlTransmitter, type IrTransmitter } from "./devices/ir/irctl.js";
 import { DeviceRegistry } from "./devices/registry.js";
 import { createNoopSway, createSway } from "./session/sway.js";
+import { SETUP_PORT, startSetupMode } from "./setup/listener.js";
 
 const SECRETS_PATH = process.env.VELA_SECRETS ?? "/var/lib/vela/secrets.json";
+const CONFIG_PATH = process.env.VELA_CONFIG ?? "/etc/vela/vela.toml";
 // Never throws: a broken file gives defaults and a status line saying which file to fix.
-const settings = loadSettings(process.env.VELA_CONFIG ?? "/etc/vela/vela.toml", SECRETS_PATH);
+const settings = loadSettings(CONFIG_PATH, SECRETS_PATH);
 const { config, secrets, problem } = settings;
 const manifests = loadManifests(config.manifestDirs);
 const bus = new EventBus();
@@ -79,6 +81,20 @@ if (config.volumeDevice && !config.devices.some((d) => d.id === config.volumeDev
   console.error(`vela: volumeDevice "${config.volumeDevice}" is not a configured device; the volume keys use the first TV`);
 }
 
+// Setup mode: root creates the gate when there is no vela.toml (or on `vela-ctl setup`) and removes it on commit.
+const setup = startSetupMode({
+  apiListen: config.server.listen,
+  gatePath: process.env.VELA_SETUP_GATE ?? "/run/vela-setup/open",
+  // Root's marker that setup timed out (setup-gate expire); default: next to the gate.
+  expiredPath: process.env.VELA_SETUP_EXPIRED,
+  configured: () => fs.existsSync(CONFIG_PATH),
+  port: SETUP_PORT,
+  secretsPath: SECRETS_PATH,
+  stagingDir: process.env.VELA_SETUP_STAGING ?? "/var/lib/vela/setup",
+  staticDir: process.env.VELA_SETUP_DIR ?? "/usr/lib/vela/setup",
+  emit: bus.emit,
+});
+
 const mock = createMockProvider();
 const glyphs = loadGlyphs(manifests, path.join(assetsDir(), "glyphs"));
 const home = () =>
@@ -92,6 +108,7 @@ const home = () =>
     effects: config.ui.effects,
     glyphs,
     problem,
+    setup: setup.status,
   });
 startHomePolling(home, bus.emit);
 const play = jf ? createPlayer({ jf, start: startMpv, goHome: () => runner.goHome(), emit: bus.emit, runner }) : undefined;
@@ -119,7 +136,7 @@ function shutdown(): void {
   if (shuttingDown) return;
   shuttingDown = true;
   stopGamepads();
-  app.close().then(
+  Promise.all([app.close(), setup.stop()]).then(
     () => process.exit(0),
     (e) => {
       console.error("vela: shutdown", (e as Error).message);

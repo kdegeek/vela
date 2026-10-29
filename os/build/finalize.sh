@@ -6,6 +6,8 @@ set -euxo pipefail
 # --- services ---
 systemctl set-default graphical.target
 systemctl enable greetd.service vela-flatpaks.service vela-wifi-firmware.service podman-auto-update.timer t2fanrd.service
+# Phone setup: the gate opens it on a box without vela.toml; the path unit installs what it staged.
+systemctl enable vela-setup-gate.service vela-setup-commit.path
 systemctl --global enable vela-daemon.service vela-kiosk.service
 # No text console: greetd owns tty1 and nothing spawns gettys on the others.
 systemctl mask getty@tty1.service autovt@.service
@@ -14,6 +16,11 @@ systemctl mask getty@tty1.service autovt@.service
 # (firmware_class.path in kargs.d).
 systemctl disable get-apple-firmware.service || true
 systemctl is-enabled greetd.service vela-flatpaks.service vela-wifi-firmware.service podman-auto-update.timer t2fanrd.service
+systemctl is-enabled vela-setup-gate.service vela-setup-commit.path
+# Started by setup-gate open (no [Install]); it closes setup after 2 hours.
+grep -qx 'Unit=vela-setup-expire.service' /usr/lib/systemd/system/vela-setup-expire.timer
+grep -qx 'ExecStart=/usr/libexec/vela/setup-gate expire' /usr/lib/systemd/system/vela-setup-expire.service
+grep -qx 'ExecStart=/usr/libexec/vela/setup-gate open' /usr/lib/systemd/system/vela-setup-gate.service
 systemctl --global is-enabled vela-daemon.service vela-kiosk.service
 # Both must be pulled in by the session target that session-start restarts.
 test -L /etc/systemd/user/vela-session.target.wants/vela-daemon.service
@@ -65,7 +72,11 @@ grep 't2bce' /tmp/initrd.txt || echo "note: t2bce modules are not in the initram
 # --- the kiosk and the daemon ---
 command -v chromium-browser || command -v chromium
 grep -qx "VELA_KERNEL=$(rpm -q --qf '%{VERSION}-%{RELEASE}' kernel-core)" /usr/lib/os-release
-test -x /usr/libexec/vela/session-start -a -x /usr/libexec/vela/launcher-kiosk -a -x /usr/libexec/vela/install-flatpaks -a -x /usr/libexec/vela/fetch-wifi-firmware
+test -x /usr/libexec/vela/session-start -a -x /usr/libexec/vela/launcher-kiosk -a -x /usr/libexec/vela/install-flatpaks -a -x /usr/libexec/vela/fetch-wifi-firmware -a -x /usr/libexec/vela/setup-commit -a -x /usr/libexec/vela/setup-gate
+# setup-commit validates the staged vela.toml with it; without it every setup is refused.
+test -r /usr/lib/vela/daemon/dist/check-config.js
+# The phone setup page the setup listener serves; without it setup mode answers only its API.
+test -r /usr/lib/vela/setup/index.html
 command -v swaymsg greetd sway Xwayland mpv ir-ctl wtype flatpak node curl jq zstd sha256sum vela-ctl grim lsusb vainfo wpctl aplay busctl pw-play pw-dump
 test -x /usr/libexec/vela/acceptance/hw-check.sh -a -r /usr/libexec/vela/acceptance/lib.sh
 /ctx/smoke-daemon.sh /usr/bin/node /usr/lib/vela/daemon /usr/share/vela/assets /usr/share/vela/apps /usr/lib/vela/launcher

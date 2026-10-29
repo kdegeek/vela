@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
-  import type { AppTile, Device, HeroItem, HomeState, MediaCard, VelaEvent } from "@vela/shared";
+  import type { AppTile, Device, HeroItem, HomeState, MediaCard, SetupStatus, VelaEvent } from "@vela/shared";
   import { connect, type ActionResult } from "./lib/api.js";
   import { move, trackShift, type FocusState } from "./lib/focus.js";
   import { createHeroSettler } from "./lib/hero.js";
@@ -14,6 +14,8 @@
   import Toast from "./components/Toast.svelte";
   import HomePanel from "./components/HomePanel.svelte";
   import LaunchScreen, { type LaunchView } from "./components/LaunchScreen.svelte";
+  import SetupScreen from "./components/SetupScreen.svelte";
+  import { nextSetup } from "./lib/setup.js";
   import { decideEffects, sampleFrames, summarize } from "./lib/perf.js";
 
   type RowModel =
@@ -33,6 +35,8 @@
   let devices = $state<Device[] | null>(null);
   let panel = $state<{ handle: (a: Action) => void }>();
   let launching = $state<{ id: string; view: LaunchView; leaving: boolean } | null>(null);
+  /** Setup mode: the setup screen replaces home until the daemon says setup ended. */
+  let setup = $state<SetupStatus | null>(null);
 
   const rows = $derived.by((): RowModel[] => {
     if (!home) return [];
@@ -126,6 +130,7 @@
   function setHome(s: HomeState) {
     const first = home === null;
     home = s;
+    setup = nextSetup(setup, { home: s });
     const cfg = s.status.effects ?? "auto";
     if (first || cfg !== effectsCfg) {
       effectsCfg = cfg;
@@ -317,6 +322,8 @@
   }
 
   function handle(a: Action) {
+    // The setup screen takes no remote input; the phone drives it.
+    if (setup) return;
     if (launching) {
       // The app is on its way; Back only takes the screen down.
       if (a.kind === "back" || a.kind === "home") endLaunch(false);
@@ -340,6 +347,10 @@
   }
 
   function onEvent(e: VelaEvent) {
+    const wasSetup = setup !== null;
+    setup = nextSetup(setup, { event: e });
+    // Setup just ended (committed): fetch the home screen it was covering.
+    if (wasSetup && !setup) void api.home().then(setHome);
     if (e.type === "toast") showToast(e.message);
     else if (e.type === "home-state-changed") void api.home().then(setHome);
     else if (e.type === "app-state" && home) {
@@ -389,28 +400,33 @@
 </script>
 
 <div class="stage" style:--tint={hero ? tintFor(hero) : STARTUP_TINT}>
-  <Hero item={hero} sourceName={source.name} sourceColor={source.color} />
-  <TopBar status={home?.status ?? null} />
+  {#if setup}
+    <SetupScreen status={setup} />
+    <TopBar status={null} />
+  {:else}
+    <Hero item={hero} sourceName={source.name} sourceColor={source.color} />
+    <TopBar status={home?.status ?? null} />
 
-  <main class="rows" bind:this={rowsEl} style:translate="0 {-rowsOffset}px">
-    {#each rows as row, r (row.id)}
-      <Row title={row.title} active={r === focus.row} past={r < focus.row} shift={shifts[r] ?? 0}>
-        {#if row.kind === "app"}
-          {#each row.items as app, c (app.id)}
-            <Tile kind="app" {app} tint={tintFor(app.feature)} onpick={() => pick(r, c)} />
-          {/each}
-        {:else}
-          {#each row.items as card, c (card.key)}
-            <Tile kind={row.kind} {card} tint={tintFor(card)} onpick={() => pick(r, c)} />
-          {/each}
-        {/if}
-      </Row>
-    {/each}
-  </main>
+    <main class="rows" bind:this={rowsEl} style:translate="0 {-rowsOffset}px">
+      {#each rows as row, r (row.id)}
+        <Row title={row.title} active={r === focus.row} past={r < focus.row} shift={shifts[r] ?? 0}>
+          {#if row.kind === "app"}
+            {#each row.items as app, c (app.id)}
+              <Tile kind="app" {app} tint={tintFor(app.feature)} onpick={() => pick(r, c)} />
+            {/each}
+          {:else}
+            {#each row.items as card, c (card.key)}
+              <Tile kind={row.kind} {card} tint={tintFor(card)} onpick={() => pick(r, c)} />
+            {/each}
+          {/if}
+        </Row>
+      {/each}
+    </main>
 
-  <HomePanel bind:this={panel} open={panelOpen} {devices} status={home?.status ?? null} onsend={sendCommand} onclose={closeHomePanel} />
-  {#if launching}
-    <LaunchScreen view={launching.view} leaving={launching.leaving} capMs={LAUNCH_CAP_MS} />
+    <HomePanel bind:this={panel} open={panelOpen} {devices} status={home?.status ?? null} onsend={sendCommand} onclose={closeHomePanel} />
+    {#if launching}
+      <LaunchScreen view={launching.view} leaving={launching.leaving} capMs={LAUNCH_CAP_MS} />
+    {/if}
   {/if}
   <Toast message={toast} placement={panelOpen ? "sheet" : "top"} />
 </div>
