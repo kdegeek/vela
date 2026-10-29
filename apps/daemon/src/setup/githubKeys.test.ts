@@ -73,6 +73,7 @@ describe("GitHub keys", () => {
     await expect(fetchGithubKeys("nobody", r(404))).rejects.toThrow(/no user named nobody/);
     await expect(fetchGithubKeys("empty", r(200, "\n"))).rejects.toThrow(/no SSH keys on GitHub/);
     await expect(fetchGithubKeys("x", r(503))).rejects.toThrow(/error \(503\)/);
+    await expect(fetchGithubKeys("huge", r(200, `${ED25519}\n`.repeat(2000)))).rejects.toThrow(/more keys than Vela can take/);
     const down = (async () => {
       throw new TypeError("fetch failed");
     }) as unknown as typeof fetch;

@@ -77,6 +77,19 @@ export function parseKeys(lines: string[]): SetupKey[] {
   return keys;
 }
 
+/** The body as text, or undefined once it passes `max` bytes (stops downloading there). */
+async function readCapped(res: Response, max: number): Promise<string | undefined> {
+  if (!res.body) return "";
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for await (const c of res.body) {
+    size += c.length;
+    if (size > max) return undefined; // leaving the loop cancels the download
+    chunks.push(c);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
 /** Fetches https://github.com/<user>.keys and nothing else (no redirects). Keys get the comment `<user>@github`. */
 export async function fetchGithubKeys(user: string, f: typeof fetch = fetch): Promise<SetupKey[]> {
   if (!GITHUB_USER.test(user)) throw new KeyError("That isn't a GitHub username. It can have letters, digits and dashes, up to 39 characters.");
@@ -88,8 +101,8 @@ export async function fetchGithubKeys(user: string, f: typeof fetch = fetch): Pr
   }
   if (res.status === 404) throw new KeyError(`GitHub has no user named ${user}. Check the spelling.`);
   if (!res.ok) throw new KeyError(`GitHub answered with an error (${res.status}). Try again, or paste a key instead.`);
-  const body = await res.text();
-  if (body.length > MAX_BODY) throw new KeyError("GitHub sent more keys than Vela can take. Paste the keys you want instead.");
+  const body = await readCapped(res, MAX_BODY);
+  if (body === undefined) throw new KeyError("GitHub sent more keys than Vela can take. Paste the keys you want instead.");
   const lines = body.split("\n").filter((l) => l.trim()).map((l) => `${l.trim()} ${user}@github`);
   if (!lines.length) throw new KeyError(`${user} has no SSH keys on GitHub. Add one at github.com/settings/keys, or paste a key instead.`);
   return parseKeys(lines);
