@@ -1,0 +1,16 @@
+[Unit]
+Description=Download Apple's Wi-Fi and Bluetooth firmware for the Mac
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=!/var/lib/vela/firmware/.fetched
+StartLimitIntervalSec=0
+
+[Service]
+Type=exec
+ExecStart=/usr/libexec/vela/fetch-wifi-firmware
+# Offline or the download is unavailable: try again every 15 minutes. Wi-Fi is optional.
+Restart=on-failure
+RestartSec=15min
+
+[Install]
+WantedBy=multi-user.target

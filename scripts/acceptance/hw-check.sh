@@ -62,7 +62,7 @@ ethernet_up() {
 }
 check "Ethernet link up" ethernet_up
 wifi_present() { compgen -G '/sys/class/net/*/wireless' >/dev/null || compgen -G '/sys/class/net/wl*' >/dev/null; }
-if wifi_present; then pass "Wi-Fi interface present"; else warn "Wi-Fi interface" "none found; Wi-Fi is optional. Needs firmware in $STATE/firmware (docs/install.md step 2)."; fi
+if wifi_present; then pass "Wi-Fi interface present"; else warn "Wi-Fi interface" "none found; Wi-Fi is optional. Needs the firmware vela-wifi-firmware.service downloads to $STATE/firmware (journalctl -u vela-wifi-firmware)."; fi
 if [ ! -d "$STATE/firmware" ]; then
   warn "firmware directory" "$STATE/firmware is missing; Wi-Fi and Bluetooth stay off (optional)"
 elif [ -z "$(ls -A "$STATE/firmware" 2>/dev/null)" ]; then

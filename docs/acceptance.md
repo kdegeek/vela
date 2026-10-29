@@ -39,10 +39,10 @@ holds the output of every script run so far, so the last one you make is the one
    vela-ctl acceptance playback-check /var/tmp/vela-4k-hevc10.mkv
    ```
 
-   Sign in to YouTube once first (install.md step 9), or the test video won't play.
+   Sign in to YouTube once first (install.md step 8), or the test video won't play.
 4. **`tv-check`** (about 2 minutes per TV). Turns the TV off, waits 10 seconds, turns it on, and
    changes the volume. You say whether each step happened. Pair the TV in Home Assistant first
-   (install.md step 10).
+   (install.md step 9).
 5. **`ir-check`** (about 1 minute). Sends a test code on each infrared transmitter: the USB IR
    dongle (`/dev/lirc*`) and the headphone-jack blaster. A phone camera shows an IR blaster's light
    flashing.
@@ -88,7 +88,7 @@ saw instead.
 | `Ethernet link up` | The cable or router port, or the T2 network driver. |
 | `HDMI audio sink exists` | The TV is off or not connected, or PipeWire did not start. See `audio-sinks.txt`. |
 | `headphone-jack sink exists` | The audio codec is not set up by `t2linux-audio`. IR blasting through the jack will not work. |
-| `Wi-Fi interface` (a warning) | The firmware in `/var/lib/vela/firmware` is missing. Wi-Fi is optional. |
+| `Wi-Fi interface` (a warning) | The firmware in `/var/lib/vela/firmware` is missing: the first-boot download failed or is still retrying (`journalctl -u vela-wifi-firmware`). Wi-Fi is optional. |
 | `vela-daemon answers`, `units active`, `kiosk window on workspace home` | The session did not start properly. Send the bundle; the user journal inside it shows why. |
 | `graphical-session.target active`, `xdg-desktop-portal answers` | The session did not hand its environment to the user manager. Apps from Flatpak will not start. |
 | `Flatpak ... installed` (a warning) | The first-boot download is still running or failed (no network). Look at `journalctl -u vela-flatpaks`. |
@@ -119,7 +119,7 @@ saw instead.
 | Failure | Most likely cause |
 |---|---|
 | `a TV device is configured` | No `kind = "tv"` entry in `/etc/vela/vela.toml`, or the daemon was not restarted. |
-| `power_off request` / volume requests fail | The TV is not paired in Home Assistant yet, or the token is missing from `secrets.json` (install.md step 10). |
+| `power_off request` / volume requests fail | The TV is not paired in Home Assistant yet, or the token is missing from `secrets.json` (install.md step 9). |
 | TV off or on answered `n` | Home Assistant took the command but the TV ignored it. For power on, add `powerOnFallback`, which sends the IR power code. |
 | `INFO power on used the IR fallback` | Information only: the TV could not be woken over the network. |
 | `at least one IR transmitter is present` | No `/dev/lirc*` device and no headphone-jack sink. Plug in the IR blaster. |

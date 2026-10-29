@@ -1,0 +1,58 @@
+#!/bin/bash
+# Downloads Apple's Broadcom Wi-Fi/Bluetooth firmware for T2 Macs into /var/lib/vela/firmware/brcm,
+# where firmware_class.path (kargs.d) points the kernel. Run once by vela-wifi-firmware.service.
+#
+# Apple doesn't allow redistributing these files, so Vela never ships them in the image or the
+# installer: each box downloads them itself. The source is the community apple-bcm-firmware
+# package (the files t2linux's firmware.sh extracts from macOS), pinned by SHA-256 so a changed
+# upload is refused. Files the owner put on the VELA stick (vela-firmware/, copied by the
+# installer) take precedence: if brcm/ already has firmware, nothing is downloaded.
+#
+# Exits non-zero on a download or checksum failure; the service retries later.
+set -euo pipefail
+
+URL=${VELA_FIRMWARE_URL:-https://github.com/NoaHimesaka1873/apple-bcm-firmware/releases/download/v14.0/apple-bcm-firmware-14.0-1-any.pkg.tar.zst}
+SHA256=${VELA_FIRMWARE_SHA256:-f2cd47d9e3fb9658f16997b2d9ace3033b57925b8c6ddd86ccc3d07d0c3e9559}
+DIR=${VELA_FIRMWARE_DIR:-/var/lib/vela/firmware}
+DONE="$DIR/.fetched"
+
+have_firmware() { compgen -G "$DIR/brcm/brcmfmac*.bin" >/dev/null; }
+
+if have_firmware; then
+  echo "vela-wifi-firmware: $DIR/brcm already has firmware; not downloading"
+  touch "$DONE"
+  exit 0
+fi
+
+work=$(mktemp -d "${TMPDIR:-/var/tmp}/vela-firmware.XXXXXX")
+trap 'rm -rf "$work"' EXIT
+
+echo "vela-wifi-firmware: downloading $URL"
+curl -fsSL --retry 3 --retry-delay 10 --connect-timeout 30 -o "$work/pkg.tar.zst" "$URL"
+echo "$SHA256  $work/pkg.tar.zst" | sha256sum -c --quiet - || {
+  echo "vela-wifi-firmware: checksum mismatch for $URL; refusing it" >&2
+  exit 1
+}
+
+mkdir -p "$work/x"
+tar --zstd -xf "$work/pkg.tar.zst" -C "$work/x" usr/lib/firmware/brcm
+src="$work/x/usr/lib/firmware/brcm"
+compgen -G "$src/brcmfmac*.bin" >/dev/null || { echo "vela-wifi-firmware: no brcmfmac firmware in the package" >&2; exit 1; }
+
+# Copy next to the final folder, then swap it in, so a half-written brcm/ never exists.
+mkdir -p "$DIR"
+rm -rf "$DIR/brcm.new"
+cp -r "$src" "$DIR/brcm.new"
+chmod -R u=rwX,go=rX "$DIR/brcm.new"
+rm -rf "$DIR/brcm"
+mv "$DIR/brcm.new" "$DIR/brcm"
+command -v restorecon >/dev/null && restorecon -RF "$DIR" || true
+touch "$DONE"
+echo "vela-wifi-firmware: installed $(find "$DIR/brcm" -type f | wc -l | tr -d " ") files in $DIR/brcm"
+
+# The Wi-Fi driver gave up when the files were missing at boot; load it again so Wi-Fi comes up
+# now instead of after the next restart. Bluetooth picks the files up at the next restart.
+if [ -d /sys/module/brcmfmac ] && [ -z "${VELA_FIRMWARE_NO_RELOAD:-}" ]; then
+  modprobe -r brcmfmac && modprobe brcmfmac && echo "vela-wifi-firmware: reloaded brcmfmac" \
+    || echo "vela-wifi-firmware: could not reload brcmfmac; Wi-Fi comes up after a restart" >&2
+fi

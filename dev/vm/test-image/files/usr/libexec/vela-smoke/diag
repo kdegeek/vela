@@ -173,6 +173,18 @@ updates_stage_only() {
 { echo "--- bootc updates"; updates_stage_only; } >> "$report" 2>&1
 check updates_stage_only_at_night updates_stage_only
 
+# --- 2b''. Apple's Wi-Fi firmware is downloaded on first boot (vela-wifi-firmware.service) ------------
+# The VM has no Broadcom card, but the download, checksum and unpack are the same as on the Mac.
+fw=/var/lib/vela/firmware
+wifi_firmware() {
+  [ -e "$fw/.fetched" ] && compgen -G "$fw/brcm/brcmfmac4364b2-pcie.apple,*.bin" >/dev/null \
+    && ! systemctl is-failed --quiet vela-wifi-firmware.service
+}
+wait_for 300 wifi_firmware
+{ echo "--- vela-wifi-firmware"; systemctl status --no-pager --lines=20 vela-wifi-firmware.service
+  ls -la "$fw" "$fw/brcm" | head -n 12; echo "files: $(find "$fw/brcm" -type f 2>/dev/null | wc -l)"; } >> "$report" 2>&1
+check wifi_firmware_downloaded wifi_firmware
+
 # --- 2c. degraded mode: a typo in vela.toml must not take the home screen down ----------------------
 # The broken file falls back to listen = 127.0.0.1, so this is checked from inside the VM only, after
 # the runner's host-side probes. The file is rewritten in place (not moved) to keep its SELinux label.
