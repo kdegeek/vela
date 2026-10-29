@@ -111,8 +111,8 @@ jobs:
         if: steps.meta.outputs.push == 'true'
         uses: redhat-actions/push-to-registry@94ade333c38ecc0e60e94785125d9a52ca423b37 # v3.0.0
         with:
-          image: ${{ steps.build.outputs.image }}
-          tags: ${{ steps.build.outputs.tags }}
+          # Fully qualified ghcr.io/<owner>/vela:sha-<short>; push-to-registry v3 needs either this or `registry`.
+          tags: ${{ steps.build.outputs.image-with-tag }}
 
   # Boots the image built above in QEMU at 3840x2160 (dev/vm/). Uses this run's image, not GHCR.
   vm-smoke:
