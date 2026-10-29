@@ -2,6 +2,8 @@
 # Run once by sway at startup. Hands this sway's sockets to the user manager and D-Bus (Flatpak
 # portals), then (re)starts the daemon and the kiosk. restart, not start: if sway crashes, greetd
 # starts a new one before the user manager stops, and running units would keep the dead socket.
-systemctl --user import-environment WAYLAND_DISPLAY SWAYSOCK DISPLAY XDG_CURRENT_DESKTOP
-dbus-update-activation-environment --systemd WAYLAND_DISPLAY SWAYSOCK DISPLAY XDG_CURRENT_DESKTOP
+# XDG_CURRENT_DESKTOP picks the portal backends (/usr/share/xdg-desktop-portal/sway-portals.conf).
+export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-sway}" XDG_SESSION_TYPE=wayland
+systemctl --user import-environment WAYLAND_DISPLAY SWAYSOCK DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+dbus-update-activation-environment --systemd WAYLAND_DISPLAY SWAYSOCK DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
 exec systemctl --user restart vela-session.target

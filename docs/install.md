@@ -14,9 +14,18 @@ The only way back is to reinstall macOS from Apple's Internet Recovery
 - A USB keyboard, for the install and for one-time app sign-ins.
 - An Ethernet cable to your router. The installer and the first start-up download things, and
   Wi-Fi only works once the firmware from step 2 is in place.
-- The installer file `vela-installer.iso`. Get it from the project's GitHub page: open
-  **Actions**, open the **image** run for the latest version tag (for example `v0.1.0`), and
-  download the **vela-installer** artifact. It downloads as a zip; unzip it to get the `.iso`.
+- The installer file `vela-installer.iso`. Get it from the project's GitHub page, under
+  **Releases**: open the latest version (for example `v0.1.0`). GitHub limits each download to
+  2 GB, so the installer comes in parts (`vela-installer.iso.part-00`, `-01`, …) plus a file
+  called `SHA256SUMS`. Download all of them into one folder, then in **Terminal** (in that
+  folder) join and check them:
+
+  ```
+  cat vela-installer.iso.part-* > vela-installer.iso
+  shasum -a 256 -c SHA256SUMS
+  ```
+
+  Every line should end in `OK`. If one doesn't, download that part again.
 
 ## Steps
 

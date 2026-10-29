@@ -31,6 +31,16 @@ userctl() { # systemctl --user for vela, with a fallback that doesn't need machi
     || setpriv --reuid="$uid" --regid="$(id -g vela)" --init-groups \
          env XDG_RUNTIME_DIR="$rt" DBUS_SESSION_BUS_ADDRESS="unix:path=$rt/bus" systemctl --user "$@"
 }
+asvela() { # run a command as vela with the user bus
+  setpriv --reuid="$uid" --regid="$(id -g vela)" --init-groups \
+    env XDG_RUNTIME_DIR="$rt" DBUS_SESSION_BUS_ADDRESS="unix:path=$rt/bus" "$@"
+}
+graphical_session() { userctl is-active --quiet graphical-session.target; }
+# A portal round trip: D-Bus activates xdg-desktop-portal, which needs graphical-session.target.
+portal_call() {
+  asvela busctl --user --timeout=30 call org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop \
+    org.freedesktop.DBus.Properties Get ss org.freedesktop.portal.Settings version
+}
 userjournal() {
   journalctl -b --no-pager _UID="$uid" -n 120 2>/dev/null
 }
@@ -63,6 +73,10 @@ capture() {
     echo "--- systemctl --user status"
     userctl status --no-pager --lines=15 vela-session.target vela-daemon.service vela-kiosk.service
     echo "--- systemctl --user --failed"; userctl --failed --no-pager
+    echo "--- graphical-session.target / portal"
+    userctl is-active graphical-session.target xdg-desktop-portal.service xdg-desktop-portal-wlr.service xdg-desktop-portal-gtk.service
+    portal_call
+    echo "--- user manager environment (XDG_*)"; userctl show-environment | grep -E '^(XDG_|WAYLAND_|SWAYSOCK)'
     echo "--- loginctl"; loginctl list-sessions --no-pager
     for s in $(loginctl list-sessions --no-legend | awk '{print $1}'); do
       loginctl show-session "$s" -p Id -p Name -p Type -p Class -p State -p Seat -p VTNr -p Service -p Remote
@@ -101,6 +115,8 @@ check kiosk_on_home_first_boot kiosk_on_home
 check units_active_first_boot units_active
 check sway_running_first_boot sway_running
 check session_domain_first_boot not_xdm_t
+check graphical_session_first_boot graphical_session
+check portal_first_boot portal_call
 old_pid=$(sway_pid)
 old_daemon=$(daemon_pid)
 say "VELA-SMOKE PHASE1 sway_pid=${old_pid:-none}"
@@ -119,6 +135,8 @@ check kiosk_on_home_after_crash kiosk_on_home
 check units_active_after_crash units_active
 check daemon_restarted_after_crash daemon_restarted
 check session_domain_after_crash not_xdm_t
+check graphical_session_after_crash graphical_session
+check portal_after_crash portal_call
 say "VELA-SMOKE PHASE2 sway_pid=$(sway_pid)"
 sleep 45  # the runner takes vm-after-crash.png now
 

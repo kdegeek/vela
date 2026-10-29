@@ -164,9 +164,10 @@ jobs:
           path: vm-artifacts/
           if-no-files-found: warn
 
-  # The wipe installer (os/installer/), on version tags and manual runs.
+  # The wipe installer (os/installer/), on version tags and manual runs, once the VM smoke test passed.
+  # On tags it is also attached to the tag's GitHub release (artifacts expire).
   installer:
-    needs: build
+    needs: [build, vm-smoke]
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 90
@@ -218,3 +219,18 @@ jobs:
           path: vela-installer.iso
           compression-level: 0
           if-no-files-found: error
+
+      - name: Attach the installer to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Release assets must be under 2 GiB, and the ISO is larger: upload it in parts plus
+          # SHA256SUMS. docs/install.md tells the owner how to join and check them.
+          split -b 1900m -d -a 2 vela-installer.iso vela-installer.iso.part-
+          sha256sum vela-installer.iso vela-installer.iso.part-* > SHA256SUMS
+          cat SHA256SUMS
+          gh release view "$TAG" >/dev/null 2>&1 \
+            || gh release create "$TAG" --verify-tag --title "Vela $TAG" --notes "Installer: see docs/install.md."
+          gh release upload "$TAG" vela-installer.iso.part-* SHA256SUMS --clobber

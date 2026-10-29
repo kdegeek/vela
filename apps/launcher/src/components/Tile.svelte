@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { AppTile, MediaCard } from "@vela/shared";
   import { cardArt } from "../lib/art.js";
+  import { cssUrl } from "../lib/css.js";
 
   type Props = { tint: string; onpick: () => void } & (
     | { kind: "app"; app: AppTile }
@@ -22,7 +23,7 @@
   >
     <!-- Glyphs are masks, so no SVG markup enters the DOM: the silhouette takes the brand color
          and any white detail (YouTube's play triangle) is drawn back through a luminance mask. -->
-    <span class="glyph" style:--glyph={`url("${app.glyphUrl}")`} style:--brand={app.brandColor} aria-hidden="true">
+    <span class="glyph" style:--glyph={cssUrl(app.glyphUrl)} style:--brand={app.brandColor} aria-hidden="true">
       <span class="glyph-light"></span>
     </span>
     <span class="name">{app.name}</span>

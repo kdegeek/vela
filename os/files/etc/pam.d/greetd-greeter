@@ -1,4 +1,7 @@
 #%PAM-1.0
+# This /etc file shadows the package's /usr/lib/pam.d/greetd-greeter (PAM reads /etc/pam.d
+# first); package updates to that file have no effect here.
+#
 # Vela: greetd's default_session is not a greeter, it is the kiosk session itself (sway as vela),
 # started again whenever sway exits or crashes. Fedora's greeter stack (/usr/lib/pam.d/
 # greetd-greeter) has no pam_selinux, so that session ran in greetd's own xdm_t domain, where
@@ -7,6 +10,8 @@
 # auth, but set the session up like /usr/lib/pam.d/greetd (the first login).
 auth       required    pam_env.so
 auth       required    pam_permit.so
+# Only the kiosk user gets a password-less session from this stack.
+account    required    pam_succeed_if.so user = vela quiet
 account    required    pam_permit.so
 password   required    pam_deny.so
 

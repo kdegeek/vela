@@ -14,6 +14,7 @@
 </script>
 
 <script lang="ts">
+  import { cssUrl } from "../lib/css.js";
   let { view, leaving, capMs }: { view: LaunchView; leaving: boolean; capMs: number } = $props();
 
   const EXPAND_MS = 520;
@@ -69,7 +70,7 @@
   <div class="content">
     {#if view.glyphUrl}
       <span class="glyph-wrap" aria-hidden="true">
-        <span class="glyph" style:--glyph={`url("${view.glyphUrl}")`} style:--brand={view.brandColor ?? "var(--starlight)"}>
+        <span class="glyph" style:--glyph={cssUrl(view.glyphUrl)} style:--brand={view.brandColor ?? "var(--starlight)"}>
           <span class="glyph-light"></span>
         </span>
       </span>

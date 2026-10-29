@@ -1,12 +1,14 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import path from "node:path";
 import { loadConfig, loadSecrets } from "./config.js";
 import { JellyfinClient, loginAndSave, toCard } from "./media/jellyfin.js";
 import { buildHomeState, startHomePolling } from "./media/homeState.js";
+import { loadGlyphs } from "./media/glyphs.js";
 import { createMockProvider } from "./media/mock.js";
 import { guideHandler, watchGamepads } from "./input/evdev.js";
 import { loadManifests } from "./manifests.js";
-import { buildServer, EventBus, PORT } from "./server.js";
+import { assetsDir, buildServer, EventBus, PORT } from "./server.js";
 import { AppRunner, defaultSpawn } from "./session/appRunner.js";
 import { flatpakStatus } from "./session/flatpak.js";
 import { createPlayer } from "./playback/jellyfinReporter.js";
@@ -86,6 +88,7 @@ const devices = new DeviceRegistry(config.devices, {
 });
 
 const mock = createMockProvider();
+const glyphs = loadGlyphs(path.join(assetsDir(), "glyphs"), manifests.map((m) => m.glyph));
 const home = () =>
   buildHomeState({
     manifests,
@@ -95,6 +98,7 @@ const home = () =>
     insideTemp,
     clock24h: config.ui.clock24h,
     effects: config.ui.effects,
+    glyphs,
   });
 startHomePolling(home, bus.emit);
 const play = jf ? createPlayer({ jf, start: startMpv, goHome: () => runner.goHome(), emit: bus.emit, runner }) : undefined;

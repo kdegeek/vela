@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Take a QMP screendump of the VM's display, save it as PNG and check it isn't blank.
 
-Usage: screendump.py <qmp-socket> <out.png> [--width W --height H]
+Usage: screendump.py <qmp-socket> <out.png> [--width W --height H] [--glyph-box X0,Y0,X1,Y1]
 
-Fails (exit 1) if the picture is not W x H (default 3840 x 2160) or if 98 % or more of its
-pixels are one colour (a black or blank screen). Needs python3-numpy and python3-pil.
+Fails (exit 1) if the picture is not W x H (default 3840 x 2160), if 98 % or more of its pixels
+are one colour (a black or blank screen), or, with --glyph-box, if the box is near-uniform: the
+largest per-channel spread (max - min) inside it must reach --min-spread (default 80). Measured on
+the Home tile's glyph: about 200 with the glyph drawn, 2 without. Needs python3-numpy and
+python3-pil.
 """
 import argparse
 import json
@@ -51,6 +54,8 @@ def main() -> int:
     ap.add_argument("out_png")
     ap.add_argument("--width", type=int, default=3840)
     ap.add_argument("--height", type=int, default=2160)
+    ap.add_argument("--glyph-box", help="x0,y0,x1,y1 in pixels: a region that must not be uniform")
+    ap.add_argument("--min-spread", type=int, default=80)
     a = ap.parse_args()
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -75,6 +80,14 @@ def main() -> int:
     if share >= 0.98:
         print("FAIL: the screen is (almost) a single colour", file=sys.stderr)
         ok = False
+    if a.glyph_box:
+        x0, y0, x1, y1 = (int(v) for v in a.glyph_box.split(","))
+        box = np.asarray(img)[y0:y1, x0:x1].astype(np.int16)
+        spread = int((box.max(axis=(0, 1)) - box.min(axis=(0, 1))).max()) if box.size else 0
+        print(f"glyph box {a.glyph_box}: spread {spread} (need >= {a.min_spread})")
+        if spread < a.min_spread:
+            print("FAIL: the glyph box is near-uniform (glyph not drawn)", file=sys.stderr)
+            ok = False
     return 0 if ok else 1
 
 

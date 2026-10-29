@@ -50,7 +50,7 @@ export interface Services {
 }
 
 /** VELA_ASSETS_DIR overrides; default is apps/daemon/assets for both src/ and dist/. */
-function assetsDir(): string {
+export function assetsDir(): string {
   return process.env.VELA_ASSETS_DIR ?? fileURLToPath(new URL("../assets", import.meta.url));
 }
 

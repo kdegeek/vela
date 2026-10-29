@@ -117,7 +117,10 @@ else
 fi
 
 # SELinux labels for what was just written (the installer copies with its own context).
-chroot "$root" restorecon -RF /etc/vela /var/lib/vela /var/roothome || note "restorecon failed"
+relabel=""
+for p in /etc/vela /var/lib/vela /var/roothome/.ssh; do [ -e "$root$p" ] && relabel="$relabel $p"; done
+# shellcheck disable=SC2086 # one path per word
+[ -n "$relabel" ] && { chroot "$root" restorecon -RF $relabel || note "restorecon failed for:$relabel"; }
 
 # Wi-Fi depends on firmware_class.path from kargs.d; say so if it didn't make it.
 if grep -qs 'firmware_class.path=/var/lib/vela/firmware' /mnt/sysimage/boot/loader/entries/*.conf; then

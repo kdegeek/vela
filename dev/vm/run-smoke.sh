@@ -2,8 +2,10 @@
 # Boots the smoke-test qcow2 (dev/vm/build-qcow2.sh) at 3840x2160 and checks it:
 #   - /api/health answers within 6 minutes and /api/home lists 6 apps (through QEMU's port forward)
 #   - vm-home-3840.png: a 3840x2160 screenshot of the home screen that is not one colour
+#   - the Home tile's glyph is drawn (not a near-uniform box)
 #   - the diag service's CHECK lines on the serial console: the kiosk window is on workspace
-#     "home", vela-daemon and vela-kiosk are active, and both are back after sway is crashed
+#     "home", vela-daemon and vela-kiosk are active, the session runs in unconfined_t,
+#     graphical-session.target is active and a portal call answers; all again after sway is crashed
 #     (vm-after-crash.png is the screen after the recovery)
 # Everything lands in <artifact-dir>: the PNGs, serial.log and diag.txt.
 #
@@ -50,8 +52,10 @@ wait_serial() {
   done
   echo "serial: '$1' after $(elapsed)"
 }
+# The Home tile's glyph (last of the 6 app tiles; the layout is fixed in rem at 3840x2160).
+HOME_GLYPH_BOX=2838,1353,2953,1468
 shot() { # shot <name> [checked]
-  if python3 "$here/screendump.py" "$qmp" "$art/$1"; then return 0; fi
+  if python3 "$here/screendump.py" "$qmp" "$art/$1" --glyph-box "$HOME_GLYPH_BOX"; then return 0; fi
   [ "${2:-}" = checked ] && fail=1
   return 0
 }
@@ -80,9 +84,13 @@ until curl -fsS -m 5 http://127.0.0.1:7300/api/health; do
   sleep 5
 done
 echo; echo "/api/health answered after $(elapsed)"
-apps=$(curl -fsS -m 10 http://127.0.0.1:7300/api/home | jq '.apps | length')
+apps=$(curl -fsS -m 10 http://127.0.0.1:7300/api/home | jq '.apps | length' || echo none)
 echo "/api/home: $apps apps"
-[ "$apps" = 6 ] || { echo "expected 6 apps on /api/home" >&2; fail=1; }
+if [ "$apps" != 6 ]; then
+  echo "expected 6 apps on /api/home" >&2
+  shot vm-home-3840.png || true
+  fail=1; finish
+fi
 
 # --- first boot: the home screen -----------------------------------------------------------------
 if wait_serial 'VELA-SMOKE PHASE1' 720; then
@@ -103,5 +111,5 @@ wait_serial 'VELA-SMOKE DONE' 240 || fail=1
 
 checks=$(grep -a 'CHECK ' "$serial" | tr -d '\r' | sort -u)
 grep -q ' FAIL' <<<"$checks" && fail=1
-[ "$(grep -c ' PASS' <<<"$checks")" -ge 9 ] || { echo "expected 9 passing CHECK lines" >&2; fail=1; }
+[ "$(grep -c ' PASS' <<<"$checks")" -ge 13 ] || { echo "expected 13 passing CHECK lines" >&2; fail=1; }
 finish

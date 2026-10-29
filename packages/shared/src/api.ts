@@ -32,6 +32,7 @@ export interface Row {
 export interface AppTile {
   id: string;
   name: string;
+  /** A data: URL of the glyph SVG (inlined by the daemon); /api/glyphs/<file> only as a fallback. */
   glyphUrl: string;
   brandColor: string;
   status: AppStatus;

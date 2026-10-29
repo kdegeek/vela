@@ -19,6 +19,13 @@ describe("buildHomeState", () => {
     expect(s.apps.find((a) => a.id === "plex")?.glyphUrl).toBe("/api/glyphs/plex.svg");
   });
 
+  it("apps carry the inlined glyph data URL when one was loaded", async () => {
+    const glyphs = new Map([["plex.svg", "data:image/svg+xml;base64,PHN2Zy8+"]]);
+    const s = await buildHomeState({ manifests, status: async () => "ready", media: null, mock, glyphs });
+    expect(s.apps.find((a) => a.id === "plex")?.glyphUrl).toBe("data:image/svg+xml;base64,PHN2Zy8+");
+    expect(s.apps.find((a) => a.id === "home")?.glyphUrl).toBe("/api/glyphs/home.svg");
+  });
+
   it("apps are ordered by manifest order", async () => {
     const ms = [{ ...m("steam"), order: 50 }, m("zeta"), { ...m("plex"), order: 10 }, m("alpha"), { ...m("youtube"), order: 20 }];
     const s = await buildHomeState({ manifests: ms, status: async () => "ready", media: null, mock });
