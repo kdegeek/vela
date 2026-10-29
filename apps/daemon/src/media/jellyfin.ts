@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import type { MediaCard } from "@vela/shared";
-import { saveSecrets, type Secrets } from "../config.js";
 
 export interface JellyfinItem {
   id: string;
@@ -168,12 +167,4 @@ export function toCard(item: JellyfinItem, fallbackBackdrop?: string): MediaCard
     progress: hasPos ? Math.min(1, pos / run!) : undefined,
     remainingMin: hasPos ? Math.max(0, Math.ceil((run! - pos) / TICKS_PER_MIN)) : undefined,
   };
-}
-
-/** Logs in with a password and stores the token and user id; the password itself is never stored. */
-export async function loginAndSave(client: JellyfinClient, username: string, password: string, secretsPath: string, current: Secrets): Promise<Secrets> {
-  const { token, userId } = await client.authenticate(username, password);
-  const next = { ...current, jellyfinToken: token, jellyfinUserId: userId };
-  saveSecrets(secretsPath, next);
-  return next;
 }

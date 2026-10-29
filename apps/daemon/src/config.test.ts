@@ -24,6 +24,14 @@ describe("config", () => {
     expect(c.devices).toHaveLength(1);
   });
 
+  it("media.jellyfin needs only the url (the API key and user id live in secrets.json)", () => {
+    const p = path.join(tmp(), "vela.toml");
+    fs.writeFileSync(p, `[media]\nprovider = "jellyfin"\n[media.jellyfin]\nurl = "http://jf:8096"\n`);
+    expect(loadConfig(p).media.jellyfin).toEqual({ url: "http://jf:8096" });
+    fs.writeFileSync(p, `[media.jellyfin]\nurl = "http://jf:8096"\nusername = "nate"\n`);
+    expect(loadConfig(p).media.jellyfin?.url).toBe("http://jf:8096"); // older files still load
+  });
+
   it("ir.audioJackSink is optional", () => {
     expect(loadConfig(path.join(tmp(), "nope.toml")).ir.audioJackSink).toBeUndefined();
     const p = path.join(tmp(), "vela.toml");

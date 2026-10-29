@@ -89,13 +89,18 @@ Copy these to the top level of the VELA stick (next to the `vela-firmware` folde
 
   [media.jellyfin]
   url = "http://your-jellyfin-server:8096"
-  username = "your-user-name"
   ```
 
   The TV and Home Assistant parts can wait until step 10.
-- **`secrets.json`** (optional now). Passwords and tokens never go in `vela.toml`; they go here.
-  For Jellyfin, create an API key in Jellyfin (**Dashboard → API Keys**) and find your user ID
-  (open your user under **Dashboard → Users**; it's the `userId=` part of the address):
+- **`secrets.json`** (needed for Jellyfin). Passwords and tokens never go in `vela.toml`; they go
+  here. Vela signs in to Jellyfin with an API key and your user ID, never your password. In
+  Jellyfin's web page, signed in as an administrator:
+
+  1. **API key:** open **Dashboard → API Keys**, click **+**, type `Vela` as the app name and
+     click **OK**. Copy the long key it lists.
+  2. **User ID:** open **Dashboard → Users** and click your own user (the one whose Continue
+     Watching list you want on the TV). The address in the browser now ends in
+     `userId=` followed by 32 letters and digits; that is your user ID.
 
   ```json
   {
@@ -103,6 +108,8 @@ Copy these to the top level of the VELA stick (next to the `vela-firmware` folde
     "jellyfinUserId": "your user ID"
   }
   ```
+
+  If the home screen later says "Jellyfin sign-in failed", one of these two is wrong.
 
 - **`authorized_keys`** (required). The box has no terminal, so the only way to change
   `vela.toml` or `secrets.json` later, or to update by hand, is over SSH. Put your SSH public key

@@ -32,7 +32,9 @@ const ConfigSchema = z.object({
   media: z
     .object({
       provider: z.enum(["jellyfin", "mock"]).default("mock"),
-      jellyfin: z.object({ url: z.string(), username: z.string() }).optional(),
+      // The API key and user id are in secrets.json (jellyfinToken, jellyfinUserId). `username` was used by a removed
+      // password sign-in; it is still accepted, and ignored, so older files load.
+      jellyfin: z.object({ url: z.string() }).optional(),
     })
     .default({ provider: "mock" }),
   homeAssistant: z

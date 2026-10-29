@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { loadSettings } from "./config.js";
-import { JellyfinClient, loginAndSave, toCard } from "./media/jellyfin.js";
+import { JellyfinClient, toCard } from "./media/jellyfin.js";
 import { buildHomeState, startHomePolling } from "./media/homeState.js";
 import { loadGlyphs } from "./media/glyphs.js";
 import { createMockProvider } from "./media/mock.js";
@@ -22,8 +22,7 @@ import { createNoopSway, createSway } from "./session/sway.js";
 const SECRETS_PATH = process.env.VELA_SECRETS ?? "/var/lib/vela/secrets.json";
 // Never throws: a broken file gives defaults and a status line saying which file to fix.
 const settings = loadSettings(process.env.VELA_CONFIG ?? "/etc/vela/vela.toml", SECRETS_PATH);
-const { config, problem } = settings;
-let secrets = settings.secrets;
+const { config, secrets, problem } = settings;
 const manifests = loadManifests(config.manifestDirs);
 const bus = new EventBus();
 
@@ -43,14 +42,6 @@ const runner = new AppRunner({ sway, manifests, spawn: defaultSpawn, status, emi
 let jellyfin: JellyfinClient | undefined;
 if (config.media.provider === "jellyfin" && config.media.jellyfin) {
   jellyfin = new JellyfinClient({ url: config.media.jellyfin.url, token: secrets.jellyfinToken, userId: secrets.jellyfinUserId });
-  const pw = process.env.VELA_JELLYFIN_PASSWORD;
-  if (!secrets.jellyfinToken && pw) {
-    // First run: exchange the password for a token once and keep only the token.
-    loginAndSave(jellyfin, config.media.jellyfin.username, pw, SECRETS_PATH, secrets).then(
-      (s) => void (secrets = s),
-      (e) => console.error("vela: Jellyfin login failed:", (e as Error).message),
-    );
-  }
 }
 const jf = jellyfin;
 

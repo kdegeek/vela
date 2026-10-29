@@ -1,5 +1,6 @@
 #!/bin/bash
-# Vela 4K playback check: hardware decode in mpv, then YouTube TV at 2160p.
+# Vela 4K playback check: hardware decode in mpv, a Jellyfin title through Vela (resume position and
+# progress reporting), then YouTube TV at 2160p.
 #   vela-ctl acceptance playback-check [path/to/4k-hevc-10bit-file]
 # With no path, a 20 s test clip is generated with ffmpeg:
 #   ffmpeg -f lavfi -i testsrc2=s=3840x2160:r=60 -t 20 -c:v libx265 -pix_fmt yuv420p10le /var/tmp/vela-4k-hevc10.mkv
@@ -67,6 +68,40 @@ home_focused() {
 }
 check "Vela home is back after the clip ends" home_focused
 confirm "home screen visible after playback" "Is the Vela home screen on the TV again, with no black or frozen picture?"
+
+# --- Jellyfin through Vela: resume position and progress reporting ------------------------------------
+# The daemon's own path (POST /api/play), on the first Continue watching card.
+jf_progress() { api_get /api/home | jq -r --arg k "$1" '[.rows[] | select(.id == "continue") | .items[] | select(.key == $k) | .progress // 0][0] // "gone"'; }
+player_focused() {
+  swaymsg -t get_tree -r | jq -e '[recurse(.nodes[]?, .floating_nodes[]?) | select(.focused == true and .app_id == "mpv")] | length > 0' >/dev/null
+}
+wait_until() { # wait_until <seconds> <cmd...>
+  local end=$((SECONDS + $1)); shift
+  until "$@"; do [ "$SECONDS" -lt "$end" ] || return 1; sleep 1; done
+}
+card=$(api_get /api/home 2>/dev/null | jq -c '[.rows[] | select(.id == "continue") | .items[]][0] // empty' 2>/dev/null)
+if [ -z "$card" ]; then
+  warn "Jellyfin resume through Vela" "no Continue watching row (media provider not jellyfin, or nothing half-watched). Start a 4K title in Jellyfin, stop it midway, and run this again"
+else
+  key=$(jq -r .key <<<"$card")
+  title=$(jq -r .title <<<"$card")
+  before=$(jf_progress "$key")
+  left=$(jq -r '.remainingMin // "?"' <<<"$card")
+  info "playing '$title' through Vela ($key), $(jq -r '(.progress // 0) * 100 | floor' <<<"$card")% watched, $left min left"
+  if check "daemon starts $title" api_post /api/play "{\"key\":\"$key\"}"; then
+    check "mpv is on screen" wait_until 30 player_focused
+    sleep 15
+    confirm "Jellyfin title resumed at the right spot" "Did '$title' pick up where it was left ($left min left), not from the start?"
+    sleep 10
+    # Back on the remote is Esc; mpv quits and Vela reports the position to Jellyfin.
+    wtype -k Escape 2>/dev/null || echo "Press Back on the remote now."
+    check "Vela home is back after Back" wait_until 30 home_focused
+    sleep 3
+    after=$(jf_progress "$key")
+    moved() { echo "progress before $before, after $after"; [ "$after" != gone ] && awk -v a="$after" -v b="$before" 'BEGIN { exit !(a > b) }'; }
+    check "Jellyfin progress moved forward ($title)" moved
+  fi
+fi
 
 # --- YouTube TV ------------------------------------------------------------------------------------
 manifest=/usr/share/vela/apps/youtube.json

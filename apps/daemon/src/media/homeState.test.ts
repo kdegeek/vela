@@ -63,7 +63,7 @@ describe("buildHomeState", () => {
 
   it("says sign-in failed, not unreachable, when Jellyfin rejects the credentials", async () => {
     const s = await buildHomeState({ manifests, status: async () => "ready", media: { resume: async () => { throw new JellyfinAuthError("401"); } }, mock });
-    expect(s.status.line).toBe("Jellyfin sign-in failed. Check the username and password in /etc/vela/vela.toml.");
+    expect(s.status.line).toBe("Jellyfin sign-in failed. Check jellyfinToken and jellyfinUserId in /var/lib/vela/secrets.json.");
     expect(s.rows.find((r) => r.id === "continue")).toBeUndefined();
   });
 

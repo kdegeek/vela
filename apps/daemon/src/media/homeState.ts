@@ -5,7 +5,7 @@ import { JellyfinAuthError } from "./jellyfin.js";
 import type { MockProvider } from "./mock.js";
 
 export const JELLYFIN_DOWN = "Jellyfin isn't reachable. Check that the server is on.";
-export const JELLYFIN_AUTH_FAILED = "Jellyfin sign-in failed. Check the username and password in /etc/vela/vela.toml.";
+export const JELLYFIN_AUTH_FAILED = "Jellyfin sign-in failed. Check jellyfinToken and jellyfinUserId in /var/lib/vela/secrets.json.";
 const FALLBACK_SLUG = "charge";
 
 export interface HomeDeps {

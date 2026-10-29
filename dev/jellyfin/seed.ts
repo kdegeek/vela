@@ -1,5 +1,6 @@
 // Seeds a fresh Jellyfin server for the integration test: completes the startup wizard, creates user vela/vela,
-// adds a library containing a generated 4K HEVC Main10 file, scans it, and records 50% progress.
+// adds a library containing a generated 4K HEVC Main10 file, scans it, records 50% progress, and creates an API key
+// named "Vela".
 // Run: JELLYFIN_URL=http://localhost:8096 VELA_MEDIA_DIR=/tmp/vela-media node --experimental-strip-types dev/jellyfin/seed.ts
 // VELA_MEDIA_DIR is the host path mounted into the server container at VELA_MEDIA_MOUNT (default /media).
 import { execFileSync } from "node:child_process";
@@ -105,7 +106,10 @@ async function main(): Promise<void> {
     await api(`/UserItems/${item.Id}/UserData?${new URLSearchParams({ userId })}`, { method: "POST", token, body: { PlaybackPositionTicks: pos } });
     await waitFor("the item to appear in Resume", resumable, 10_000, 1000);
   }
-  console.log(`seeded ${FILE} (${item.Id}) at 50%`);
+  // The API key the owner creates under Dashboard -> API Keys (docs/install.md); the daemon uses it as jellyfinToken.
+  const keys = (await (await api("/Auth/Keys", { token })).json()) as { Items: { AppName: string }[] };
+  if (!keys.Items.some((k) => k.AppName === "Vela")) await api(`/Auth/Keys?${new URLSearchParams({ app: "Vela" })}`, { method: "POST", token });
+  console.log(`seeded ${FILE} (${item.Id}) at 50%, API key "Vela"`);
 }
 
 main().catch((e) => {

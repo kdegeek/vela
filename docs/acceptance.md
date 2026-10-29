@@ -29,8 +29,9 @@ holds the output of every script run so far, so the last one you make is the one
    going on.
 2. **`perf-check`** (about 1 minute). Does the home screen hold 60 fps at 4K? Don't touch the
    remote while it runs; it moves the focus by itself for 30 seconds.
-3. **`playback-check [file]`** (about 3 minutes). Hardware video decoding in mpv, then YouTube at
-   2160p. It needs a 4K HEVC 10-bit file. With no argument it makes a 20 second clip with ffmpeg
+3. **`playback-check [file]`** (about 4 minutes). Hardware video decoding in mpv, then a Jellyfin
+   title through Vela (does it resume at the right spot, and does Jellyfin get the new position
+   after Back), then YouTube at 2160p. It needs a 4K HEVC 10-bit file. With no argument it makes a 20 second clip with ffmpeg
    if ffmpeg is installed; otherwise make one on another computer and copy it over:
 
    ```
@@ -82,6 +83,10 @@ holds the output of every script run so far, so the last one you make is the one
 | `mpv uses hardware decoding (vaapi)` | The VA-API driver doesn't work (see the `vainfo` failures above), or the file's codec isn't supported in hardware. |
 | `mpv dropped no frames` | Decoding or the display path is too slow. Send the bundle; `mpv.log` has the counters. |
 | `Vela home is back after the clip ends` | mpv stayed open, or the launcher did not get the focus back. Send the bundle. |
+| `daemon starts <title>` / `mpv is on screen` | Jellyfin is unreachable from the box or the API key is wrong (the home screen's status line says which), or mpv could not open the stream. |
+| `Jellyfin title resumed at the right spot` answered `n` | The resume position from Jellyfin was not passed to mpv. Send the bundle. |
+| `Jellyfin progress moved forward` | Vela did not report the stopped position to Jellyfin, so Continue watching is stale. Check `jellyfinUserId` in `secrets.json` and send the bundle. |
+| `WARN Jellyfin resume through Vela` | Nothing half-watched in Jellyfin (or the media provider is still `mock`). Start a title in Jellyfin, stop it midway, and run the check again. |
 | YouTube answers `n` | Not at 2160p: the account isn't signed in, the TV advertises less than 4K, or Chrome's hardware decode is off. Note which of resolution, codec, and dropped frames were wrong. |
 
 ### tv-check and ir-check
