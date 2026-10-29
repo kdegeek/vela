@@ -42,6 +42,11 @@ kiosk_on_home() {
      | select((.app_id // "") | test("^(chrome-127\\.0\\.0\\.1|chromium)"))] | length > 0'
 }
 units_active() { userctl is-active --quiet vela-daemon.service vela-kiosk.service; }
+daemon_pid() { userctl show -p MainPID --value vela-daemon.service; }
+# session-start ran in the new sway and restarted the daemon (it then uses the new SWAYSOCK).
+daemon_restarted() { p=$(daemon_pid); [ -n "$p" ] && [ "$p" != 0 ] && [ "$p" != "$old_daemon" ]; }
+# sway and the kiosk run in the user's domain, not greetd's xdm_t.
+not_xdm_t() { ! ps -u vela -o label=,comm= | grep -E 'sway|chrom' | grep -q ':xdm_t:'; }
 
 capture() {
   log ""
@@ -62,8 +67,8 @@ capture() {
     for s in $(loginctl list-sessions --no-legend | awk '{print $1}'); do
       loginctl show-session "$s" -p Id -p Name -p Type -p Class -p State -p Seat -p VTNr -p Service -p Remote
     done
-    echo "--- ps -eZ (sway, chromium, node, greetd)"
-    ps -eZ -o label,pid,ppid,user,comm | grep -E 'LABEL|sway|chrom|node|greetd'
+    echo "--- ps -e -o label (sway, chromium, node, greetd)"
+    ps -e -o label,pid,ppid,user,comm | grep -E 'LABEL|sway|chrom|node|greetd'
     echo "--- SELinux"; getenforce
     echo "--- sshd / firewalld (docs/install.md relies on SSH for later config edits)"
     rpm -q openssh-server firewalld; systemctl is-enabled sshd.service firewalld.service; systemctl is-active sshd.service
@@ -95,7 +100,9 @@ capture "PHASE 1: first boot"
 check kiosk_on_home_first_boot kiosk_on_home
 check units_active_first_boot units_active
 check sway_running_first_boot sway_running
+check session_domain_first_boot not_xdm_t
 old_pid=$(sway_pid)
+old_daemon=$(daemon_pid)
 say "VELA-SMOKE PHASE1 sway_pid=${old_pid:-none}"
 sleep 75  # the runner takes vm-home-3840.png now
 
@@ -110,6 +117,8 @@ capture "PHASE 2: after the sway crash"
 check sway_restarted new_sway
 check kiosk_on_home_after_crash kiosk_on_home
 check units_active_after_crash units_active
+check daemon_restarted_after_crash daemon_restarted
+check session_domain_after_crash not_xdm_t
 say "VELA-SMOKE PHASE2 sway_pid=$(sway_pid)"
 sleep 45  # the runner takes vm-after-crash.png now
 

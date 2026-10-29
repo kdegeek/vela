@@ -17,7 +17,10 @@ if [ "$(cat "$marker" 2>/dev/null)" != "$SWAYSOCK" ]; then
 fi
 
 browser=$(command -v chromium-browser || command -v chromium)
+# --no-first-run: Fedora's Chromium otherwise opens a first-run "Additional Terms of Service"
+# dialog over the launcher (seen in the VM smoke test).
 # VELA_KIOSK_FLAGS: extra Chromium flags from a unit drop-in (the VM test image sets --disable-gpu).
 # shellcheck disable=SC2086 # word splitting is intended
 exec "$browser" ${VELA_KIOSK_FLAGS:-} --ozone-platform=wayland --kiosk --app=http://127.0.0.1:7300 \
-  --force-device-scale-factor=1 --enable-gpu-rasterization --noerrdialogs --disable-session-crashed-bubble
+  --force-device-scale-factor=1 --enable-gpu-rasterization --noerrdialogs --disable-session-crashed-bubble \
+  --no-first-run

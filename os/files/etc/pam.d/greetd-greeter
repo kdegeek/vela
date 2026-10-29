@@ -1,0 +1,19 @@
+#%PAM-1.0
+# Vela: greetd's default_session is not a greeter, it is the kiosk session itself (sway as vela),
+# started again whenever sway exits or crashes. Fedora's greeter stack (/usr/lib/pam.d/
+# greetd-greeter) has no pam_selinux, so that session ran in greetd's own xdm_t domain, where
+# session-start's `systemctl --user restart vela-session.target` is denied and the daemon kept
+# the dead sway's socket (seen in the Task 11 VM smoke test). Keep the greeter's password-less
+# auth, but set the session up like /usr/lib/pam.d/greetd (the first login).
+auth       required    pam_env.so
+auth       required    pam_permit.so
+account    required    pam_permit.so
+password   required    pam_deny.so
+
+session    required    pam_selinux.so close
+session    required    pam_loginuid.so
+session    required    pam_selinux.so open
+session    optional    pam_keyinit.so force revoke
+session    required    pam_namespace.so
+session    include     system-auth
+session    include     postlogin
