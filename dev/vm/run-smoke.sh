@@ -11,6 +11,7 @@
 #     (most of its checks fail in a VM; only the end-to-end run is asserted)
 #   - degraded mode: with a broken /etc/vela/vela.toml the restarted daemon still serves the
 #     launcher and /api/home, and its status line names vela.toml; restoring the file recovers
+#   - automatic updates: bootc-fetch-apply-updates stages only (no --apply), on a 03:00 timer
 # Everything lands in <artifact-dir>: the PNGs, serial.log and diag.txt.
 #
 # Usage: run-smoke.sh <disk.qcow2> <artifact-dir>
@@ -117,5 +118,5 @@ wait_serial 'VELA-SMOKE DONE' 480 || fail=1
 
 checks=$(grep -a 'CHECK ' "$serial" | tr -d '\r' | sort -u)
 grep -q ' FAIL' <<<"$checks" && fail=1
-[ "$(grep -c ' PASS' <<<"$checks")" -ge 20 ] || { echo "expected 20 passing CHECK lines" >&2; fail=1; }
+[ "$(grep -c ' PASS' <<<"$checks")" -ge 21 ] || { echo "expected 21 passing CHECK lines" >&2; fail=1; }
 finish

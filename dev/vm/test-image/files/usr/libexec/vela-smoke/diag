@@ -161,6 +161,18 @@ check acceptance_hw_check_bundle hw_bundle
 check acceptance_hw_check_kiosk_window hw_kiosk_check
 { echo "################ hw-check output"; cat "$out/hw-check.txt"; } >> "$report"
 
+# --- 2b'. automatic updates stage only, at night (bootc-fetch-apply-updates drop-ins) -----------------
+updates_stage_only() {
+  local exec cal
+  exec=$(systemctl show -p ExecStart --value bootc-fetch-apply-updates.service)
+  cal=$(systemctl show -p TimersCalendar --value bootc-fetch-apply-updates.timer)
+  echo "ExecStart: $exec"; echo "TimersCalendar: $cal"
+  systemctl is-enabled --quiet bootc-fetch-apply-updates.timer \
+    && [[ "$exec" == *"argv[]=/usr/bin/bootc upgrade --quiet ;"* ]] && [[ "$exec" != *--apply* ]] && [[ "$cal" == *03:00* ]]
+}
+{ echo "--- bootc updates"; updates_stage_only; } >> "$report" 2>&1
+check updates_stage_only_at_night updates_stage_only
+
 # --- 2c. degraded mode: a typo in vela.toml must not take the home screen down ----------------------
 # The broken file falls back to listen = 127.0.0.1, so this is checked from inside the VM only, after
 # the runner's host-side probes. The file is rewritten in place (not moved) to keep its SELinux label.

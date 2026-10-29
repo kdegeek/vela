@@ -38,7 +38,7 @@ systemctl is-enabled bootc-fetch-apply-updates.timer
 upd=/usr/lib/systemd/system/bootc-fetch-apply-updates.service.d/10-vela.conf
 grep -qx 'ExecStart=' "$upd"
 grep -qx 'ExecStart=/usr/bin/bootc upgrade --quiet' "$upd"
-if grep -q -- '--apply' "$upd"; then echo "$upd must not apply updates" >&2; exit 1; fi
+if grep -v '^#' "$upd" | grep -q -- '--apply'; then echo "$upd must not apply updates" >&2; exit 1; fi
 grep -qx 'OnCalendar=\*-\*-\* 03:00' /usr/lib/systemd/system/bootc-fetch-apply-updates.timer.d/10-vela.conf
 
 # Home Assistant quadlet must translate into a unit.
