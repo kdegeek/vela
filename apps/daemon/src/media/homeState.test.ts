@@ -20,7 +20,7 @@ describe("buildHomeState", () => {
   });
 
   it("apps carry the inlined glyph data URL when one was loaded", async () => {
-    const glyphs = new Map([["plex.svg", "data:image/svg+xml;base64,PHN2Zy8+"]]);
+    const glyphs = new Map([["plex", "data:image/svg+xml;base64,PHN2Zy8+"]]);
     const s = await buildHomeState({ manifests, status: async () => "ready", media: null, mock, glyphs });
     expect(s.apps.find((a) => a.id === "plex")?.glyphUrl).toBe("data:image/svg+xml;base64,PHN2Zy8+");
     expect(s.apps.find((a) => a.id === "home")?.glyphUrl).toBe("/api/glyphs/home.svg");

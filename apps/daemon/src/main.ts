@@ -74,7 +74,7 @@ const devices = new DeviceRegistry(config.devices, {
 });
 
 const mock = createMockProvider();
-const glyphs = loadGlyphs(path.join(assetsDir(), "glyphs"), manifests.map((m) => m.glyph));
+const glyphs = loadGlyphs(manifests, path.join(assetsDir(), "glyphs"));
 const home = () =>
   buildHomeState({
     manifests,

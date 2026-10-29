@@ -26,6 +26,14 @@ describe("manifests", () => {
     expect(m.find((x) => x.id === "plex")?.name).toBe("My Plex");
   });
 
+  it("records the directory each manifest came from", () => {
+    const etc = tmp();
+    fs.writeFileSync(path.join(etc, "plex.json"), valid("plex", "My Plex"));
+    const m = loadManifests([builtin, etc]);
+    expect(m.find((x) => x.id === "plex")?.dir).toBe(etc);
+    expect(m.find((x) => x.id === "steam")?.dir).toBe(builtin);
+  });
+
   it("invalid manifest is skipped, others load", () => {
     const d = tmp();
     fs.writeFileSync(path.join(d, "bad.json"), `{"id":"bad"}`);

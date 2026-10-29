@@ -18,7 +18,7 @@ export interface HomeDeps {
   clock24h?: boolean;
   /** config.ui.effects; the launcher resolves "auto" with a perf run. */
   effects?: "auto" | "full" | "lite";
-  /** Glyph data URLs from loadGlyphs(), by file name. */
+  /** Glyph data URLs from loadGlyphs(), by app id. */
   glyphs?: ReadonlyMap<string, string>;
   /** A settings file Vela couldn't use (degraded mode); shown instead of any other status line. */
   problem?: string;
@@ -57,7 +57,7 @@ export async function buildHomeState(d: HomeDeps): Promise<HomeState> {
         const first = resume?.[0];
         feature = first ? heroFrom(first, m.id) : { ...d.mock.hero(FALLBACK_SLUG), sourceId: m.id };
       }
-      return { id: m.id, name: m.name, glyphUrl: glyphUrl(d.glyphs, m.glyph), brandColor: m.brandColor, status: await d.status(m), feature };
+      return { id: m.id, name: m.name, glyphUrl: glyphUrl(d.glyphs, m), brandColor: m.brandColor, status: await d.status(m), feature };
     }),
   );
 

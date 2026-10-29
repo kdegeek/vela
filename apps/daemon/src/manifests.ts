@@ -25,7 +25,8 @@ const Manifest = z.object({
     .optional(),
 });
 
-export type AppManifest = z.infer<typeof Manifest>;
+/** `dir` is the directory the manifest was loaded from (its glyph may sit next to it). */
+export type AppManifest = z.infer<typeof Manifest> & { dir?: string };
 
 /** Later dirs override earlier ones by id. Invalid files are skipped with a logged error. */
 export function loadManifests(dirs: string[]): AppManifest[] {
@@ -43,7 +44,7 @@ export function loadManifests(dirs: string[]): AppManifest[] {
         const m = Manifest.parse(JSON.parse(fs.readFileSync(p, "utf8")));
         if (m.kind === "flatpak" && !m.flatpak) throw new Error("kind=flatpak requires flatpak");
         if (m.kind === "command" && !m.command?.length) throw new Error("kind=command requires command");
-        byId.set(m.id, m);
+        byId.set(m.id, { ...m, dir });
       } catch (e) {
         console.error(`vela: skipping manifest ${p}: ${(e as Error).message}`);
       }
