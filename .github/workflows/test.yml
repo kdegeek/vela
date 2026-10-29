@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
       - uses: actions/setup-node@v4
         with:
@@ -28,7 +28,7 @@ jobs:
       JELLYFIN_URL: http://127.0.0.1:8096
       VELA_MEDIA_DIR: /tmp/vela-media
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
       - uses: actions/setup-node@v4
         with:
@@ -46,7 +46,7 @@ jobs:
   acceptance-scripts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install bats and shellcheck
         run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends bats shellcheck
       - name: shellcheck
