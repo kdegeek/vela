@@ -1,6 +1,6 @@
 #!/bin/bash
-# Builds the VM smoke-test disk: the Vela image plus dev/vm/test-image (mock media, daemon on
-# 0.0.0.0, software rendering, the diag service), turned into a qcow2 by bootc-image-builder.
+# Builds the VM smoke-test disk: the Vela image plus dev/vm/test-image (no vela.toml, so it boots
+# into phone setup; software rendering; the diag service), turned into a qcow2 by bootc-image-builder.
 # Needs rootful podman (bootc-image-builder reads /var/lib/containers/storage).
 #
 # Usage: build-qcow2.sh <vela-image-ref> <out-dir>     -> <out-dir>/qcow2/disk.qcow2

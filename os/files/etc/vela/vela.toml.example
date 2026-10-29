@@ -21,8 +21,10 @@ provider = "mock"
 
 # [media.jellyfin]
 # url = "http://jellyfin.lan:8096"
-# Vela signs in with an API key and your user id (jellyfinToken and jellyfinUserId), stored in
-# /var/lib/vela/secrets.json, not here. docs/install.md, step 4, shows where to find both.
+# Vela signs in with a token and your user id (jellyfinToken and jellyfinUserId), stored in
+# /var/lib/vela/secrets.json, not here. Phone setup (docs/install.md, step 6) gets both when you
+# sign in; to set them by hand, "Advanced: preset settings on a USB stick" in docs/install.md
+# shows where to find an API key and your user id.
 #
 # Secrets (Jellyfin and Home Assistant tokens) live only in /var/lib/vela/secrets.json, which
 # must be owned by vela with mode 0600 (chown vela:vela, chmod 0600). A tmpfiles rule restores

@@ -24,10 +24,12 @@ lang en_US.UTF-8
 keyboard us
 rootpw --lock
 
-# Copy the owner's files into the installed system: Broadcom Wi-Fi/Bluetooth firmware (optional:
-# without it, vela-wifi-firmware.service downloads it on first boot), vela.toml,
-# secrets.json, and authorized_keys (SSH public keys for root, required: the only way to edit
-# vela.toml/secrets.json later, as the box has no terminal; a loud warning is logged without it).
+# Copy the owner's files from an optional VELA stick into the installed system (docs/install.md,
+# "Advanced: preset settings on a USB stick"): Broadcom Wi-Fi/Bluetooth firmware (without it,
+# vela-wifi-firmware.service downloads it on first boot), vela.toml, secrets.json, and
+# authorized_keys (SSH public keys for root). None is needed: without vela.toml the first boot
+# opens phone setup, which asks for the media server and the SSH keys. With vela.toml, setup
+# doesn't open.
 #
 # --nochroot, because the USB sticks are only visible from the installer environment. Paths:
 # - Install media: Anaconda mounts the ISO at /run/install/repo (the ostreecontainer URL
@@ -47,7 +49,7 @@ rootpw --lock
 #   /usr/lib/bootc/kargs.d (including firmware_class.path=/var/lib/vela/firmware)
 #   (bootc crates/ostree-ext/src/container/deploy.rs). Checked below, because Wi-Fi depends on it.
 #
-# The flashed installer stick is read-only (ISO 9660), so the files can also be on a second
+# The flashed installer stick is read-only (ISO 9660), so the files go on a second
 # stick (FAT32/exFAT, any name): the first of /run/install/repo or another partition that has
 # vela.toml, secrets.json, authorized_keys or a vela-firmware folder wins.
 #
@@ -118,17 +120,9 @@ else
   [ "$src" = "$scan" ] && umount "$scan"
 fi
 
-# Without root's SSH key there is no way to edit vela.toml or secrets.json later (no terminal on
-# the box). Say so loudly: in the %post log, /var/lib/vela/install.log, and on the screen.
+# The normal case: phone setup on first boot adds root's SSH keys.
 if [ ! -s "$var/roothome/.ssh/authorized_keys" ]; then
-  for line in "########################################################################" \
-              "WARNING: no authorized_keys file was found on the VELA stick." \
-              "WARNING: SSH login is impossible, so vela.toml and secrets.json can't be edited later." \
-              "WARNING: Reinstall with authorized_keys on the stick (docs/install.md, step 4)." \
-              "########################################################################"; do
-    note "$line"
-    echo "$line" > /dev/console 2>/dev/null || true
-  done
+  note "no authorized_keys from a stick; setup on first boot will ask for SSH keys"
 fi
 
 # SELinux labels for what was just written (the installer copies with its own context).

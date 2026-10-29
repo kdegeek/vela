@@ -39,10 +39,10 @@ holds the output of every script run so far, so the last one you make is the one
    vela-ctl acceptance playback-check /var/tmp/vela-4k-hevc10.mkv
    ```
 
-   Sign in to YouTube once first (install.md step 8), or the test video won't play.
+   Sign in to YouTube once first (install.md step 7), or the test video won't play.
 4. **`tv-check`** (about 2 minutes per TV). Turns the TV off, waits 10 seconds, turns it on, and
    changes the volume. You say whether each step happened. Pair the TV in Home Assistant first
-   (install.md step 9).
+   (install.md step 8).
 5. **`ir-check`** (about 1 minute). Sends a test code on each infrared transmitter: the USB IR
    dongle (`/dev/lirc*`) and the headphone-jack blaster. A phone camera shows an IR blaster's light
    flashing.
@@ -69,7 +69,8 @@ saw instead.
 | 6a | TV on and off | Select the Home tile and choose your TV's power off, then power on (for each TV). | Each TV turns off, then on again (a Samsung may need the IR blaster for on: that still counts). | [ ] |
 | 6b | TV volume | Press Volume up, Volume down and Mute on the remote. | The TV's volume changes, and Mute mutes and then unmutes it. | [ ] |
 | 7 | IR control | From the Home tile, send a command to an IR device (for example soundbar power). | The device reacts. | [ ] |
-| 8 | Reproducible install | Hand [install.md](install.md) to someone else with a blank Mac mini (or follow it yourself word for word). | They reach this walkthrough's step 1 without asking you anything. Note every step that needed a guess. | [ ] |
+| 8a | Reproducible install | Hand [install.md](install.md) to someone else with a blank Mac mini (or follow it yourself word for word), with one USB stick and no VELA stick. | They reach this walkthrough's step 1 without asking you anything. Note every step that needed a guess. | [ ] |
+| 8b | Phone setup | On the first start-up after that install, scan the TV's QR code with your phone (no remote needed) and go through setup: sign in to Jellyfin, add your SSH key by GitHub username, Finish. | The page opens without asking for the PIN; the TV follows each step; after Finish the TV shows the home screen within about 10 seconds with your own titles in Continue watching; `ssh root@<box address>` works with your key; and the setup address no longer answers on the phone. | [ ] |
 | - | Never stuck | At any point above, if a dialog, a black screen or an app that ignores Home appears, note it here. | Nothing like that happened. | [ ] |
 
 ## What a failure most likely means
@@ -119,7 +120,7 @@ saw instead.
 | Failure | Most likely cause |
 |---|---|
 | `a TV device is configured` | No `kind = "tv"` entry in `/etc/vela/vela.toml`, or the daemon was not restarted. |
-| `power_off request` / volume requests fail | The TV is not paired in Home Assistant yet, or the token is missing from `secrets.json` (install.md step 9). |
+| `power_off request` / volume requests fail | The TV is not paired in Home Assistant yet, or the token is missing from `secrets.json` (install.md step 8). |
 | TV off or on answered `n` | Home Assistant took the command but the TV ignored it. For power on, add `powerOnFallback`, which sends the IR power code. |
 | `INFO power on used the IR fallback` | Information only: the TV could not be woken over the network. |
 | `at least one IR transmitter is present` | No `/dev/lirc*` device and no headphone-jack sink. Plug in the IR blaster. |

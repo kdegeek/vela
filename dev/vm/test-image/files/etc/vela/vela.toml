@@ -1,6 +1,0 @@
-# VM smoke test only: built-in sample content, reachable through QEMU's port forward.
-[server]
-listen = "0.0.0.0"
-
-[media]
-provider = "mock"

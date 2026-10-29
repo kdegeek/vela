@@ -1,0 +1,6 @@
+# VM smoke test only. The test image ships no /etc/vela/vela.toml, so the first boot is in phone
+# setup and setup writes vela.toml (media "mock": the runner skips the media step). Setup can't
+# set the listen address, so the diag service appends this to the committed file as root and
+# restarts the daemon: the runner's checks reach the API through QEMU's port forward.
+[server]
+listen = "0.0.0.0"

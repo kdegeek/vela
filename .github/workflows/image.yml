@@ -118,7 +118,8 @@ jobs:
   vm-smoke:
     needs: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    # Phone setup (phase 0) adds up to 27 minutes of waits before the other phases when it fails.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -156,6 +157,14 @@ jobs:
         with:
           name: vm-home-3840
           path: vm-artifacts/vm-home-3840.png
+          if-no-files-found: warn
+
+      - name: Upload the setup screen screenshot
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vm-setup-3840
+          path: vm-artifacts/vm-setup-3840.png
           if-no-files-found: warn
 
       - name: Upload the VM logs

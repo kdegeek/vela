@@ -3,9 +3,11 @@
 ARG BASE=ghcr.io/kdegeek/vela:latest
 FROM ${BASE}
 COPY files/ /
+# No /etc/vela/vela.toml: the first boot is in phone setup, which the runner drives (run-smoke.sh).
 # Flatpaks and the Home Assistant image are multi-GB first-boot downloads the smoke test doesn't
 # exercise; the diag service reports state over the serial console and the screen.
-RUN systemctl mask vela-flatpaks.service homeassistant.service \
+RUN test ! -e /etc/vela/vela.toml \
+ && systemctl mask vela-flatpaks.service homeassistant.service \
  && systemctl enable vela-smoke-diag.service \
  && chmod 0755 /usr/libexec/vela-smoke/diag \
  && bootc container lint
