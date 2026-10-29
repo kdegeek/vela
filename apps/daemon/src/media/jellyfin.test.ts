@@ -21,6 +21,49 @@ describe("JellyfinClient", () => {
     expect(JSON.parse(seen!.body)).toEqual({ Username: "vela", Pw: "pw" });
   });
 
+  describe("reportStopped", () => {
+    const RUN = 6_000_000_000;
+    const record = (run: number | null = RUN) => {
+      const calls: { url: string; method: string; body?: unknown }[] = [];
+      const fake = (async (url: string, init: RequestInit = {}) => {
+        calls.push({ url, method: init.method ?? "GET", body: init.body ? JSON.parse(String(init.body)) : undefined });
+        if (url.includes("/Items/")) return json(run === null ? {} : { RunTimeTicks: run });
+        return new Response(null, { status: 204 });
+      }) as unknown as typeof fetch;
+      return { calls, client: new JellyfinClient({ url: "http://jf", token: "key", userId: "u1", fetch: fake }) };
+    };
+
+    // An API key has no user, so Jellyfin drops the session reports' user data: the resume point is written directly.
+    it("reports the stop, then writes the user's resume position", async () => {
+      const { calls, client } = record();
+      await client.reportStopped("i1", 1_800_000_000);
+      expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+        "POST http://jf/Sessions/Playing/Stopped",
+        "GET http://jf/Items/i1?userId=u1",
+        "POST http://jf/UserItems/i1/UserData?userId=u1",
+      ]);
+      expect(calls[2]!.body).toEqual({ PlaybackPositionTicks: 1_800_000_000 });
+    });
+
+    it("near the end marks it played, as Jellyfin does past 90%", async () => {
+      const { calls, client } = record();
+      await client.reportStopped("i1", Math.round(RUN * 0.95));
+      expect(calls.at(-1)!.body).toEqual({ Played: true, PlaybackPositionTicks: 0 });
+    });
+
+    it("under 5% clears the position, as Jellyfin does", async () => {
+      const { calls, client } = record();
+      await client.reportStopped("i1", Math.round(RUN * 0.01));
+      expect(calls.at(-1)!.body).toEqual({ PlaybackPositionTicks: 0 });
+    });
+
+    it("unknown runtime still writes the position", async () => {
+      const { calls, client } = record(null);
+      await client.reportStopped("i1", 42);
+      expect(calls.at(-1)!.body).toEqual({ PlaybackPositionTicks: 42 });
+    });
+  });
+
   it("imageUrl includes maxWidth=3840", () => {
     const c = new JellyfinClient({ url: "http://jf:8096", token: "t", userId: "u" });
     const url = c.imageUrl("abc", "Backdrop", 3840);

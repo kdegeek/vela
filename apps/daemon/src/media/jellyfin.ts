@@ -141,8 +141,25 @@ export class JellyfinClient {
     return this.report("/Sessions/Playing/Progress", { ItemId: itemId, PositionTicks: positionTicks, IsPaused: paused, CanSeek: true, PlayMethod: "DirectPlay" });
   }
 
-  reportStopped(itemId: string, positionTicks: number): Promise<void> {
-    return this.report("/Sessions/Playing/Stopped", { ItemId: itemId, PositionTicks: positionTicks });
+  /**
+   * Reports the stop, then writes the user's resume point directly. Vela signs in with an API key, which has no user,
+   * so Jellyfin applies the session reports to no one's user data (the CI integration test shows the position
+   * unchanged without this). Mirrors Jellyfin's defaults: past 90% is played, under 5% starts over.
+   */
+  async reportStopped(itemId: string, positionTicks: number): Promise<void> {
+    await this.report("/Sessions/Playing/Stopped", { ItemId: itemId, PositionTicks: positionTicks });
+    if (!this.userId) return;
+    const q = new URLSearchParams({ userId: this.userId });
+    const id = encodeURIComponent(itemId);
+    let run: number | undefined;
+    try {
+      run = ((await (await this.req(`/Items/${id}?${q}`, { headers: this.headers() })).json()) as { RunTimeTicks?: number }).RunTimeTicks;
+    } catch {
+      // runtime unknown: keep the position as it is
+    }
+    const pct = run && run > 0 ? positionTicks / run : undefined;
+    const data = pct !== undefined && pct >= 0.9 ? { Played: true, PlaybackPositionTicks: 0 } : { PlaybackPositionTicks: pct !== undefined && pct < 0.05 ? 0 : positionTicks };
+    await this.req(`/UserItems/${id}/UserData?${q}`, { method: "POST", headers: this.headers(true), body: JSON.stringify(data) });
   }
 }
 
