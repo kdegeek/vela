@@ -24,6 +24,13 @@ describe("config", () => {
     expect(c.devices).toHaveLength(1);
   });
 
+  it("ir.audioJackSink is optional", () => {
+    expect(loadConfig(path.join(tmp(), "nope.toml")).ir.audioJackSink).toBeUndefined();
+    const p = path.join(tmp(), "vela.toml");
+    fs.writeFileSync(p, `[ir]\naudioJackSink = "alsa_output.pci-0000_00_1f.3.analog-stereo"\n`);
+    expect(loadConfig(p).ir.audioJackSink).toBe("alsa_output.pci-0000_00_1f.3.analog-stereo");
+  });
+
   it("invalid effects value throws naming ui.effects", () => {
     const p = path.join(tmp(), "vela.toml");
     fs.writeFileSync(p, `[ui]\neffects = "banana"\n`);

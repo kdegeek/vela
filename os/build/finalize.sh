@@ -65,7 +65,7 @@ grep 't2bce' /tmp/initrd.txt || echo "note: t2bce modules are not in the initram
 command -v chromium-browser || command -v chromium
 grep -qx "VELA_KERNEL=$(rpm -q --qf '%{VERSION}-%{RELEASE}' kernel-core)" /usr/lib/os-release
 test -x /usr/libexec/vela/session-start -a -x /usr/libexec/vela/launcher-kiosk -a -x /usr/libexec/vela/install-flatpaks
-command -v swaymsg greetd sway Xwayland mpv ir-ctl wtype flatpak node curl jq vela-ctl grim lsusb vainfo wpctl aplay busctl
+command -v swaymsg greetd sway Xwayland mpv ir-ctl wtype flatpak node curl jq vela-ctl grim lsusb vainfo wpctl aplay busctl pw-play pw-dump
 test -x /usr/libexec/vela/acceptance/hw-check.sh -a -r /usr/libexec/vela/acceptance/lib.sh
 /ctx/smoke-daemon.sh /usr/bin/node /usr/lib/vela/daemon /usr/share/vela/assets /usr/share/vela/apps /usr/lib/vela/launcher
 

@@ -26,6 +26,11 @@ provider = "mock"
 # url = "http://127.0.0.1:8123"   # Home Assistant runs on the box itself
 # insideTempEntity = "sensor.living_room_temperature"
 
+# [ir]
+# The headphone-jack IR blaster plays on this PipeWire sink. Unset, Vela picks the sink whose name
+# says headphone or analog (never HDMI); `wpctl status` and `pw-dump` list the node names.
+# audioJackSink = "alsa_output.pci-0000_00_1f.3.analog-stereo"
+
 # Directories scanned for app manifests; later entries override earlier ones by id.
 # manifestDirs = ["/usr/share/vela/apps", "/etc/vela/apps"]
 

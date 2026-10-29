@@ -17,8 +17,8 @@ export class NotFound extends Error {
 }
 
 export class NoTransmitter extends Error {
-  constructor() {
-    super(NO_TRANSMITTER_MESSAGE);
+  constructor(message = NO_TRANSMITTER_MESSAGE) {
+    super(message);
     this.name = "NoTransmitter";
   }
 }

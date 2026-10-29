@@ -14,7 +14,7 @@ import { flatpakStatus } from "./session/flatpak.js";
 import { createPlayer } from "./playback/jellyfinReporter.js";
 import { startMpv } from "./playback/mpv.js";
 import { haInsideTemp, haTv } from "./devices/homeAssistant.js";
-import { audioJackTransmitter } from "./devices/ir/audioJack.js";
+import { audioJackTransmitter, jackSinkFinder } from "./devices/ir/audioJack.js";
 import { irCtlTransmitter, type IrTransmitter } from "./devices/ir/irctl.js";
 import { DeviceRegistry } from "./devices/registry.js";
 import { createNoopSway, createSway } from "./session/sway.js";
@@ -69,18 +69,11 @@ function lircDevice(): string | undefined {
     return undefined;
   }
 }
-/** True when the kernel lists a sound card; VELA_AUDIOJACK_DEVICE forces it on. */
-function haveAudioOutput(): boolean {
-  if (process.env.VELA_AUDIOJACK_DEVICE) return true;
-  try {
-    const cards = fs.readFileSync("/proc/asound/cards", "utf8");
-    return cards.trim() !== "" && !cards.includes("no soundcards");
-  } catch {
-    return false;
-  }
-}
 const transmitters: Partial<Record<"irctl" | "audiojack", IrTransmitter>> = {};
-if (haveAudioOutput()) transmitters.audiojack = audioJackTransmitter(process.env.VELA_AUDIOJACK_DEVICE ?? "default");
+// The jack blaster plays on the headphone-jack sink (ir.audioJackSink, or found in pw-dump at send time), never the
+// default HDMI sink. VELA_AUDIOJACK_DEVICE names an ALSA device instead (aplay).
+const jackDevice = process.env.VELA_AUDIOJACK_DEVICE;
+transmitters.audiojack = audioJackTransmitter(jackDevice ? { alsaDevice: jackDevice } : { sink: jackSinkFinder(config.ir.audioJackSink) });
 const lirc = lircDevice();
 if (lirc) transmitters.irctl = irCtlTransmitter(lirc);
 const devices = new DeviceRegistry(config.devices, {

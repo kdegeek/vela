@@ -1,0 +1,24 @@
+[
+  { "id": 0, "type": "PipeWire:Interface:Core", "info": { "name": "pipewire-0" } },
+  {
+    "id": 44, "type": "PipeWire:Interface:Device",
+    "info": { "props": { "device.name": "alsa_card.pci-0000_00_1f.3", "device.description": "Built-in Audio", "media.class": "Audio/Device" } }
+  },
+  {
+    "id": 52, "type": "PipeWire:Interface:Node",
+    "info": { "props": { "node.name": "alsa_output.pci-0000_00_1f.3.hdmi-stereo", "node.description": "Built-in Audio Digital Stereo (HDMI)", "node.nick": "HDMI 0", "media.class": "Audio/Sink" } }
+  },
+  {
+    "id": 57, "type": "PipeWire:Interface:Node",
+    "info": { "props": { "node.name": "alsa_input.pci-0000_00_1f.3.analog-stereo", "node.description": "Built-in Audio Analog Stereo", "media.class": "Audio/Source" } }
+  },
+  {
+    "id": 58, "type": "PipeWire:Interface:Node",
+    "info": { "props": { "node.name": "alsa_output.pci-0000_00_1f.3.analog-stereo", "node.description": "Built-in Audio Analog Stereo", "node.nick": "Headphones", "media.class": "Audio/Sink" } }
+  },
+  { "id": 60, "type": "PipeWire:Interface:Node", "info": null },
+  {
+    "id": 61, "type": "PipeWire:Interface:Node",
+    "info": { "props": { "node.name": "Dummy-Driver", "media.class": "Audio/Sink" } }
+  }
+]

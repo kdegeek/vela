@@ -3,7 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import type { Timings } from "./encode.js";
 import type { IrTransmitter } from "./irctl.js";
-import { defaultRun, type Run } from "./run.js";
+import { NoTransmitter } from "../registry.js";
+import { defaultCapture, defaultRun, type Capture, type Run } from "./run.js";
 
 const SAMPLE_RATE = 48000;
 const AMPLITUDE = 0.9;
@@ -52,23 +53,59 @@ export function wavFromSamples(samples: Int16Array, sampleRate = SAMPLE_RATE): B
   return b;
 }
 
-/** Plays the rendered burst through a headphone-jack IR blaster. The default device goes through PipeWire, falling back to ALSA. */
-export function audioJackTransmitter(alsaDevice: string, run: Run = defaultRun): IrTransmitter {
+export const JACK_MISSING_MESSAGE =
+  "No headphone-jack output found for the IR blaster. Plug it in, or set ir.audioJackSink in /etc/vela/vela.toml (names are in wpctl status).";
+
+interface PwObject {
+  type?: string;
+  info?: { props?: Record<string, unknown> } | null;
+}
+
+/**
+ * The PipeWire sink node for the headphone jack, from `pw-dump` output: an Audio/Sink whose name, description or nick
+ * says headphone (preferred) or analog. HDMI is never picked; the IR burst must not go to the TV's speakers.
+ */
+export function selectJackSink(dump: unknown): string | undefined {
+  if (!Array.isArray(dump)) return undefined;
+  const sinks = (dump as PwObject[])
+    .filter((o) => o?.type === "PipeWire:Interface:Node" && o.info?.props?.["media.class"] === "Audio/Sink")
+    .map((o) => o.info!.props!)
+    .filter((p) => typeof p["node.name"] === "string");
+  const text = (p: Record<string, unknown>) => ["node.name", "node.description", "node.nick"].map((k) => String(p[k] ?? "")).join(" ");
+  const ok = sinks.filter((p) => !/hdmi|displayport/i.test(text(p)));
+  const pick = ok.find((p) => /headphone/i.test(text(p))) ?? ok.find((p) => /analog/i.test(text(p)));
+  return pick?.["node.name"] as string | undefined;
+}
+
+/** The configured sink, else the one found in pw-dump (cached once found; PipeWire may start after the daemon). */
+export function jackSinkFinder(configured: string | undefined, capture: Capture = defaultCapture): () => Promise<string | undefined> {
+  let found = configured;
+  return async () => {
+    if (found) return found;
+    try {
+      found = selectJackSink(JSON.parse(await capture("pw-dump", [])));
+    } catch (e) {
+      console.error("vela: pw-dump:", (e as Error).message);
+    }
+    return found;
+  };
+}
+
+/**
+ * Plays the rendered burst through a headphone-jack IR blaster: `pw-play --target <jack sink>` at full stream volume, or
+ * `aplay -D <device>` for an ALSA device override (VELA_AUDIOJACK_DEVICE). Without a jack sink it throws NoTransmitter.
+ */
+export function audioJackTransmitter(target: { sink: () => Promise<string | undefined> } | { alsaDevice: string }, run: Run = defaultRun): IrTransmitter {
   return {
     async send(t) {
+      const sink = "sink" in target ? await target.sink() : undefined;
+      if ("sink" in target && !sink) throw new NoTransmitter(JACK_MISSING_MESSAGE);
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vela-ir-"));
       const file = path.join(dir, "send.wav");
       try {
         fs.writeFileSync(file, wavFromSamples(renderAudio(t)));
-        if (alsaDevice === "default") {
-          try {
-            await run("pw-play", [file]);
-            return;
-          } catch {
-            // PipeWire isn't available; fall through to ALSA.
-          }
-        }
-        await run("aplay", ["-D", alsaDevice, file]);
+        if (sink) await run("pw-play", ["--target", sink, "--volume", "1.0", file]);
+        else await run("aplay", ["-D", (target as { alsaDevice: string }).alsaDevice, file]);
       } finally {
         fs.rmSync(dir, { recursive: true, force: true });
       }

@@ -42,8 +42,9 @@ holds the output of every script run so far, so the last one you make is the one
 4. **`tv-check`** (about 2 minutes per TV). Turns the TV off, waits 10 seconds, turns it on, and
    changes the volume. You say whether each step happened. Pair the TV in Home Assistant first
    (install.md step 10).
-5. **`ir-check`** (about 1 minute). Sends a test code on each infrared transmitter. A phone camera
-   shows an IR blaster's light flashing.
+5. **`ir-check`** (about 1 minute). Sends a test code on each infrared transmitter: the USB IR
+   dongle (`/dev/lirc*`) and the headphone-jack blaster. A phone camera shows an IR blaster's light
+   flashing.
 
 ## What a failure most likely means
 
@@ -93,6 +94,8 @@ holds the output of every script run so far, so the last one you make is the one
 | `INFO power on used the IR fallback` | Information only: the TV could not be woken over the network. |
 | `at least one IR transmitter is present` | No `/dev/lirc*` device and no headphone-jack sink. Plug in the IR blaster. |
 | `ir-ctl sends on /dev/lirc0` fails | The transmitter is a receive-only device, or is not an IR blaster. |
+| `pw-play sends on the headphone-jack sink` / `jack blaster transmitted` | The blaster isn't in the headphone jack, or the wrong sink was picked (the line above it names it). Set `audioJackSink` under `[ir]` in `vela.toml` to the right node from `wpctl status`. If the TV made a sound, the burst went to HDMI: send the bundle. |
+| `WARN headphone-jack sink` | PipeWire shows no analog or headphone output. See `wpctl-status.txt` in the bundle. |
 | `daemon sends <id>/<command>` | The device entry in `vela.toml` is wrong (file, button, or transmitter name). |
 
 ## What to send back

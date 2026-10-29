@@ -38,6 +38,12 @@ const ConfigSchema = z.object({
   homeAssistant: z
     .object({ url: z.string(), insideTempEntity: z.string().optional() })
     .optional(),
+  ir: z
+    .object({
+      /** PipeWire node name of the headphone-jack sink for the audio IR blaster; found automatically when unset. */
+      audioJackSink: z.string().min(1).optional(),
+    })
+    .default({}),
   devices: z.array(Device).default([]),
   manifestDirs: z.array(z.string()).default(["/usr/share/vela/apps", "/etc/vela/apps"]),
 });
