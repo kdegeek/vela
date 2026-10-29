@@ -43,6 +43,8 @@ export interface HomeStatus {
   insideTemp?: string;
   /** From config ui.clock24h. */
   clock24h?: boolean;
+  /** From config ui.effects: "auto" lets a perf run decide between full and lite. */
+  effects?: "auto" | "full" | "lite";
 }
 
 export interface HomeState {
@@ -72,7 +74,9 @@ export type VelaEvent =
   | { type: "home" }
   | { type: "app-state"; id: string; status: AppStatus }
   | { type: "home-state-changed" }
-  | { type: "toast"; message: string };
+  | { type: "toast"; message: string }
+  /** GET /api/perf?arm=1 was called: the launcher samples frame timing and posts a PerfReport. */
+  | { type: "perf-arm" };
 
 export const API = {
   health: "/api/health",

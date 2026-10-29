@@ -32,6 +32,13 @@ describe("buildHomeState", () => {
     expect(off.status.clock24h).toBe(false);
   });
 
+  it("passes the effects preference through in status, defaulting to auto", async () => {
+    const lite = await buildHomeState({ manifests, status: async () => "ready", media: null, mock, effects: "lite" });
+    expect(lite.status.effects).toBe("lite");
+    const auto = await buildHomeState({ manifests, status: async () => "ready", media: null, mock });
+    expect(auto.status.effects).toBe("auto");
+  });
+
   it("assigns hero features per manifest", async () => {
     const s = await buildHomeState({ manifests, status: async () => "ready", media: { resume: async () => [card("abc")] }, mock });
     expect(s.apps.find((a) => a.id === "plex")?.feature).toMatchObject({ title: "Tears of Steel", sourceId: "plex" });

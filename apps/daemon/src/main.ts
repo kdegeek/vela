@@ -94,6 +94,7 @@ const home = () =>
     mock,
     insideTemp,
     clock24h: config.ui.clock24h,
+    effects: config.ui.effects,
   });
 startHomePolling(home, bus.emit);
 const play = jf ? createPlayer({ jf, start: startMpv, goHome: () => runner.goHome(), emit: bus.emit, runner }) : undefined;

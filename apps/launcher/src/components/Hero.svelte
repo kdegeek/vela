@@ -150,6 +150,10 @@
     .backdrop {
       animation: drift 48s ease-in-out infinite alternate;
     }
+    /* Lite effects: the backdrop holds still; the crossfade stays. */
+    :global(:root[data-effects="lite"]) .backdrop {
+      animation: none;
+    }
   }
   @keyframes drift {
     from {

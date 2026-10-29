@@ -94,6 +94,11 @@
     backdrop-filter: blur(1.2rem) saturate(1.4);
     border: 0.0625rem solid color-mix(in oklch, var(--starlight) 10%, transparent);
   }
+  /* Lite effects: no live blur; a solid, faintly tinted pane instead. */
+  :global(:root[data-effects="lite"]) .app {
+    backdrop-filter: none;
+    background: color-mix(in oklch, var(--abyss) 82%, var(--tint) 8%);
+  }
   .glyph,
   .glyph-light {
     display: block;

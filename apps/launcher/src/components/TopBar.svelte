@@ -124,6 +124,10 @@
     backdrop-filter: blur(0.8rem);
     color: var(--mist);
   }
+  :global(:root[data-effects="lite"]) .chip {
+    backdrop-filter: none;
+    background: color-mix(in oklch, var(--abyss) 72%, transparent);
+  }
   .chip svg {
     inline-size: 1rem;
   }

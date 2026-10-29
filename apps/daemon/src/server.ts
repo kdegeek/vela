@@ -3,10 +3,11 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import Fastify, { type FastifyInstance } from "fastify";
+import { z } from "zod";
 import fastifyStatic from "@fastify/static";
 import type { VelaConfig } from "./config.js";
 import fastifyWebsocket from "@fastify/websocket";
-import { API, isMediaKey, type Device, type HomeState, type VelaEvent } from "@vela/shared";
+import { API, isMediaKey, type Device, type HomeState, type PerfReport, type VelaEvent } from "@vela/shared";
 import { ART_WIDTHS, type JellyfinClient } from "./media/jellyfin.js";
 import type { AppManifest } from "./manifests.js";
 import type { AppRunner } from "./session/appRunner.js";
@@ -77,6 +78,17 @@ function launcherDir(): string {
 }
 
 export const PORT = 7300;
+
+const ms = z.number().finite().nonnegative();
+const perfReport = z.object({
+  frames: z.number().int().nonnegative(),
+  p50Ms: ms,
+  p95Ms: ms,
+  droppedPct: z.number().finite().min(0).max(100),
+  effects: z.enum(["full", "lite"]),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+}) satisfies z.ZodType<PerfReport>;
 
 export function buildServer(s: Services): FastifyInstance {
   const app = Fastify({ logger: false });
@@ -150,6 +162,22 @@ export function buildServer(s: Services): FastifyInstance {
       console.error("vela: device command failed:", msg);
       return reply.code(500).send({ error: msg });
     }
+    return reply.code(204).send();
+  });
+
+  // Frame timing from the launcher. Arming asks the launcher for a fresh 30 s sample.
+  let perf: { report: PerfReport | null; armed: boolean } = { report: null, armed: false };
+  app.get<{ Querystring: { arm?: string } }>(API.perf, async (req) => {
+    if (req.query.arm === "1") {
+      perf = { report: null, armed: true };
+      s.bus.emit({ type: "perf-arm" });
+    }
+    return perf;
+  });
+  app.post(API.perf, async (req, reply) => {
+    const r = perfReport.safeParse(req.body);
+    if (!r.success) return reply.code(400).send({ error: "body must be a PerfReport" });
+    perf = { report: r.data, armed: false };
     return reply.code(204).send();
   });
 

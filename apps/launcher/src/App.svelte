@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
-  import type { AppTile, HeroItem, HomeState, MediaCard, VelaEvent } from "@vela/shared";
+  import type { AppTile, Device, HeroItem, HomeState, MediaCard, VelaEvent } from "@vela/shared";
   import { connect, type ActionResult } from "./lib/api.js";
   import { move, trackShift, type FocusState } from "./lib/focus.js";
   import { createHeroSettler } from "./lib/hero.js";
@@ -12,6 +12,9 @@
   import Row from "./components/Row.svelte";
   import Tile from "./components/Tile.svelte";
   import Toast from "./components/Toast.svelte";
+  import HomePanel from "./components/HomePanel.svelte";
+  import LaunchScreen, { type LaunchView } from "./components/LaunchScreen.svelte";
+  import { decideEffects, sampleFrames, summarize } from "./lib/perf.js";
 
   type RowModel =
     | { id: "apps"; kind: "app"; title: string; items: AppTile[] }
@@ -26,6 +29,10 @@
   let toast = $state<string | null>(null);
   let rowsEl = $state<HTMLElement>();
   let lefts: number[][] = [];
+  let panelOpen = $state(false);
+  let devices = $state<Device[] | null>(null);
+  let panel = $state<{ handle: (a: Action) => void }>();
+  let launching = $state<{ id: string; view: LaunchView; leaving: boolean } | null>(null);
 
   const rows = $derived.by((): RowModel[] => {
     if (!home) return [];
@@ -119,6 +126,11 @@
   function setHome(s: HomeState) {
     const first = home === null;
     home = s;
+    const cfg = s.status.effects ?? "auto";
+    if (first || cfg !== effectsCfg) {
+      effectsCfg = cfg;
+      if (!sampling) applyEffects(resolveEffects(cfg));
+    }
     // Keep the user's place when the daemon pushes fresh state; clamp to the new row lengths.
     const count = rows.length;
     const cols = rows.map((r, i) => Math.min(Math.max(0, focus.cols[i] ?? 0), Math.max(0, r.items.length - 1)));
@@ -142,8 +154,108 @@
 
   const UNREACHABLE = "Vela's service isn't answering. It restarts on its own, so try again in a moment.";
 
+  // ---------- Home panel ----------
+
   function openHomePanel() {
-    // TODO(Task 10): open the Home panel (devices and scenes) from the Home tile.
+    panelOpen = true;
+    devices = null;
+    api.devices().then(
+      (d) => (devices = d),
+      (e: Error) => {
+        devices = [];
+        showToast(e.message);
+      },
+    );
+  }
+
+  function closeHomePanel() {
+    panelOpen = false;
+    void relayout(); // focus returns to the Home tile
+  }
+
+  async function sendCommand(id: string, command: string) {
+    try {
+      await api.command(id, command);
+    } catch (e) {
+      showToast(e instanceof TypeError ? UNREACHABLE : (e as Error).message);
+      throw e;
+    }
+  }
+
+  // ---------- Launch screen ----------
+
+  /** The daemon gives up on a window after 10 s (and sends home), so the screen never outstays it. */
+  const LAUNCH_CAP_MS = 10_000;
+  const LEAVE_MS = 300;
+  let launchTimer: ReturnType<typeof setTimeout> | undefined;
+  let launchSeq = 0;
+
+  function focusedRect() {
+    const el = rowsEl?.querySelectorAll<HTMLElement>("[data-row]")[focus.row]?.querySelectorAll<HTMLElement>("[data-tile]")[focus.cols[focus.row] ?? 0];
+    const r = el?.getBoundingClientRect();
+    return r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null;
+  }
+
+  function startLaunch(id: string, view: Omit<LaunchView, "from">) {
+    const seq = ++launchSeq;
+    launching = { id, view: { ...view, from: focusedRect() }, leaving: false };
+    clearTimeout(launchTimer);
+    launchTimer = setTimeout(() => seq === launchSeq && endLaunch(true), LAUNCH_CAP_MS);
+  }
+
+  /** Fades the screen out (animated) or removes it at once (home, failures). */
+  function endLaunch(animated: boolean) {
+    clearTimeout(launchTimer);
+    if (!launching) return;
+    const seq = ++launchSeq;
+    if (!animated) {
+      launching = null;
+      return;
+    }
+    launching.leaving = true;
+    launchTimer = setTimeout(() => seq === launchSeq && (launching = null), LEAVE_MS);
+  }
+
+  // ---------- Effects and perf ----------
+
+  type EffectsCfg = "auto" | "full" | "lite";
+  const EFFECTS_KEY = "vela.effects";
+  const PERF_SAMPLE_MS = 30_000;
+  let effectsCfg: EffectsCfg = "auto";
+  let sampling = false;
+
+  function applyEffects(e: "full" | "lite") {
+    document.documentElement.dataset.effects = e;
+  }
+
+  /** Forced modes win; auto uses the last perf decision, or full until there is one. */
+  function resolveEffects(cfg: EffectsCfg): "full" | "lite" {
+    if (cfg !== "auto") return cfg;
+    const saved = localStorage.getItem(EFFECTS_KEY);
+    return saved === "full" || saved === "lite" ? saved : decideEffects("auto", null);
+  }
+
+  /** Samples 30 s of frames and reports them. In auto mode it measures full effects and keeps the verdict. */
+  async function runPerf() {
+    if (sampling) return;
+    sampling = true;
+    try {
+      const measured = effectsCfg === "auto" ? "full" : effectsCfg;
+      applyEffects(measured);
+      const intervals = await sampleFrames(PERF_SAMPLE_MS);
+      const report = {
+        ...summarize(intervals),
+        effects: measured,
+        width: Math.round(innerWidth * devicePixelRatio),
+        height: Math.round(innerHeight * devicePixelRatio),
+      };
+      await api.postPerf(report).catch(() => {});
+      const decided = decideEffects(effectsCfg, report);
+      if (effectsCfg === "auto") localStorage.setItem(EFFECTS_KEY, decided);
+      applyEffects(decided);
+    } finally {
+      sampling = false;
+    }
   }
 
   function launchFailed(app: AppTile, r: ActionResult) {
@@ -168,17 +280,48 @@
         const app = row.items[c];
         if (!app) return;
         if (app.id === "home") return openHomePanel();
-        launchFailed(app, await api.launch(app.id));
+        // Only a ready app gets the launch screen: a running one switches at once, and the
+        // daemon answers installing or missing with a toast.
+        if (app.status === "ready") {
+          startLaunch(app.id, {
+            line: `Opening ${app.name}`,
+            backdropUrl: app.feature?.backdropUrl || hero?.backdropUrl || "",
+            tint: tintFor(app.feature ?? hero),
+            glyphUrl: app.glyphUrl,
+            brandColor: app.brandColor,
+          });
+        }
+        const r = await api.launch(app.id);
+        if (!r.ok) endLaunch(false);
+        launchFailed(app, r);
       } else {
         const card = row.items[c];
-        if (card) playFailed(card, await api.play(card.key));
+        if (!card) return;
+        // The daemon emits no app-state for the player window, so this screen leaves on
+        // {type: "home"} or at the cap.
+        startLaunch("player", {
+          line: `${card.progress != null ? "Resuming" : "Playing"} ${card.title}`,
+          detail: card.remainingMin != null ? `${card.remainingMin} min left` : undefined,
+          backdropUrl: card.backdropUrl,
+          tint: tintFor(card),
+        });
+        const r = await api.play(card.key);
+        if (!r.ok) endLaunch(false);
+        playFailed(card, r);
       }
     } catch {
+      endLaunch(false);
       showToast(UNREACHABLE);
     }
   }
 
   function handle(a: Action) {
+    if (launching) {
+      // The app is on its way; Back only takes the screen down.
+      if (a.kind === "back" || a.kind === "home") endLaunch(false);
+      return;
+    }
+    if (panelOpen) return panel?.handle(a);
     if (!home || rows.length === 0) return;
     if (a.kind === "move") {
       const next = move(focus, a.dir, { rowLefts: lefts }, shifts);
@@ -201,13 +344,21 @@
     else if (e.type === "app-state" && home) {
       const app = home.apps.find((a) => a.id === e.id);
       if (app) app.status = e.status;
-    } else if (e.type === "home") void relayout();
+      if (e.status === "running" && launching?.id === e.id) endLaunch(true);
+    } else if (e.type === "home") {
+      endLaunch(false);
+      void relayout();
+    } else if (e.type === "perf-arm") void runPerf();
   }
 
   const api = connect(location.origin, onEvent);
 
   onMount(() => {
-    void api.home().then(setHome);
+    void api.home().then(async (s) => {
+      setHome(s);
+      // Armed while the launcher was away (no event reached it), or asked for in the URL.
+      if (new URLSearchParams(location.search).has("perf") || (await api.perfStatus()).armed) void runPerf();
+    });
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Tab") return e.preventDefault();
       const a = actionForKey(e.key);
@@ -223,6 +374,7 @@
       removeEventListener("keydown", onKey);
       removeEventListener("resize", onResize);
       stopPad();
+      clearTimeout(launchTimer);
       settler.dispose();
       api.close();
     };
@@ -255,7 +407,11 @@
     {/each}
   </main>
 
-  <Toast message={toast} />
+  <HomePanel bind:this={panel} open={panelOpen} {devices} status={home?.status ?? null} onsend={sendCommand} onclose={closeHomePanel} />
+  {#if launching}
+    <LaunchScreen view={launching.view} leaving={launching.leaving} capMs={LAUNCH_CAP_MS} />
+  {/if}
+  <Toast message={toast} placement={panelOpen ? "sheet" : "top"} />
 </div>
 
 <style>

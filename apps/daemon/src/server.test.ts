@@ -196,4 +196,61 @@ describe("server", () => {
       expect((await post(buildServer(services()))).statusCode).toBe(404);
     });
   });
+
+  describe("perf", () => {
+    const good = { frames: 1800, p50Ms: 16.7, p95Ms: 18.2, droppedPct: 0.4, effects: "full", width: 3840, height: 2160 };
+    const postPerf = (app: ReturnType<typeof buildServer>, payload: unknown) =>
+      app.inject({ method: "POST", url: "/api/perf", payload: payload as object, headers: { ...H, "content-type": "application/json" } });
+
+    it("GET starts with no report and not armed", async () => {
+      const res = await buildServer(services()).inject({ method: "GET", url: "/api/perf", headers: H });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toEqual({ report: null, armed: false });
+    });
+
+    it("POST stores the latest report, which GET returns", async () => {
+      const app = buildServer(services());
+      expect((await postPerf(app, good)).statusCode).toBe(204);
+      expect((await postPerf(app, { ...good, p95Ms: 30, effects: "lite" })).statusCode).toBe(204);
+      const res = await app.inject({ method: "GET", url: "/api/perf", headers: H });
+      expect(res.json()).toEqual({ report: { ...good, p95Ms: 30, effects: "lite" }, armed: false });
+    });
+
+    it("POST drops unknown fields", async () => {
+      const app = buildServer(services());
+      await postPerf(app, { ...good, extra: "x" });
+      const res = await app.inject({ method: "GET", url: "/api/perf", headers: H });
+      expect(res.json().report).toEqual(good);
+    });
+
+    it.each([
+      ["a missing field", { ...good, p95Ms: undefined }],
+      ["a string number", { ...good, frames: "1800" }],
+      ["a negative number", { ...good, droppedPct: -1 }],
+      ["an unknown effects mode", { ...good, effects: "auto" }],
+      ["a zero width", { ...good, width: 0 }],
+      ["a fractional frame count", { ...good, frames: 1.5 }],
+      ["a non-object body", [1, 2]],
+    ])("POST rejects %s with 400", async (_name, body) => {
+      const app = buildServer(services());
+      const res = await postPerf(app, body);
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toHaveProperty("error");
+      expect((await app.inject({ method: "GET", url: "/api/perf", headers: H })).json().report).toBeNull();
+    });
+
+    it("GET ?arm=1 arms, clears the stored report and emits perf-arm; the next POST disarms", async () => {
+      const s = services();
+      const events: unknown[] = [];
+      s.bus.subscribe((e) => events.push(e));
+      const app = buildServer(s);
+      await postPerf(app, good);
+      const armed = await app.inject({ method: "GET", url: "/api/perf?arm=1", headers: H });
+      expect(armed.json()).toEqual({ report: null, armed: true });
+      expect(events).toEqual([{ type: "perf-arm" }]);
+      expect((await app.inject({ method: "GET", url: "/api/perf", headers: H })).json()).toEqual({ report: null, armed: true });
+      await postPerf(app, good);
+      expect((await app.inject({ method: "GET", url: "/api/perf", headers: H })).json()).toEqual({ report: good, armed: false });
+    });
+  });
 });

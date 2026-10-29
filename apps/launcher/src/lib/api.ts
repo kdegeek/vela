@@ -1,5 +1,10 @@
 import { API, type Device, type HomeState, type PerfReport, type VelaEvent } from "@vela/shared";
 
+export interface PerfStatus {
+  report: PerfReport | null;
+  armed: boolean;
+}
+
 export type ActionResult = { ok: true } | { ok: false; reason: string };
 
 export interface VelaApi {
@@ -12,6 +17,8 @@ export interface VelaApi {
   /** Throws an Error carrying the daemon's message when the command fails. */
   command(id: string, cmd: string): Promise<void>;
   postPerf(p: PerfReport): Promise<void>;
+  /** The latest report and whether a run was requested; a failed request reads as not armed. */
+  perfStatus(): Promise<PerfStatus>;
   /** Stops reconnecting and closes the event socket. */
   close(): void;
 }
@@ -105,6 +112,15 @@ export function connect(base: string, onEvent: (e: VelaEvent) => void, opts: { r
     },
     async postPerf(p) {
       await post(API.perf, p);
+    },
+    async perfStatus() {
+      try {
+        const r = await fetch(root + API.perf);
+        if (r.ok) return (await r.json()) as PerfStatus;
+      } catch {
+        // daemon not answering; nothing is armed that we can see
+      }
+      return { report: null, armed: false };
     },
     close() {
       closed = true;

@@ -15,6 +15,8 @@ export interface HomeDeps {
   insideTemp?: () => Promise<string | undefined>;
   /** config.ui.clock24h, passed to the launcher clock. */
   clock24h?: boolean;
+  /** config.ui.effects; the launcher resolves "auto" with a perf run. */
+  effects?: "auto" | "full" | "lite";
 }
 
 function heroFrom(c: MediaCard, appId: string): HeroItem {
@@ -54,7 +56,7 @@ export async function buildHomeState(d: HomeDeps): Promise<HomeState> {
     }),
   );
 
-  const status: HomeState["status"] = { clock24h: d.clock24h ?? false };
+  const status: HomeState["status"] = { clock24h: d.clock24h ?? false, effects: d.effects ?? "auto" };
   if (line) status.line = line;
   if (d.insideTemp) {
     try {

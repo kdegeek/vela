@@ -110,4 +110,16 @@ describe("connect", () => {
     expect(init.headers["content-type"]).toBe("application/json");
     expect(init.body).toBe("{}");
   });
+
+  it("reads perf status, treating a failed request as not armed", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(Response.json({ report: null, armed: true }))
+      .mockResolvedValueOnce(new Response("", { status: 500 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const api = connect("http://127.0.0.1:7300", () => {});
+    expect(await api.perfStatus()).toEqual({ report: null, armed: true });
+    expect(fetchMock.mock.calls[0]![0]).toBe("http://127.0.0.1:7300/api/perf");
+    expect(await api.perfStatus()).toEqual({ report: null, armed: false });
+  });
 });
