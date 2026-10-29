@@ -37,7 +37,9 @@ let changes: number;
 beforeEach(() => {
   dir = tmp();
   changes = 0;
-  session = new SetupSession(() => changes++);
+  // A clock that moves 50 ms per read keeps the PIN rate limit (10/s) out of tests that fire many requests at once.
+  let t = 0;
+  session = new SetupSession(() => changes++, () => (t += 50));
   deps = {
     session,
     port: PORT,
@@ -129,6 +131,18 @@ describe("setup listener guard", () => {
     expect(again.json().error).toMatch(/new one/);
     // The owner's phone, with the new PIN from the TV, still gets in.
     expect((await app.inject({ url: SETUP_API.state, headers: H(), remoteAddress: "192.168.1.30" })).statusCode).toBe(200);
+  });
+});
+
+describe("setup listener rate limit", () => {
+  it("past 10 PIN checks a second, answers 429 with Retry-After: 1 without testing the PIN", async () => {
+    const frozen = new SetupSession(() => {}, () => 0);
+    const app = buildSetupServer({ ...deps, session: frozen });
+    const headers = { host: `localhost:${PORT}`, authorization: `Pin ${frozen.pin.current()}` };
+    for (let i = 0; i < 10; i++) expect((await app.inject({ url: SETUP_API.state, headers, remoteAddress: `10.0.0.${i}` })).statusCode).toBe(200);
+    const busy = await app.inject({ url: SETUP_API.state, headers, remoteAddress: "10.0.0.99" });
+    expect(busy.statusCode).toBe(429);
+    expect(busy.headers["retry-after"]).toBe("1");
   });
 });
 

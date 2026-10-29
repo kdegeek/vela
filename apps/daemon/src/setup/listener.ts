@@ -111,6 +111,7 @@ export function buildSetupServer(d: SetupDeps): FastifyInstance {
         const s = session.pin.retryAfter(req.ip);
         return reply.code(429).header("retry-after", String(s)).send({ error: `Too many wrong PINs from this device. The TV shows a new one; try again in ${s} seconds.` });
       }
+      if (r === "busy") return reply.code(429).header("retry-after", "1").send({ error: "The box is busy. Try again in a second." });
       if (r === "wrong") return reply.code(401).send({ error: "That PIN is wrong. Check the PIN on the TV." });
     });
 
