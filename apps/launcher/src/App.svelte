@@ -262,10 +262,9 @@
   }
 
   function launchFailed(app: AppTile, r: ActionResult) {
-    if (r.ok) return;
-    if (r.reason === "installing") showToast(`${app.name} is still installing`);
-    else if (r.reason === "missing") showToast(`${app.name} isn't installed yet. It will install automatically when the box is online.`);
-    else showToast(`${app.name} didn't open. Check its manifest in /etc/vela/apps.`);
+    // The daemon toasts installing and missing itself; only it knows whether first boot installs the app.
+    if (r.ok || r.reason === "installing" || r.reason === "missing") return;
+    showToast(`${app.name} didn't open. Check its manifest in /etc/vela/apps.`);
   }
 
   function playFailed(card: MediaCard, r: ActionResult) {

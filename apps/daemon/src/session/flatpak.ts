@@ -30,3 +30,18 @@ export async function flatpakStatus(
   }
   return "missing";
 }
+
+/** Flatpak ids that first boot installs (vela-flatpaks.service reads the same file). Missing file: none. */
+export function readFlatpakList(file = "/usr/share/vela/flatpaks.list"): Set<string> {
+  try {
+    return new Set(
+      fs
+        .readFileSync(file, "utf8")
+        .split("\n")
+        .map((l) => l.replace(/#.*/, "").trim())
+        .filter(Boolean),
+    );
+  } catch {
+    return new Set();
+  }
+}

@@ -11,6 +11,8 @@ export interface AppRunnerDeps {
   spawn: (cmd: string[], env: Record<string, string>) => { pid: number; onError?: (cb: (e: Error) => void) => void };
   status: (m: AppManifest) => Promise<AppStatus>;
   emit: (e: VelaEvent) => void;
+  /** True when first boot installs this app (its flatpak is in flatpaks.list); only then does the toast promise it. */
+  autoInstall?: (m: AppManifest) => boolean;
 }
 
 export type LaunchResult = { ok: true } | { ok: false; reason: "unknown" | "installing" | "missing" };
@@ -68,7 +70,10 @@ export class AppRunner {
       return { ok: false, reason: "installing" };
     }
     if (status === "missing") {
-      this.deps.emit({ type: "toast", message: `${m.name} isn't installed yet. It will install automatically when the box is online.` });
+      const message = this.deps.autoInstall?.(m)
+        ? `${m.name} isn't installed yet. It will install automatically when the box is online.`
+        : `${m.name} isn't installed.`;
+      this.deps.emit({ type: "toast", message });
       return { ok: false, reason: "missing" };
     }
 

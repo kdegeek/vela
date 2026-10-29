@@ -8,7 +8,7 @@ const plex: AppManifest = { id: "plex", name: "Plex", glyph: "plex.svg", brandCo
 const steam: AppManifest = { id: "steam", name: "Steam", glyph: "steam.svg", brandColor: "x", kind: "command", command: ["steam", "-gamepadui"], windowAppId: "steam" };
 const home: AppManifest = { id: "home", name: "Home", glyph: "home.svg", brandColor: "x", kind: "builtin", windowAppId: "^$" };
 
-function setup(status: AppStatus = "ready") {
+function setup(status: AppStatus = "ready", autoInstall?: (m: AppManifest) => boolean) {
   let wins: SwayWindow[] = [];
   const newCbs: Array<(w: SwayWindow) => void> = [];
   const closeCbs: Array<(w: SwayWindow) => void> = [];
@@ -24,7 +24,7 @@ function setup(status: AppStatus = "ready") {
   const errCbs: Array<(e: Error) => void> = [];
   const spawn = vi.fn((_cmd: string[], _env: Record<string, string>) => ({ pid: 42, onError: (cb: (e: Error) => void) => void errCbs.push(cb) }));
   const events: VelaEvent[] = [];
-  const runner = new AppRunner({ sway, manifests: [plex, steam, home], spawn, status: async () => status, emit: (e) => events.push(e) });
+  const runner = new AppRunner({ sway, manifests: [plex, steam, home], spawn, status: async () => status, emit: (e) => events.push(e), autoInstall });
   const open = (w: Partial<SwayWindow>) => {
     const win = { id: 1, appId: null, cls: null, workspace: "x", pid: 1, ...w };
     wins = [...wins, win];
@@ -73,10 +73,19 @@ describe("AppRunner", () => {
     expect(t.events).toContainEqual({ type: "toast", message: "Plex is still installing" });
   });
 
-  it("refuses a missing app with install guidance", async () => {
-    const t = setup("missing");
+  it("refuses a missing app with install guidance when first boot installs it", async () => {
+    const t = setup("missing", (m) => m.flatpak === "tv.plex.PlexHTPC");
     expect(await t.runner.launch("plex")).toEqual({ ok: false, reason: "missing" });
     expect(t.events).toContainEqual({ type: "toast", message: "Plex isn't installed yet. It will install automatically when the box is online." });
+  });
+
+  it("a missing app that first boot won't install only says it isn't installed", async () => {
+    const t = setup("missing", () => false);
+    expect(await t.runner.launch("plex")).toEqual({ ok: false, reason: "missing" });
+    expect(t.events).toContainEqual({ type: "toast", message: "Plex isn't installed." });
+    const u = setup("missing");
+    await u.runner.launch("plex");
+    expect(u.events).toContainEqual({ type: "toast", message: "Plex isn't installed." });
   });
 
   it("rejects unknown ids and treats home as a no-op", async () => {

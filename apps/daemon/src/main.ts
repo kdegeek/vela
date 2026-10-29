@@ -10,7 +10,7 @@ import { guideHandler, watchGamepads } from "./input/evdev.js";
 import { loadManifests } from "./manifests.js";
 import { assetsDir, buildServer, EventBus, PORT } from "./server.js";
 import { AppRunner, defaultSpawn } from "./session/appRunner.js";
-import { flatpakStatus } from "./session/flatpak.js";
+import { flatpakStatus, readFlatpakList } from "./session/flatpak.js";
 import { createPlayer } from "./playback/jellyfinReporter.js";
 import { startMpv } from "./playback/mpv.js";
 import { haInsideTemp, haTv } from "./devices/homeAssistant.js";
@@ -37,7 +37,9 @@ function haveSwaymsg(): boolean {
 const sway = process.env.VELA_SWAY === "noop" || !haveSwaymsg() ? createNoopSway() : createSway();
 
 const status = async (m: (typeof manifests)[number]) => (m.kind === "flatpak" ? flatpakStatus(m.flatpak!) : "ready" as const);
-const runner = new AppRunner({ sway, manifests, spawn: defaultSpawn, status, emit: bus.emit });
+const firstBootFlatpaks = readFlatpakList(process.env.VELA_FLATPAKS_LIST);
+const autoInstall = (m: (typeof manifests)[number]) => m.kind === "flatpak" && firstBootFlatpaks.has(m.flatpak!);
+const runner = new AppRunner({ sway, manifests, spawn: defaultSpawn, status, emit: bus.emit, autoInstall });
 
 let jellyfin: JellyfinClient | undefined;
 if (config.media.provider === "jellyfin" && config.media.jellyfin) {

@@ -43,6 +43,18 @@ describe("manifests", () => {
     expect(m.map((x) => x.id)).toEqual(["ok"]);
   });
 
+  it("web apps claim only their own Chrome app window, never a plain Chrome window", () => {
+    const m = loadManifests([builtin]);
+    const re = (id: string) => new RegExp(m.find((x) => x.id === id)!.windowAppId, "i");
+    expect(re("youtube").test("chrome-www.youtube.com__tv-Default")).toBe(true);
+    expect(re("crunchyroll").test("chrome-www.crunchyroll.com__-Default")).toBe(true);
+    for (const id of ["youtube", "crunchyroll"]) {
+      expect(re(id).test("google-chrome")).toBe(false);
+      expect(re(id).test("Google-chrome")).toBe(false);
+    }
+    expect(re("youtube").test("chrome-www.crunchyroll.com__-Default")).toBe(false);
+  });
+
   it("every built-in glyph file exists", () => {
     for (const m of loadManifests([builtin])) {
       expect(fs.existsSync(fileURLToPath(new URL(`../assets/glyphs/${m.glyph}`, import.meta.url)))).toBe(true);

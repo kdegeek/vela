@@ -69,6 +69,8 @@ command -v swaymsg greetd sway Xwayland mpv ir-ctl wtype flatpak node curl jq ve
 test -x /usr/libexec/vela/acceptance/hw-check.sh -a -r /usr/libexec/vela/acceptance/lib.sh
 /ctx/smoke-daemon.sh /usr/bin/node /usr/lib/vela/daemon /usr/share/vela/assets /usr/share/vela/apps /usr/lib/vela/launcher
 
+grep -qx 'title=Vela player' /usr/share/vela/mpv/mpv.conf
+
 # --- record what we built ---
 cat /etc/os-release
 rpm -q kernel-core t2fanrd t2linux-config t2linux-audio t2linux-scripts sway greetd chromium mpv ffmpeg intel-media-driver

@@ -13,7 +13,7 @@
     "--ozone-platform=wayland",
     "--enable-features=VaapiVideoDecodeLinuxGL,VaapiVideoDecoder"
   ],
-  "windowAppId": "^(google-chrome|chrome-www\\.youtube\\.com.*)$",
+  "windowAppId": "^chrome-www\\.youtube\\.com.*$",
   "feature": {
     "kind": "mock",
     "slug": "charge"
