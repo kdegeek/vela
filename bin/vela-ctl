@@ -53,7 +53,9 @@ case "$1" in
     shift 2
     # The scripts talk to the kiosk session, so they run as the vela user (from root over SSH, too).
     if [ "$(id -u)" = 0 ] && [ -z "$VELA_ACCEPTANCE_DIR" ]; then
-      exec runuser -u vela -- env HOME=/var/home/vela "$script" "$@"
+      vuid=$(id -u vela) || die "there is no vela user on this machine"
+      exec runuser -u vela -- env -u WAYLAND_DISPLAY -u SWAYSOCK -u DBUS_SESSION_BUS_ADDRESS \
+        HOME=/var/home/vela XDG_RUNTIME_DIR="/run/user/$vuid" "$script" "$@"
     fi
     exec "$script" "$@" ;;
   *) die "usage: vela-ctl home | launch <id> | device <id> <command> | volume up|down|mute | acceptance <name>" ;;

@@ -146,14 +146,17 @@ sleep 45  # the runner takes vm-after-crash.png now
 accept_dir=/var/home/vela
 run_hw_check() {
   rm -f "$accept_dir"/vela-report-*.tar.gz
-  { echo "################ hw-check"; timeout 200 setpriv --reuid="$uid" --regid="$(id -g vela)" --init-groups \
-      env HOME="$accept_dir" XDG_RUNTIME_DIR="$rt" DBUS_SESSION_BUS_ADDRESS="unix:path=$rt/bus" \
+  # The documented way: root runs vela-ctl, which hands over to vela. A clean environment like an
+  # SSH login, so no session variables are exported here.
+  { echo "################ hw-check"; timeout 200 env -i PATH=/usr/sbin:/usr/bin HOME=/root \
       /usr/bin/vela-ctl acceptance hw-check; echo "hw-check exit status $?"; } > "$out/hw-check.txt" 2>&1
   tail -n 1 "$out/hw-check.txt" | grep -q 'exit status [01]$'
 }
+hw_kiosk_check() { grep -q '^PASS kiosk window on workspace home' "$out/hw-check.txt"; }
 hw_bundle() { tar tzf "$accept_dir"/vela-report-*.tar.gz | grep -q 'hw-check.txt'; }
 check acceptance_hw_check_runs run_hw_check
 check acceptance_hw_check_bundle hw_bundle
+check acceptance_hw_check_kiosk_window hw_kiosk_check
 { echo "################ hw-check output"; cat "$out/hw-check.txt"; } >> "$report"
 
 # --- 3. the report ---------------------------------------------------------------------------------

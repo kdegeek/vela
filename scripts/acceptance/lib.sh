@@ -6,7 +6,7 @@
 #   pass <name> / fail <name> <why>   record a result the script decided itself
 #   warn <name> <message>   print "WARN name: message" (optional hardware; not a failure)
 #   info <message>          print "INFO message"
-#   confirm <name> <prompt> ask the owner y/n; PASS on y, FAIL otherwise (VELA_CONFIRM=y|n answers for tests)
+#   confirm <name> <prompt> ask the owner y/n; PASS on y, FAIL otherwise; WARN without a TTY (VELA_CONFIRM=y|n answers for tests)
 #   summary                 print the totals; returns 1 if anything failed
 #   report_dir              print (and create) the directory the scripts write their output to
 #   begin <script>          copy this script's output into report_dir/<script>.txt as well
@@ -24,7 +24,16 @@ info() { printf 'INFO %s\n' "$*"; }
 # Sets XDG_RUNTIME_DIR, WAYLAND_DISPLAY and SWAYSOCK from /run/user/<uid> when the caller (an SSH
 # shell, say) doesn't have them, so swaymsg, grim and wtype reach the running kiosk session.
 locate_session() {
-  : "${XDG_RUNTIME_DIR:=/run/user/$(id -u)}"
+  local own
+  own="/run/user/$(id -u)"
+  # A root shell over SSH (or su) carries /run/user/0 into a vela process: use our own runtime dir
+  # and drop the session variables that pointed into the other one.
+  case "${XDG_RUNTIME_DIR:-}" in
+    /run/user/*) if [ "$XDG_RUNTIME_DIR" != "$own" ]; then
+        XDG_RUNTIME_DIR=$own; unset WAYLAND_DISPLAY SWAYSOCK DBUS_SESSION_BUS_ADDRESS
+      fi ;;
+  esac
+  : "${XDG_RUNTIME_DIR:=$own}"
   export XDG_RUNTIME_DIR
   local f best=
   if [ -z "${WAYLAND_DISPLAY:-}" ]; then
@@ -92,6 +101,10 @@ warn() {
 # confirm <name> <prompt>: y counts as PASS, anything else (or no answer) as FAIL.
 confirm() {
   local name=$1 prompt=$2 ans=${VELA_CONFIRM:-}
+  if [ -z "$ans" ] && [ ! -t 0 ]; then
+    warn "$name" "skipped (no TTY; run over ssh -t or set VELA_CONFIRM)"
+    return 0
+  fi
   if [ -z "$ans" ]; then
     printf '%s [y/n] ' "$prompt" >&2
     read -r ans || ans=n
@@ -123,14 +136,14 @@ screenshot() {
 
 # --- the bundle ----------------------------------------------------------------------------------
 
-# Masks api keys and tokens in a text file, in place.
+# Masks credentials in a text file, in place. Case-insensitive by hand (BSD sed has no I flag).
+# Order matters: the Authorization rule blanks the rest of its line first (over-redacting is fine).
 redact_file() {
   local f=$1
   sed -E \
-    -e 's/([Aa]pi_?[Kk]ey=)[^&[:space:]"]+/\1[redacted]/g' \
-    -e 's/([Tt]oken=)[^&[:space:]"]+/\1[redacted]/g' \
-    -e 's/(Authorization: *(Bearer|MediaBrowser)?) *[^[:space:]]+/\1 [redacted]/g' \
-    -e 's/("[A-Za-z]*([Tt]oken|[Aa]pi[Kk]ey)": *)"[^"]*"/\1"[redacted]"/g' \
+    -e 's/([Aa][Uu][Tt][Hh][Oo][Rr][Ii][Zz][Aa][Tt][Ii][Oo][Nn]["'"'"']?[[:space:]]*[=:][[:space:]]*).*/\1[redacted]/g' \
+    -e 's/(([Aa][Pp][Ii][_-]?[Kk][Ee][Yy]|[Tt][Oo][Kk][Ee][Nn])["'"'"']?[[:space:]]*[=:][[:space:]]*)([Bb][Ee][Aa][Rr][Ee][Rr][[:space:]]+)?("[^"]*"|'"'"'[^'"'"']*'"'"'|[^&[:space:],;"'"'"']+)/\1[redacted]/g' \
+    -e 's/([Bb][Ee][Aa][Rr][Ee][Rr])[[:space:]]+[A-Za-z0-9._~+\/=-]+/\1 [redacted]/g' \
     "$f" > "$f.redacted" && mv "$f.redacted" "$f"
 }
 

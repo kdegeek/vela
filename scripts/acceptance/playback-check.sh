@@ -18,7 +18,9 @@ if [ -z "$file" ]; then
   if [ ! -s "$file" ]; then
     if command -v ffmpeg >/dev/null 2>&1; then
       info "generating a 20 s 4K HEVC 10-bit test clip at $file (takes a minute or two)"
-      ffmpeg -loglevel error -y -f lavfi -i testsrc2=s=3840x2160:r=60 -t 20 -c:v libx265 -pix_fmt yuv420p10le "$file"
+      # Write to a temp name first so a truncated clip is never reused.
+      ffmpeg -loglevel error -y -f lavfi -i testsrc2=s=3840x2160:r=60 -t 20 -c:v libx265 -pix_fmt yuv420p10le -f matroska "$file.part" \
+        && mv "$file.part" "$file" || rm -f "$file.part"
     fi
   fi
 fi

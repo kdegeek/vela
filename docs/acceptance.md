@@ -10,7 +10,7 @@ keys, play video and turn the TV on and off.
 
 ## How to run them
 
-Log in to the box over SSH (`ssh root@<box address>`) with the TV on and Vela's home screen
+Log in to the box over SSH (`ssh -t root@<box address>`) with the TV on and Vela's home screen
 showing, then run each script by name:
 
 ```
@@ -18,7 +18,8 @@ vela-ctl acceptance hw-check
 ```
 
 The scripts run as the `vela` user inside the kiosk session, even when you start them as root.
-They ask `y/n` questions where only you can see the result (the TV, the picture, the sound).
+Use `ssh -t` (a terminal is needed for the questions; without one they are skipped with a
+`WARN`). They ask `y/n` questions where only you can see the result (the TV, the picture, the sound).
 Each script ends with `Report bundle: /var/home/vela/vela-report-<date>-<time>.tar.gz`. A bundle
 holds the output of every script run so far, so the last one you make is the one to send.
 
@@ -105,6 +106,6 @@ scp root@<box address>:/var/home/vela/vela-report-*.tar.gz .
 
 It holds each script's output, this boot's system and user journal (the last 3,000 lines each),
 the Sway outputs and window tree, `vainfo`, `/usr/lib/os-release`, and screenshots. API keys and
-tokens in the logs are replaced with `[redacted]`, and `secrets.json` is never included. Also send
+tokens in the logs are replaced with `[redacted]`, and `secrets.json` is never included. Screenshots are not redacted: look at them before you send the bundle. Also send
 your answers to the y/n questions if you noticed anything the script did not ask about (a flicker,
 a sound glitch, a slow screen).
