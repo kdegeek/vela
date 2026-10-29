@@ -50,7 +50,9 @@ jobs:
           short="${GITHUB_SHA::7}"
           echo "image=ghcr.io/$owner/vela" >> "$GITHUB_OUTPUT"
           echo "sha_tag=sha-$short" >> "$GITHUB_OUTPUT"
-          echo "tags=latest sha-$short" >> "$GITHUB_OUTPUT"
+          # Only the immutable sha tag is pushed here; :latest and :stable move in the promote job,
+          # after the VM smoke test passed on this exact image.
+          echo "tags=sha-$short" >> "$GITHUB_OUTPUT"
           # Only main and version tags publish; everything else builds and lints.
           if [ "$GITHUB_EVENT_NAME" != pull_request ] && { [ "$GITHUB_REF" = refs/heads/main ] || [[ "$GITHUB_REF" == refs/tags/* ]]; }; then
             echo "push=true" >> "$GITHUB_OUTPUT"
@@ -164,6 +166,30 @@ jobs:
           path: vm-artifacts/
           if-no-files-found: warn
 
+  # Moves the channel tags to the image that just passed the VM smoke test: :latest on main and
+  # version tags, and :stable (what installed boxes follow) on version tags only.
+  promote:
+    needs: [build, vm-smoke]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Tag the smoke-tested image
+        env:
+          IMAGE: ${{ needs.build.outputs.image }}
+          SHA_TAG: ${{ needs.build.outputs.sha_tag }}
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$REGISTRY_PASSWORD" | skopeo login ghcr.io -u "$REGISTRY_USER" --password-stdin
+          channels=latest
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then channels="latest stable"; fi
+          for c in $channels; do
+            skopeo copy --all --preserve-digests "docker://$IMAGE:$SHA_TAG" "docker://$IMAGE:$c"
+            echo "$IMAGE:$c -> $SHA_TAG"
+          done
+          skopeo inspect --format '{{.Digest}}' "docker://$IMAGE:$SHA_TAG"
+
   # The wipe installer (os/installer/), on version tags and manual runs, once the VM smoke test passed.
   # On tags it is also attached to the tag's GitHub release (artifacts expire).
   installer:
@@ -178,12 +204,13 @@ jobs:
         with:
           name: vela-image
 
-      - name: Load the image as ghcr.io/<owner>/vela:latest
+      - name: Load the image as ghcr.io/<owner>/vela:stable
         run: |
           zstd -dc vela-image.tar.zst | sudo podman load
           rm vela-image.tar.zst
-          # bootc-image-builder makes the installed system follow the name it was built from.
-          sudo podman tag "${{ needs.build.outputs.image }}:${{ needs.build.outputs.sha_tag }}" "${{ needs.build.outputs.image }}:latest"
+          # bootc-image-builder makes the installed system follow the name it was built from:
+          # installed boxes track :stable, which only moves on version tags (promote job).
+          sudo podman tag "${{ needs.build.outputs.image }}:${{ needs.build.outputs.sha_tag }}" "${{ needs.build.outputs.image }}:stable"
 
       - name: Render the installer config
         run: |
@@ -208,7 +235,7 @@ jobs:
             -v "$out:/output" \
             -v /var/lib/containers/storage:/var/lib/containers/storage \
             quay.io/centos-bootc/bootc-image-builder@sha256:b858892139e0779d48869a4dd8cbbc4e257da49f5a4b502824a55d221ed65a55 \
-            --type anaconda-iso --rootfs xfs "${{ needs.build.outputs.image }}:latest"
+            --type anaconda-iso --rootfs xfs "${{ needs.build.outputs.image }}:stable"
           sudo mv "$out/bootiso/install.iso" vela-installer.iso
           sudo chown "$(id -u):$(id -g)" vela-installer.iso
           ls -l vela-installer.iso

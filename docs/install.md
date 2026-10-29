@@ -104,10 +104,11 @@ Copy these to the top level of the VELA stick (next to the `vela-firmware` folde
   }
   ```
 
-- **`authorized_keys`** (recommended). The box has no terminal, so the only way to change
-  `vela.toml` or `secrets.json` later is over SSH. Put your SSH public key (for example the
-  contents of `~/.ssh/id_ed25519.pub` on your computer) in a file called `authorized_keys`. You
-  can then log in with `ssh root@<box address>`.
+- **`authorized_keys`** (required). The box has no terminal, so the only way to change
+  `vela.toml` or `secrets.json` later, or to update by hand, is over SSH. Put your SSH public key
+  (for example the contents of `~/.ssh/id_ed25519.pub` on your computer) in a file called
+  `authorized_keys`. You can then log in with `ssh root@<box address>`. Without it the installer
+  still runs, but it logs a warning and you will have to install again to add a key.
 
 ### 6. Start the installer
 
@@ -160,6 +161,22 @@ Home Assistant runs on the box and controls the TVs.
    - restart Vela's background service: `systemctl --user -M vela@ restart vela-daemon`, or
      just restart the box.
 
+## Updating and rolling back
+
+Vela updates itself the bootc way. Every night between 3 and 4 a.m. the box checks GitHub for a
+newer **stable** Vela (the `ghcr.io/kdegeek/vela:stable` image, which only changes when a new
+version is released and has passed the automatic boot test). If there is one, it downloads and
+stages it, but never restarts on its own: the update takes effect the next time the box restarts.
+Your settings (`/etc/vela`) and everything in `/var` (apps, Home Assistant, secrets) are kept.
+
+Over SSH (`ssh root@<box address>`):
+
+- **See what's installed and staged:** `bootc status`.
+- **Update now:** `bootc upgrade --apply`. It downloads the newest stable Vela and restarts into it.
+  Without `--apply` it only stages the update for the next restart.
+- **Go back to the previous version:** `bootc rollback`, then `systemctl reboot`. The version you
+  were on before the last update starts again; run `bootc rollback` once more to undo that.
+
 ## Things to know
 
 - **Erasing is permanent.** Going back to macOS means reinstalling it from Internet Recovery
@@ -172,4 +189,8 @@ Home Assistant runs on the box and controls the TVs.
   blaster instead (`powerOnFallback` in `vela.toml`).
 - **Wi-Fi needs the firmware from step 2.** If you skipped it, use Ethernet; the installer notes
   what it copied in `/var/lib/vela/install.log`.
+- **The clock** follows the time zone the installer found from your network. If it's wrong, set it
+  over SSH, for example `timedatectl set-timezone America/Chicago` (`timedatectl
+  list-timezones` lists the names), then restart the box (`systemctl reboot`) so the home
+  screen's clock picks it up.
 - **The remote** is set up separately; see [remote.md](remote.md).

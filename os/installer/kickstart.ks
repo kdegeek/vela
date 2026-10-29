@@ -3,8 +3,9 @@
 #
 # bootc-image-builder adds the payload itself: an `ostreecontainer` command that installs the
 # image copied onto the ISO (/run/install/repo/container), and a %post that runs
-# `bootc switch --mutate-in-place --transport registry ghcr.io/kdegeek/vela:latest`, so updates
-# come from GHCR. Do not add ostreecontainer/ostreesetup/liveimg here.
+# `bootc switch --mutate-in-place --transport registry ghcr.io/kdegeek/vela:stable` (image.yml
+# builds the ISO from that name), so updates come from GHCR's :stable tag, which only moves on
+# version tags after the VM smoke test passed. Do not add ostreecontainer/ostreesetup/liveimg here.
 # Source: osbuild/image-builder pkg/manifest/anaconda_installer_iso_tree.go,
 # bootcInstallerKickstartStages().
 
@@ -24,8 +25,8 @@ keyboard us
 rootpw --lock
 
 # Copy the owner's files into the installed system: Broadcom Wi-Fi/Bluetooth firmware, vela.toml,
-# secrets.json, and an optional authorized_keys (SSH public keys for root, the only way to edit
-# vela.toml/secrets.json later: the box has no terminal).
+# secrets.json, and authorized_keys (SSH public keys for root, required: the only way to edit
+# vela.toml/secrets.json later, as the box has no terminal; a loud warning is logged without it).
 #
 # --nochroot, because the USB sticks are only visible from the installer environment. Paths:
 # - Install media: Anaconda mounts the ISO at /run/install/repo (the ostreecontainer URL
@@ -114,6 +115,19 @@ else
     install -m 0600 "$src/authorized_keys" "$var/roothome/.ssh/authorized_keys" && note "installed root's SSH authorized_keys"
   fi
   [ "$src" = "$scan" ] && umount "$scan"
+fi
+
+# Without root's SSH key there is no way to edit vela.toml or secrets.json later (no terminal on
+# the box). Say so loudly: in the %post log, /var/lib/vela/install.log, and on the screen.
+if [ ! -s "$var/roothome/.ssh/authorized_keys" ]; then
+  for line in "########################################################################" \
+              "WARNING: no authorized_keys file was found on the VELA stick." \
+              "WARNING: SSH login is impossible, so vela.toml and secrets.json can't be edited later." \
+              "WARNING: Reinstall with authorized_keys on the stick (docs/install.md, step 5)." \
+              "########################################################################"; do
+    note "$line"
+    echo "$line" > /dev/console 2>/dev/null || true
+  done
 fi
 
 # SELinux labels for what was just written (the installer copies with its own context).

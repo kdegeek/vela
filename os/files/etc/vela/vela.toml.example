@@ -23,7 +23,7 @@ provider = "mock"
 # that owner and mode at every boot if the file exists.
 
 # [homeAssistant]
-# url = "http://homeassistant.local:8123"
+# url = "http://127.0.0.1:8123"   # Home Assistant runs on the box itself
 # insideTempEntity = "sensor.living_room_temperature"
 
 # Directories scanned for app manifests; later entries override earlier ones by id.

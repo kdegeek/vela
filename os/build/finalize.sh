@@ -24,6 +24,23 @@ grep -qx 'StartLimitIntervalSec=0' /usr/lib/systemd/user/vela-kiosk.service
 # Session audio: the PipeWire user units (normally enabled by package presets; make sure).
 systemctl --global enable pipewire.socket pipewire-pulse.socket wireplumber.service
 
+# SSH is the only way to edit vela.toml and secrets.json later (docs/install.md): always on.
+systemctl enable sshd.service
+systemctl is-enabled sshd.service
+
+# Automatic updates: fedora-bootc's timer runs `bootc upgrade --apply`, which reboots the TV box
+# whenever an update lands. Vela stages only, at night (drop-ins in os/files), and the image
+# boots at the next restart. Print what the base image shipped, for the build log.
+echo "bootc-fetch-apply-updates.timer as shipped: $(systemctl is-enabled bootc-fetch-apply-updates.timer 2>&1 || true)"
+cat /usr/lib/systemd/system/bootc-fetch-apply-updates.service /usr/lib/systemd/system/bootc-fetch-apply-updates.timer
+systemctl enable bootc-fetch-apply-updates.timer
+systemctl is-enabled bootc-fetch-apply-updates.timer
+upd=/usr/lib/systemd/system/bootc-fetch-apply-updates.service.d/10-vela.conf
+grep -qx 'ExecStart=' "$upd"
+grep -qx 'ExecStart=/usr/bin/bootc upgrade --quiet' "$upd"
+if grep -q -- '--apply' "$upd"; then echo "$upd must not apply updates" >&2; exit 1; fi
+grep -qx 'OnCalendar=\*-\*-\* 03:00' /usr/lib/systemd/system/bootc-fetch-apply-updates.timer.d/10-vela.conf
+
 # Home Assistant quadlet must translate into a unit.
 /usr/lib/systemd/system-generators/podman-system-generator --dryrun 2>&1 | grep -A3 '^---homeassistant.service---'
 
