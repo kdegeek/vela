@@ -209,5 +209,14 @@ describe("AppRunner", () => {
     t.open({ id: 9, appId: "mpv" });
     await flush();
     expect(t.ops).toEqual(["move:9:app-player"]);
+    expect(t.events).toEqual([]);
+  });
+
+  it("mpv window emits app-state running for player", async () => {
+    const t = setup();
+    t.runner.expectPlayer();
+    t.open({ id: 9, appId: "mpv" });
+    await flush();
+    expect(t.events).toEqual([{ type: "app-state", id: "player", status: "running" }]);
   });
 });

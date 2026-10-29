@@ -163,7 +163,7 @@
       (d) => (devices = d),
       (e: Error) => {
         devices = [];
-        showToast(e.message);
+        showToast(e instanceof TypeError ? UNREACHABLE : e.message);
       },
     );
   }
@@ -239,8 +239,10 @@
   async function runPerf() {
     if (sampling) return;
     sampling = true;
+    // The mode this run was asked under; a home refresh mid-run must not change the verdict's basis.
+    const cfg = effectsCfg;
     try {
-      const measured = effectsCfg === "auto" ? "full" : effectsCfg;
+      const measured = cfg === "auto" ? "full" : cfg;
       applyEffects(measured);
       const intervals = await sampleFrames(PERF_SAMPLE_MS);
       const report = {
@@ -249,10 +251,11 @@
         width: Math.round(innerWidth * devicePixelRatio),
         height: Math.round(innerHeight * devicePixelRatio),
       };
-      await api.postPerf(report).catch(() => {});
-      const decided = decideEffects(effectsCfg, report);
-      if (effectsCfg === "auto") localStorage.setItem(EFFECTS_KEY, decided);
-      applyEffects(decided);
+      await api.postPerf(report).catch((e: unknown) => console.warn("vela: perf report not posted:", (e as Error).message));
+      const decided = decideEffects(cfg, report);
+      if (cfg === "auto") localStorage.setItem(EFFECTS_KEY, decided);
+      // If the config changed while sampling, the new mode wins.
+      applyEffects(cfg === effectsCfg ? decided : resolveEffects(effectsCfg));
     } finally {
       sampling = false;
     }

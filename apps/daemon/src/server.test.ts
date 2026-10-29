@@ -239,18 +239,43 @@ describe("server", () => {
       expect((await app.inject({ method: "GET", url: "/api/perf", headers: H })).json().report).toBeNull();
     });
 
-    it("GET ?arm=1 arms, clears the stored report and emits perf-arm; the next POST disarms", async () => {
+    const arm = (app: ReturnType<typeof buildServer>, headers: Record<string, string> = { "content-type": "application/json" }) =>
+      app.inject({ method: "POST", url: "/api/perf/arm", payload: "{}", headers: { ...H, ...headers } });
+
+    it("GET /api/perf?arm=1 does not arm", async () => {
+      const s = services();
+      const events: unknown[] = [];
+      s.bus.subscribe((e) => events.push(e));
+      const app = buildServer(s);
+      const res = await app.inject({ method: "GET", url: "/api/perf?arm=1", headers: H });
+      expect(res.json()).toEqual({ report: null, armed: false });
+      expect(events).toEqual([]);
+    });
+
+    it("POST /api/perf/arm arms and emits perf-arm, clearing the report; the next report disarms", async () => {
       const s = services();
       const events: unknown[] = [];
       s.bus.subscribe((e) => events.push(e));
       const app = buildServer(s);
       await postPerf(app, good);
-      const armed = await app.inject({ method: "GET", url: "/api/perf?arm=1", headers: H });
+      const armed = await arm(app);
+      expect(armed.statusCode).toBe(200);
       expect(armed.json()).toEqual({ report: null, armed: true });
       expect(events).toEqual([{ type: "perf-arm" }]);
       expect((await app.inject({ method: "GET", url: "/api/perf", headers: H })).json()).toEqual({ report: null, armed: true });
       await postPerf(app, good);
       expect((await app.inject({ method: "GET", url: "/api/perf", headers: H })).json()).toEqual({ report: good, armed: false });
+    });
+
+    it("POST /api/perf/arm with form content-type → 415", async () => {
+      const s = services();
+      const events: unknown[] = [];
+      s.bus.subscribe((e) => events.push(e));
+      const app = buildServer(s);
+      const res = await arm(app, { "content-type": "application/x-www-form-urlencoded" });
+      expect(res.statusCode).toBe(415);
+      expect(events).toEqual([]);
+      expect((await app.inject({ method: "GET", url: "/api/perf", headers: H })).json().armed).toBe(false);
     });
   });
 });

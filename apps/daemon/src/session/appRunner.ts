@@ -116,6 +116,7 @@ export class AppRunner {
         this.playerPending = false;
         await this.deps.sway.showWorkspace("app-player");
         this.cur = "player";
+        this.deps.emit({ type: "app-state", id: "player", status: "running" });
       }
       return;
     }

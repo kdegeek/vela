@@ -148,13 +148,18 @@
 </aside>
 
 <style>
+  /* Darkest at the sheet's edge (inline-end), easing off toward inline-start. */
   .veil {
+    --toward-start: to left;
     position: absolute;
     inset: 0;
     z-index: 6;
-    background: linear-gradient(to left, color-mix(in oklch, var(--abyss) 70%, transparent), color-mix(in oklch, var(--abyss) 35%, transparent));
+    background: linear-gradient(var(--toward-start), color-mix(in oklch, var(--abyss) 70%, transparent), color-mix(in oklch, var(--abyss) 35%, transparent));
     opacity: 0;
     pointer-events: none;
+  }
+  .veil:dir(rtl) {
+    --toward-start: to right;
   }
   .veil.is-open {
     opacity: 1;
@@ -177,9 +182,14 @@
       color-mix(in oklch, var(--abyss) 58%, transparent);
     backdrop-filter: blur(2.6rem) saturate(1.5);
     border-inline-start: 0.0625rem solid color-mix(in oklch, var(--starlight) 14%, transparent);
-    box-shadow: -2rem 0 6rem -1rem var(--shadow);
-    translate: 100% 0;
+    box-shadow: calc(-2rem * var(--inline-sign)) 0 6rem -1rem var(--shadow);
+    /* Off the inline-end edge: right in LTR, left in RTL. */
+    --inline-sign: 1;
+    translate: calc(100% * var(--inline-sign)) 0;
     visibility: hidden;
+  }
+  .sheet:dir(rtl) {
+    --inline-sign: -1;
   }
   .sheet.is-open {
     translate: 0 0;

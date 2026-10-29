@@ -75,7 +75,7 @@ export type VelaEvent =
   | { type: "app-state"; id: string; status: AppStatus }
   | { type: "home-state-changed" }
   | { type: "toast"; message: string }
-  /** GET /api/perf?arm=1 was called: the launcher samples frame timing and posts a PerfReport. */
+  /** POST /api/perf/arm was called: the launcher samples frame timing and posts a PerfReport. */
   | { type: "perf-arm" };
 
 export const API = {
@@ -88,6 +88,7 @@ export const API = {
   deviceCommand: "/api/devices/:id/:command",
   events: "/api/events",
   perf: "/api/perf",
+  perfArm: "/api/perf/arm",
 } as const;
 
 export function isMediaKey(key: string): key is `${"jellyfin" | "mock"}:${string}` {

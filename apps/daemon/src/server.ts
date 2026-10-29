@@ -165,13 +165,13 @@ export function buildServer(s: Services): FastifyInstance {
     return reply.code(204).send();
   });
 
-  // Frame timing from the launcher. Arming asks the launcher for a fresh 30 s sample.
+  // Frame timing from the launcher. Arming (a POST, so the JSON and Origin guard applies) asks
+  // the launcher for a fresh 30 s sample; GET only reads.
   let perf: { report: PerfReport | null; armed: boolean } = { report: null, armed: false };
-  app.get<{ Querystring: { arm?: string } }>(API.perf, async (req) => {
-    if (req.query.arm === "1") {
-      perf = { report: null, armed: true };
-      s.bus.emit({ type: "perf-arm" });
-    }
+  app.get(API.perf, async () => perf);
+  app.post(API.perfArm, async () => {
+    perf = { report: null, armed: true };
+    s.bus.emit({ type: "perf-arm" });
     return perf;
   });
   app.post(API.perf, async (req, reply) => {
