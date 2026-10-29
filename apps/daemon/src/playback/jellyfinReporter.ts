@@ -56,18 +56,26 @@ export async function playJellyfin(itemId: string, deps: PlayDeps): Promise<void
   );
   const failed = ipcFailed || (!sawTime && now() - startedAt < MIN_PLAY_MS);
   await jf.reportStopped(itemId, ticks(lastSec)).catch(quiet("stopped"));
+  // Continue watching changed; the launcher refetches now rather than at the next poll.
+  deps.emit?.({ type: "home-state-changed" });
   if (failed) deps.emit?.({ type: "toast", message: START_FAILED });
   await deps.goHome();
 }
 
-/** One playback at a time: a new request quits the current one (which reports stopped) first. Plays are serialized synchronously. */
-export function createPlayer(deps: Omit<PlayDeps, "onSession"> & { runner: Pick<AppRunner, "expectPlayer"> }): (itemId: string) => Promise<void> {
+/**
+ * One playback at a time: a new request quits the current one (which reports stopped) first. Plays are serialized synchronously.
+ * Registers a stop with the runner, so going home (remote Home, vela-ctl home) quits the movie too.
+ */
+export function createPlayer(deps: Omit<PlayDeps, "onSession"> & { runner: Pick<AppRunner, "expectPlayer" | "setPlayerStop"> }): (itemId: string) => Promise<void> {
   let current: { quit: () => void; done: Promise<void> } | null = null;
+  deps.runner.setPlayerStop(() => current?.quit());
   return (itemId) => {
     const prev = current;
     let session: MpvSession | undefined;
     let quitRequested = false;
-    const done = (async () => {
+    const entry: { quit: () => void; done: Promise<void> } = { quit: () => ((quitRequested = true), session?.quit()), done: Promise.resolve() };
+    current = entry;
+    entry.done = (async () => {
       if (prev) {
         prev.quit();
         await prev.done;
@@ -76,15 +84,15 @@ export function createPlayer(deps: Omit<PlayDeps, "onSession"> & { runner: Pick<
       deps.runner.expectPlayer();
       await playJellyfin(itemId, {
         ...deps,
+        // A superseded play leaves the screen to the next one; going home here would stop it.
+        goHome: () => (current === entry ? deps.goHome() : Promise.resolve()),
         onSession: (s) => {
           session = s;
           if (quitRequested) s.quit(); // superseded while still looking up the resume position
         },
       });
     })().catch(quiet("playback"));
-    const entry = { quit: () => ((quitRequested = true), session?.quit()), done };
-    current = entry;
-    void done.then(() => void (current === entry && (current = null)));
+    void entry.done.then(() => void (current === entry && (current = null)));
     return Promise.resolve();
   };
 }

@@ -30,6 +30,8 @@ export class AppRunner {
   private timedOut = new Set<string>();
   /** Set by expectPlayer(); the next mpv window is shown, not just placed. */
   private playerPending = false;
+  /** Quits the movie; registered by createPlayer. */
+  private stopPlayer: () => void = () => {};
 
   constructor(private deps: AppRunnerDeps) {
     deps.sway.onWindowNew((w) => void this.onNew(w).catch(this.logErr));
@@ -102,8 +104,16 @@ export class AppRunner {
     this.playerPending = true;
   }
 
+  setPlayerStop(fn: () => void): void {
+    this.stopPlayer = fn;
+  }
+
+  /** Shows home. Stops playback if the player is showing or starting, and cancels pending launches so their window doesn't take over. */
   async goHome(): Promise<void> {
+    if (this.cur === "player" || this.playerPending) this.stopPlayer();
     this.playerPending = false;
+    for (const t of this.pending.values()) clearTimeout(t);
+    this.pending.clear();
     await this.deps.sway.showWorkspace("home");
     this.cur = "home";
     this.deps.emit({ type: "home" });

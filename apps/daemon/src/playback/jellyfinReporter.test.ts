@@ -62,7 +62,22 @@ describe("playJellyfin", () => {
     await s.done;
     expect(s.jf.reportStopped).toHaveBeenCalledWith("i1", 420_000_000);
     expect(s.goHome).toHaveBeenCalledTimes(1);
-    expect(s.events).toEqual([]);
+    expect(s.events).toEqual([{ type: "home-state-changed" }]);
+  });
+
+  it("announces fresh home state only after the stopped report", async () => {
+    const s = setup();
+    await s.ready();
+    let stoppedDone = false;
+    s.jf.reportStopped.mockImplementation(async () => void (await new Promise<void>((r) => setImmediate(r)), (stoppedDone = true)));
+    const seen: boolean[] = [];
+    const orig = s.events.push.bind(s.events);
+    s.events.push = (...e) => (e.forEach((x) => x.type === "home-state-changed" && seen.push(stoppedDone)), orig(...e));
+    s.time(5);
+    s.setNow(60_000);
+    s.exit(42);
+    await s.done;
+    expect(seen).toEqual([true]);
   });
 
   it("toasts when mpv exits quickly without playing", async () => {
@@ -71,7 +86,7 @@ describe("playJellyfin", () => {
     s.setNow(500);
     s.exit(0);
     await s.done;
-    expect(s.events).toEqual([{ type: "toast", message: START_FAILED }]);
+    expect(s.events).toContainEqual({ type: "toast", message: START_FAILED });
     expect(s.goHome).toHaveBeenCalled();
   });
 
@@ -82,7 +97,7 @@ describe("playJellyfin", () => {
     s.setNow(500);
     s.exit(0);
     await s.done;
-    expect(s.events).toEqual([{ type: "toast", message: START_FAILED }]);
+    expect(s.events).toContainEqual({ type: "toast", message: START_FAILED });
   });
 
   it("toasts and goes home when IPC never connected, even after 2 s", async () => {
@@ -91,7 +106,7 @@ describe("playJellyfin", () => {
     s.setNow(5500);
     s.exit(0, true);
     await s.done;
-    expect(s.events).toEqual([{ type: "toast", message: START_FAILED }]);
+    expect(s.events).toContainEqual({ type: "toast", message: START_FAILED });
     expect(s.goHome).toHaveBeenCalled();
   });
 });
@@ -115,11 +130,39 @@ describe("createPlayer", () => {
     });
     const jf = { resume: async () => [], streamUrl: (id: string) => `u/${id}`, reportStart: async () => {}, reportProgress: async () => {}, reportStopped: async () => {} };
     const expectPlayer = vi.fn();
-    const play = createPlayer({ jf: jf as unknown as JellyfinClient, start: start as never, goHome: async () => {}, runner: { expectPlayer } });
+    // Like the real runner while the player shows: going home stops whatever is current.
+    let stop: () => void = () => {};
+    const goHome = vi.fn(async () => stop());
+    const play = createPlayer({ jf: jf as unknown as JellyfinClient, start: start as never, goHome, runner: { expectPlayer, setPlayerStop: (fn) => void (stop = fn) } });
     await Promise.all([play("a"), play("b")]);
     for (let i = 0; i < 20; i++) await new Promise<void>((r) => setImmediate(r));
     expect(start).toHaveBeenCalledTimes(2);
     expect(start.mock.calls.map((c) => (c as unknown as string[])[0])).toEqual(["u/a", "u/b"]);
     expect(maxActive).toBe(1);
+    // The superseded play does not go home in between (that would stop the next one).
+    expect(goHome).not.toHaveBeenCalled();
+    exits[1]!(5, false);
+    for (let i = 0; i < 5; i++) await new Promise<void>((r) => setImmediate(r));
+    expect(goHome).toHaveBeenCalledTimes(1);
+  });
+
+  it("registers a stop with the runner that quits the live session, which reports stopped", async () => {
+    let exit: (l: number, f: boolean) => void = () => {};
+    const session: MpvSession = { onTime: () => {}, onExit: (cb) => (exit = cb), quit: vi.fn(() => queueMicrotask(() => exit(33, false))) };
+    const start = vi.fn(() => session);
+    const reportStopped = vi.fn(async () => {});
+    const jf = { resume: async () => [], streamUrl: (id: string) => `u/${id}`, reportStart: async () => {}, reportProgress: async () => {}, reportStopped };
+    let stop: () => void = () => {};
+    const runner = { expectPlayer: vi.fn(), setPlayerStop: (fn: () => void) => void (stop = fn) };
+    const play = createPlayer({ jf: jf as unknown as JellyfinClient, start: start as never, goHome: async () => {}, runner });
+    stop(); // nothing playing: harmless
+    await play("a");
+    for (let i = 0; i < 5; i++) await new Promise<void>((r) => setImmediate(r));
+    expect(start).toHaveBeenCalledTimes(1);
+    stop();
+    for (let i = 0; i < 5; i++) await new Promise<void>((r) => setImmediate(r));
+    expect(session.quit).toHaveBeenCalledTimes(1);
+    expect(reportStopped).toHaveBeenCalledWith("a", 330_000_000);
   });
 });
+

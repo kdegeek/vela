@@ -300,8 +300,7 @@
       } else {
         const card = row.items[c];
         if (!card) return;
-        // The daemon emits no app-state for the player window, so this screen leaves on
-        // {type: "home"} or at the cap.
+        // Leaves when the mpv window shows (app-state "player" running), on {type: "home"}, or at the cap.
         startLaunch("player", {
           line: `${card.progress != null ? "Resuming" : "Playing"} ${card.title}`,
           detail: card.remainingMin != null ? `${card.remainingMin} min left` : undefined,

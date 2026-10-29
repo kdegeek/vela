@@ -219,4 +219,53 @@ describe("AppRunner", () => {
     await flush();
     expect(t.events).toEqual([{ type: "app-state", id: "player", status: "running" }]);
   });
+
+  it("goHome during a pending launch cancels the switch and the timeout toast", async () => {
+    const t = setup();
+    await t.runner.launch("plex");
+    await t.runner.goHome();
+    t.ops.length = 0;
+    t.events.length = 0;
+    t.open({ id: 6, appId: "plex" });
+    await flush();
+    expect(t.ops).toEqual(["move:6:app-plex"]);
+    expect(t.runner.current()).toBe("home");
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(t.events.filter((e) => e.type === "toast")).toEqual([]);
+  });
+
+  it("goHome while the player is showing stops playback", async () => {
+    const t = setup();
+    const stop = vi.fn();
+    t.runner.setPlayerStop(stop);
+    t.runner.expectPlayer();
+    t.open({ id: 9, appId: "mpv" });
+    await flush();
+    await t.runner.goHome();
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(t.runner.current()).toBe("home");
+    await t.runner.goHome(); // already home: nothing more to stop
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("goHome while playback is starting (no window yet) stops it too", async () => {
+    const t = setup();
+    const stop = vi.fn();
+    t.runner.setPlayerStop(stop);
+    t.runner.expectPlayer();
+    await t.runner.goHome();
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("goHome from an app does not touch the player", async () => {
+    const t = setup();
+    const stop = vi.fn();
+    t.runner.setPlayerStop(stop);
+    await t.runner.launch("plex");
+    t.open({ id: 1, appId: "plex" });
+    await flush();
+    await t.runner.goHome();
+    expect(stop).not.toHaveBeenCalled();
+  });
 });
+
