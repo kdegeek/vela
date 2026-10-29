@@ -25,7 +25,7 @@ echo "systemctl $*" >> "$FAKE_LOG"
 SH
   chmod +x "$T/bin/node" "$T/bin/systemctl"
   export VELA_NODE="$T/bin/node" VELA_SYSTEMCTL="$T/bin/systemctl"
-  touch "$VELA_SETUP_GATE"
+  date +%s > "$VELA_SETUP_GATE"
   ssh-keygen -q -t ed25519 -N '' -C phone -f "$T/k1" >/dev/null
   ssh-keygen -q -t ed25519 -N '' -C laptop -f "$T/k2" >/dev/null
   K1=$(cat "$T/k1.pub") K2=$(cat "$T/k2.pub")
@@ -228,4 +228,30 @@ assert_refused() {
   [ -f "$VELA_CONFIG_DEST" ]
   [ ! -e "$VELA_SETUP_GATE" ]
   [[ "$output" == *"could not restart vela-daemon"* ]]
+}
+
+@test "a gate opened more than 2 hours ago is refused as expired" {
+  echo $(($(date +%s) - 7201)) > "$VELA_SETUP_GATE"
+  stage_keys "$K1"
+  commit
+  assert_refused
+  [[ "$output" == *"REFUSED: setup expired"* ]]
+}
+
+@test "a gate without a readable opening time is refused as expired" {
+  for bad in "" "soon" "0$(date +%s)" "$(($(date +%s) + 3600))"; do
+    printf '%s' "$bad" > "$VELA_SETUP_GATE"
+    commit
+    assert_refused
+    [[ "$output" == *"REFUSED: setup expired"* ]]
+  done
+}
+
+@test "a gate opened 1 hour 59 minutes ago is still open" {
+  echo $(($(date +%s) - 7140)) > "$VELA_SETUP_GATE"
+  commit
+  [ "$status" -eq 0 ]
+  [ -f "$VELA_CONFIG_DEST" ]
+  [ ! -e "$VELA_SETUP_GATE" ]
+  grep -qx "systemctl --no-block stop vela-setup-expire.timer" "$FAKE_LOG"
 }

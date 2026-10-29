@@ -1,0 +1,6 @@
+[Unit]
+Description=Close Vela's phone setup if it has been open for 2 hours
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/vela/setup-gate expire

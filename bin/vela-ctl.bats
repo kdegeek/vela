@@ -60,15 +60,18 @@ echo "systemctl $*" >> "$FAKE_LOG"
 SH
   chmod +x "$bin/id" "$bin/systemctl"
   export VELA_SETUP_GATE="$bin/run/vela-setup/open"
+  export VELA_SETUP_GATE_CMD="$BATS_TEST_DIRNAME/../os/files/usr/libexec/vela/setup-gate"
 }
 
 @test "setup opens the gate, restarts the daemon and says what to do next" {
   fake_root
   FAKE_UID=0 run "$ctl" setup
   [ "$status" -eq 0 ]
-  [ -f "$VELA_SETUP_GATE" ]
-  [ "$(cat "$FAKE_LOG")" = "systemctl --user -M vela@ restart vela-daemon.service" ]
+  [ "$(cat "$VELA_SETUP_GATE")" -ge "$(($(date +%s) - 5))" ]
+  [ "$(cat "$FAKE_LOG")" = "$(printf 'systemctl --no-block restart vela-setup-expire.timer\nsystemctl --user -M vela@ restart vela-daemon.service')" ]
   echo "$output" | grep -q "the TV now shows a QR code"
+  echo "$output" | grep -q "open for 2 hours"
+  echo "$output" | grep -q "Restarting the box reopens it"
 }
 
 @test "setup refuses to run as anyone but root" {

@@ -1,0 +1,56 @@
+#!/bin/bash
+# Opens and expires phone setup (root). While /run/vela-setup/open exists, anything running as vela
+# can stage root SSH keys, so the window is bounded: it closes 2 hours after it was opened.
+#
+#   setup-gate open     write the opening time (epoch seconds) into the gate, drop any "expired"
+#                       marker, and (re)arm vela-setup-expire.timer. Run by vela-setup-gate.service
+#                       on a box without vela.toml, and by `vela-ctl setup` (which restarts the window).
+#   setup-gate expire   if the gate's recorded time is 2 hours old (or unreadable), remove the gate
+#                       and leave /run/vela-setup/expired (root, 0644, the opening time) for the TV.
+#                       Run by vela-setup-expire.timer. setup-commit checks the age on its own, too.
+set -euo pipefail
+
+GATE=${VELA_SETUP_GATE:-/run/vela-setup/open}
+EXPIRED="$(dirname "$GATE")/expired"
+MAX_AGE=${VELA_SETUP_MAX_AGE:-7200}
+SYSTEMCTL=${VELA_SYSTEMCTL:-systemctl}
+
+log() { echo "vela-setup-gate: $*"; }
+
+case "${1:-}" in
+  open)
+    dir=$(dirname "$GATE")
+    install -d -m 0755 "$dir"
+    # Root's, and written whole: the daemon (vela) only checks that it exists.
+    date +%s > "$GATE.new"
+    chmod 0644 "$GATE.new"
+    mv -f "$GATE.new" "$GATE"
+    rm -f "$EXPIRED"
+    # --no-block: the gate service runs early in boot (before greetd).
+    "$SYSTEMCTL" --no-block restart vela-setup-expire.timer || log "could not arm vela-setup-expire.timer"
+    log "setup is open for $((MAX_AGE / 60)) minutes"
+    ;;
+  expire)
+    # Setup closed (committed or expired): nothing left to watch.
+    disarm() { "$SYSTEMCTL" --no-block stop vela-setup-expire.timer || true; }
+    [ -e "$GATE" ] || { disarm; exit 0; }
+    opened=$(head -c 32 "$GATE" 2>/dev/null | tr -d '\n') || opened=""
+    now=$(date +%s)
+    # Fresh = a plain epoch (no leading zero, so no octal) from the last 2 hours. A time well in
+    # the future counts as expired: the window must not outlive a clock that moved back.
+    if [[ "$opened" =~ ^[1-9][0-9]{0,11}$ ]] && [ "$((now - opened))" -lt "$MAX_AGE" ] && [ "$((opened - now))" -le 300 ]; then
+      log "setup opened $(((now - opened) / 60)) minutes ago; not expired yet"
+      exit 0
+    fi
+    printf '%s\n' "$opened" > "$EXPIRED.new"
+    chmod 0644 "$EXPIRED.new"
+    mv -f "$EXPIRED.new" "$EXPIRED"
+    rm -f "$GATE"
+    log "setup expired (opened at '${opened}'); run vela-ctl setup or restart the box to open it again"
+    disarm
+    ;;
+  *)
+    echo "usage: setup-gate open|expire" >&2
+    exit 2
+    ;;
+esac

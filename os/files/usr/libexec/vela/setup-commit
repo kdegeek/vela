@@ -10,7 +10,8 @@
 # Everything under the staging dir is hostile input from an unprivileged user: it is only read
 # (and deleted) as vela, refused if it is a symlink, not a regular file, not owned by vela or too
 # big, and copied into a root-only work dir before it is validated, so it can't change between
-# the check and the install. Nothing happens unless setup is open (/run/vela-setup/open, root's).
+# the check and the install. Nothing happens unless setup is open (/run/vela-setup/open, root's)
+# and was opened less than 2 hours ago (the epoch seconds setup-gate wrote into it).
 #
 # On a refusal: log why, leave setup open so the phone can retry, exit 0. Every line logged
 # starts with "vela-setup-commit:"; refusals with "vela-setup-commit: REFUSED".
@@ -26,6 +27,7 @@ NODE=${VELA_NODE:-/usr/bin/node}
 CHECK_CONFIG=${VELA_CHECK_CONFIG:-/usr/lib/vela/daemon/dist/check-config.js}
 SSH_KEYGEN=${VELA_SSH_KEYGEN:-ssh-keygen}
 SYSTEMCTL=${VELA_SYSTEMCTL:-systemctl}
+MAX_AGE=${VELA_SETUP_MAX_AGE:-7200}
 # Commands that take a path under the staging dir run as vela, so a symlink swapped in after the
 # checks reaches only what vela could reach anyway. timeout: a FIFO swapped in would block a read.
 # Unset = the default; set to "" (bats) = run directly.
@@ -55,6 +57,14 @@ fi
 if [ -d "$STAGE" ]; then as_owner rm -rf -- "$STAGE/commit" || log "could not remove $STAGE/commit"; fi
 
 [ -e "$GATE" ] || { log "REFUSED: setup is not open ($GATE is missing); nothing installed"; exit 0; }
+# The window is 2 hours from the opening time root wrote into the gate (vela-setup-expire.timer
+# closes it too; this check doesn't depend on the timer having run). Same rule as setup-gate.
+opened=$(head -c 32 "$GATE" 2>/dev/null | tr -d '\n') || opened=""
+now=$(date +%s)
+if ! [[ "$opened" =~ ^[1-9][0-9]{0,11}$ ]] || [ "$((now - opened))" -ge "$MAX_AGE" ] || [ "$((opened - now))" -gt 300 ]; then
+  log "REFUSED: setup expired (the gate says it opened at '$opened', more than $((MAX_AGE / 60)) minutes ago or unreadable); run vela-ctl setup to open it again"
+  exit 0
+fi
 
 # --- the staging dir and its files ---
 [ -n "$(find "$STAGE" -maxdepth 0 -type d -user "$OWNER" 2>/dev/null)" ] ||
@@ -155,6 +165,7 @@ fi
 # Setup is done: close it (the daemon closes port 7301 within a second), clear the stage, and
 # restart the daemon so it loads the new config.
 rm -f "$GATE"
+"$SYSTEMCTL" --no-block stop vela-setup-expire.timer || true
 log "setup closed ($GATE removed)"
 as_owner rm -f -- "$STAGE/vela.toml" "$STAGE/authorized_keys"
 # -M vela@ needs machined's stdio bridge; fall back to vela's own user bus (as the VM diag does).

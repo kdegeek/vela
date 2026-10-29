@@ -1,0 +1,11 @@
+[Unit]
+Description=Close Vela's phone setup 2 hours after it was opened
+
+[Timer]
+# Started (and restarted, which restarts the window) by setup-gate open; no [Install]. The minute
+# of slack makes sure the gate is 2 hours old when the check runs; the repeat covers a clock that
+# moved back, and setup-gate expire stops the timer once setup is closed.
+OnActiveSec=2h 1min
+OnUnitActiveSec=10min
+AccuracySec=1s
+Unit=vela-setup-expire.service

@@ -52,9 +52,9 @@ jobs:
       - name: shellcheck
         run: |
           shellcheck -x -P scripts/acceptance -S warning scripts/acceptance/*.sh bin/vela-ctl
-          shellcheck -S warning os/files/usr/libexec/vela/fetch-wifi-firmware os/files/usr/libexec/vela/setup-commit os/test/*.bats
+          shellcheck -S warning os/files/usr/libexec/vela/fetch-wifi-firmware os/files/usr/libexec/vela/setup-commit os/files/usr/libexec/vela/setup-gate os/test/*.bats
       - name: bats
-        run: bats scripts/acceptance/lib.bats bin/vela-ctl.bats os/test/fetch-wifi-firmware.bats os/test/setup-commit.bats
+        run: bats scripts/acceptance/lib.bats bin/vela-ctl.bats os/test/fetch-wifi-firmware.bats os/test/setup-commit.bats os/test/setup-gate.bats
       - name: The pinned Wi-Fi firmware download still matches its checksum
         run: |
           dir=$(mktemp -d)
