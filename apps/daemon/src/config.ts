@@ -76,6 +76,25 @@ function jsonProblem(e: unknown): string {
   return m ? `not valid JSON (line ${m[1]}, column ${m[2]})` : "not valid JSON";
 }
 
+/** The problem with vela.toml text (TOML syntax or schema), in the parser's words, never quoting the text. */
+function parseConfigText(text: string): { config: VelaConfig } | { problem: string } {
+  let raw: unknown;
+  try {
+    raw = parse(text);
+  } catch (e) {
+    return { problem: tomlProblem(e) };
+  }
+  const r = ConfigSchema.safeParse(raw);
+  if (!r.success) return { problem: r.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ") };
+  return { config: r.data };
+}
+
+/** Undefined when the text is a valid vela.toml, else what is wrong with it. */
+export function configProblem(text: string): string | undefined {
+  const r = parseConfigText(text);
+  return "problem" in r ? r.problem : undefined;
+}
+
 /** Missing file gives defaults; an invalid file throws an error naming the path and the offending field path, never its contents. */
 export function loadConfig(path: string): VelaConfig {
   let text: string | undefined;
@@ -84,20 +103,21 @@ export function loadConfig(path: string): VelaConfig {
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw new Error(`Cannot read ${path}: ${(e as NodeJS.ErrnoException).code ?? "read error"}`);
   }
-  let raw: unknown = {};
-  if (text !== undefined) {
-    try {
-      raw = parse(text);
-    } catch (e) {
-      throw new Error(`Invalid config ${path}: ${tomlProblem(e)}`);
-    }
+  if (text === undefined) return ConfigSchema.parse({});
+  const r = parseConfigText(text);
+  if ("problem" in r) throw new Error(`Invalid config ${path}: ${r.problem}`);
+  return r.config;
+}
+
+/** For check-config: like loadConfig, but a missing file is a problem too. Undefined when the file is valid. */
+export function checkConfigFile(path: string): string | undefined {
+  if (!fs.existsSync(path)) return `${path} does not exist`;
+  try {
+    loadConfig(path);
+    return undefined;
+  } catch (e) {
+    return (e as Error).message;
   }
-  const r = ConfigSchema.safeParse(raw);
-  if (!r.success) {
-    const msg = r.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ");
-    throw new Error(`Invalid config ${path}: ${msg}`);
-  }
-  return r.data;
 }
 
 /** Missing file gives {}; a malformed one throws an error naming the path, never its contents. */

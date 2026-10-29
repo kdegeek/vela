@@ -52,6 +52,46 @@ export interface HomeState {
   apps: AppTile[];
   rows: Row[];
   status: HomeStatus;
+  /** Present while the box is in setup mode (no vela.toml yet, or `vela-ctl setup`). */
+  setup?: SetupStatus;
+}
+
+/** media: pick Jellyfin or skip; ssh: add keys or skip; done: ready to finish; committing: finished, waiting for root to install the files. */
+export type SetupStep = "media" | "ssh" | "done" | "committing";
+
+/** What the TV shows during setup. */
+export interface SetupStatus {
+  pin: string;
+  /** http://<box ip>:7301/ (the QR code adds `#pin=<pin>`); null while the box has no IPv4 address. */
+  url: string | null;
+  step: SetupStep;
+  /** The Jellyfin server's name once sign-in worked. */
+  jellyfinServer?: string;
+  keyCount: number;
+}
+
+/** An SSH public key as the phone shows it for confirmation. */
+export interface SetupKey {
+  /** The authorized_keys line: `<type> <base64>[ <comment>]`. */
+  key: string;
+  type: string;
+  /** `SHA256:<base64, no padding>`, as `ssh-keygen -l` prints it. */
+  fingerprint: string;
+  comment?: string;
+}
+
+/** GET /setup/api/state: the wizard's progress, for the phone. */
+export interface SetupProgress {
+  step: SetupStep;
+  /** null until the media step is answered. */
+  media: { provider: "jellyfin"; url: string; server: string } | { provider: "mock" } | null;
+  keys: SetupKey[];
+  sshSkipped: boolean;
+}
+
+export interface JellyfinServer {
+  name: string;
+  url: string;
 }
 
 export interface Device {
@@ -77,7 +117,9 @@ export type VelaEvent =
   | { type: "home-state-changed" }
   | { type: "toast"; message: string }
   /** POST /api/perf/arm was called: the launcher samples frame timing and posts a PerfReport. */
-  | { type: "perf-arm" };
+  | { type: "perf-arm" }
+  /** Setup mode changed (PIN, address or step); null when setup mode ends. */
+  | { type: "setup"; setup: SetupStatus | null };
 
 export const API = {
   health: "/api/health",
@@ -90,6 +132,29 @@ export const API = {
   events: "/api/events",
   perf: "/api/perf",
   perfArm: "/api/perf/arm",
+} as const;
+
+/**
+ * The phone's API on the setup listener (port 7301, setup mode only). Every call needs `Authorization: Pin <6 digits>`;
+ * POSTs need `content-type: application/json` and a JSON body (`{}` when there is nothing to send).
+ */
+export const SETUP_API = {
+  /** GET → SetupProgress */
+  state: "/setup/api/state",
+  /** GET → { servers: JellyfinServer[] } (2 s UDP discovery) */
+  jellyfinDiscover: "/setup/api/jellyfin/discover",
+  /** POST { url, username, password } → { server: string } */
+  jellyfin: "/setup/api/jellyfin",
+  /** POST {} → SetupProgress */
+  jellyfinSkip: "/setup/api/jellyfin/skip",
+  /** POST { username } → { keys: SetupKey[] } (not staged until posted to ssh/keys) */
+  sshGithub: "/setup/api/ssh/github",
+  /** POST { keys: string[] } → SetupProgress */
+  sshKeys: "/setup/api/ssh/keys",
+  /** POST {} → SetupProgress */
+  sshSkip: "/setup/api/ssh/skip",
+  /** POST {} → SetupProgress (step "committing") */
+  finish: "/setup/api/finish",
 } as const;
 
 export function isMediaKey(key: string): key is `${"jellyfin" | "mock"}:${string}` {
