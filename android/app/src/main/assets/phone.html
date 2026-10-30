@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Vela</title>
+<style>
+  :root {
+    --abyss: oklch(0.15 0.035 268);
+    --nebula: oklch(0.28 0.07 285);
+    --starlight: oklch(0.97 0.012 85);
+    --dim: oklch(0.97 0.012 85 / 0.6);
+    --line: oklch(0.97 0.012 85 / 0.14);
+    --warn: oklch(0.82 0.12 80);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100dvh; background: var(--abyss); color: var(--starlight);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+  }
+  main { max-width: 34rem; margin-inline: auto; display: grid; gap: 1.25rem; }
+  h1 { font: italic 400 2.2rem/1 Georgia, serif; margin: 0.5rem 0 0; }
+  h2 { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); margin: 0 0 0.5rem; }
+  section { background: var(--nebula); border: 1px solid var(--line); border-radius: 1rem; padding: 1rem; }
+  label { display: grid; gap: 0.25rem; font-size: 0.85rem; color: var(--dim); margin-block: 0.6rem; }
+  input, select, textarea {
+    font: inherit; color: var(--starlight); background: var(--abyss); border: 1px solid var(--line);
+    border-radius: 0.6rem; padding: 0.65rem 0.75rem; width: 100%;
+  }
+  button {
+    font: inherit; font-weight: 600; border: 0; border-radius: 999px; padding: 0.7rem 1.2rem;
+    background: var(--starlight); color: var(--abyss); cursor: pointer;
+  }
+  button.quiet { background: transparent; color: var(--starlight); border: 1px solid var(--line); }
+  .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+  .row > input { flex: 1 1 12rem; }
+  #log { display: grid; gap: 0.4rem; max-height: 45dvh; overflow: auto; }
+  .you { justify-self: end; background: var(--abyss); padding: 0.4rem 0.7rem; border-radius: 0.8rem; }
+  .step { color: var(--dim); font-size: 0.85rem; }
+  .error { color: var(--warn); }
+  #pending { display: none; border-color: var(--warn); }
+  #pending.on { display: block; }
+  .hint { color: var(--dim); font-size: 0.85rem; }
+  details > summary { cursor: pointer; color: var(--dim); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Vela</h1>
+  <p id="unpaired" class="error" hidden>Scan the code on the TV's home screen to pair this phone.</p>
+
+  <section id="pending">
+    <h2>Vela is asking</h2>
+    <p id="pendingText"></p>
+    <div class="row"><button id="allow">Allow</button><button class="quiet" id="deny">Don't</button></div>
+  </section>
+
+  <section>
+    <h2>Ask Vela</h2>
+    <div id="log"></div>
+    <form id="askForm" class="row" style="margin-top: 0.75rem">
+      <input id="ask" placeholder="Put on the next episode of Severance" autocomplete="off">
+      <button>Ask</button>
+      <button type="button" class="quiet" id="stop" hidden>Stop</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>AI</h2>
+    <p class="hint">Use an API key, a model server on your network (Ollama, LM Studio, vLLM), or any OpenAI-compatible gateway.</p>
+    <form id="settingsForm">
+      <label>Provider
+        <select name="provider">
+          <option value="anthropic">Anthropic (Claude API key)</option>
+          <option value="openai">OpenAI-compatible (OpenAI, OpenRouter, Ollama, LM Studio, gateway)</option>
+        </select>
+      </label>
+      <label>Server address <input name="baseUrl" placeholder="https://api.openai.com/v1 or http://192.168.1.20:11434/v1"></label>
+      <label>API key <input name="apiKey" type="password" autocomplete="off"></label>
+      <label>Model <input name="model" placeholder="claude-sonnet-5-5, gpt-5.5, qwen3:32b…"></label>
+      <details>
+        <summary>Jellyfin and Home Assistant</summary>
+        <label>Jellyfin address <input name="jellyfinUrl" placeholder="http://192.168.1.10:8096"></label>
+        <label>Jellyfin API key <input name="jellyfinToken" type="password" autocomplete="off"></label>
+        <label>Jellyfin user id <input name="jellyfinUserId"></label>
+        <label>Home Assistant address <input name="homeAssistantUrl" placeholder="http://homeassistant.local:8123"></label>
+        <label>Home Assistant token <input name="homeAssistantToken" type="password" autocomplete="off"></label>
+      </details>
+      <label class="row" style="color: var(--starlight)"><input type="checkbox" name="ownHome" style="width:auto"> Home button opens Vela (hold Home to ask)</label>
+      <div class="row"><button>Save</button><span id="saved" class="hint"></span></div>
+    </form>
+  </section>
+</main>
+<script>
+  const hashToken = new URLSearchParams(location.hash.slice(1)).get("t");
+  if (hashToken) { localStorage.setItem("vela-token", hashToken); history.replaceState(null, "", location.pathname); }
+  const token = localStorage.getItem("vela-token") || "";
+  const $ = (id) => document.getElementById(id);
+  const form = $("settingsForm");
+  let loaded = false;
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { ...opts, headers: { "X-Vela-Token": token, "Content-Type": "application/json" } });
+    if (res.status === 401) { $("unpaired").hidden = false; throw new Error("unpaired"); }
+    if (!res.ok) throw new Error(await res.text());
+    return res.headers.get("content-type")?.includes("json") ? res.json() : res.text();
+  }
+
+  function render(state) {
+    const log = $("log");
+    log.replaceChildren(...state.lines.map((l) => {
+      const p = document.createElement("div");
+      p.className = l.kind;
+      p.textContent = l.text; // agent text can echo anything on screen: never insert it as HTML
+      return p;
+    }));
+    log.scrollTop = log.scrollHeight;
+    $("stop").hidden = !state.running;
+    $("pending").classList.toggle("on", !!state.pending);
+    $("pendingText").textContent = state.pending || "";
+    if (!loaded) {
+      loaded = true;
+      for (const [k, v] of Object.entries(state.settings)) {
+        const el = form.elements[k];
+        if (!el) continue;
+        if (el.type === "checkbox") el.checked = !!v; else el.value = v;
+      }
+    }
+  }
+
+  async function poll() {
+    try { render(await api("/api/state")); } catch (e) { if (e.message === "unpaired") return; }
+    setTimeout(poll, 1200);
+  }
+
+  $("askForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = $("ask").value.trim();
+    if (!text) return;
+    $("ask").value = "";
+    await api("/api/ask", { method: "POST", body: JSON.stringify({ text }) });
+  });
+  $("stop").addEventListener("click", () => api("/api/stop", { method: "POST" }));
+  $("allow").addEventListener("click", () => api("/api/answer", { method: "POST", body: JSON.stringify({ allow: true }) }));
+  $("deny").addEventListener("click", () => api("/api/answer", { method: "POST", body: JSON.stringify({ allow: false }) }));
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const s = {};
+    for (const el of form.elements) if (el.name) s[el.name] = el.type === "checkbox" ? el.checked : el.value.trim();
+    try { await api("/api/settings", { method: "POST", body: JSON.stringify(s) }); $("saved").textContent = "Saved."; }
+    catch (err) { $("saved").textContent = err.message; }
+  });
+  poll();
+</script>
+</body>
+</html>

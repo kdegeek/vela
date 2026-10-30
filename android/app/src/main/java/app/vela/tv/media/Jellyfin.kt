@@ -180,6 +180,12 @@ class JellyfinClient(
         ),
     )
 
+    /** One item with the signed-in user's resume position. */
+    suspend fun item(itemId: String): JellyfinItem {
+        val text = send(url("Items", itemId, query = mapOf("userId" to signedIn(), "fields" to "Overview,Genres")))
+        return withContext(Dispatchers.IO) { parse(listOf(json.decodeFromString(RawItem.serializer(), text))).single() }
+    }
+
     /** Recently added items; [libraryName] (case-insensitive) narrows it to one library. */
     suspend fun latest(limit: Int = 12, libraryName: String? = null): List<JellyfinItem> {
         val user = signedIn()
