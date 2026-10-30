@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -92,6 +93,7 @@ private fun Home(app: VelaApp) {
     var focused by remember { mutableStateOf<Tile?>(null) }
     val scope = rememberCoroutineScope()
     val first = remember { FocusRequester() }
+    val list = androidx.compose.foundation.lazy.rememberLazyListState()
 
     LaunchedEffect(layout, settings) {
         rows = layout.rows.map { spec -> async { data.load(spec) } }.awaitAll()
@@ -117,6 +119,7 @@ private fun Home(app: VelaApp) {
             Spacer(Modifier.height(12.dp))
             LazyColumn(
                 Modifier.fillMaxSize(),
+                state = list,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 contentPadding = PaddingValues(bottom = 40.dp),
             ) {
@@ -125,8 +128,12 @@ private fun Home(app: VelaApp) {
                     if (row.tiles.isEmpty() && row.error == null) continue
                     val takesFirst = !firstAssigned && row.tiles.isNotEmpty()
                     if (takesFirst) firstAssigned = true
+                    val index = rows.indexOf(row)
                     item(row.spec.id) {
-                        TileRow(row, if (takesFirst) first else null, onFocus = { focused = it }) { t ->
+                        TileRow(row, if (takesFirst) first else null, onFocus = {
+                            focused = it
+                            scope.launch { list.animateScrollToItem(rows.take(index).count { r -> r.tiles.isNotEmpty() || r.error != null }) }
+                        }) { t ->
                             scope.launch { data.perform(t.action) }
                         }
                     }
@@ -169,7 +176,8 @@ private fun Pill(label: String, onClick: () -> Unit) {
 @Composable
 private fun Hero(t: Tile?, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.Bottom) {
-        if (t == null) return@Column
+        // Apps have no story to tell; the hero is for titles.
+        if (t == null || t.action is app.vela.tv.layout.TileAction.LaunchApp) return@Column
         t.kicker?.let { Text(it.uppercase(), color = Dim, fontSize = 12.sp, letterSpacing = 1.5.sp) }
         Text(t.title, color = Starlight, fontSize = 40.sp, fontFamily = Display, maxLines = 1, overflow = TextOverflow.Ellipsis)
         t.subtitle?.let { Text(it, color = Dim, fontSize = 15.sp, maxLines = 1) }
@@ -190,7 +198,12 @@ private fun TileRow(row: LoadedRow, first: FocusRequester?, onFocus: (Tile) -> U
             Text(row.error, color = Dim, fontSize = 13.sp)
             return@Column
         }
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(end = 48.dp)) {
+        // Bleeds left by the focus scale's overhang so the first tile isn't clipped when it grows.
+        LazyRow(
+            Modifier.offset(x = (-12).dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(start = 12.dp, end = 48.dp, top = 8.dp, bottom = 8.dp),
+        ) {
             items(row.tiles, key = { it.key }) { t ->
                 TileCard(t, row.spec.style, if (t === row.tiles.first()) first else null, onFocus, onClick)
             }

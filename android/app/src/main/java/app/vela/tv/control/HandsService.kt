@@ -29,6 +29,7 @@ class HandsService : AccessibilityService() {
     private var pkg: String? = null
     private val main = Handler(Looper.getMainLooper())
     private var homeHeld: Runnable? = null
+    private var armed: Int? = null
     lateinit var overlay: Overlay
         private set
 
@@ -77,16 +78,22 @@ class HandsService : AccessibilityService() {
     override fun onKeyEvent(event: KeyEvent): Boolean {
         if (BuildConfig.DEBUG) Log.i(TAG, "key ${KeyEvent.keyCodeToString(event.keyCode)} action=${event.action} pending=${app.runner.pending.value != null}")
         val down = event.action == KeyEvent.ACTION_DOWN
-        if (app.runner.pending.value != null) {
-            when (event.keyCode) {
-                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_BUTTON_A -> {
-                    if (!down) app.runner.answer(true)
-                    return true
+        val since = app.runner.pendingSince
+        if (since != null) {
+            val allow = when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_BUTTON_A -> true
+                KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_BUTTON_B -> false
+                else -> null
+            }
+            if (allow != null) {
+                // Only a press that started after the prompt had been on screen a moment counts, so an OK already
+                // on its way (or held) when the prompt appeared can't approve it.
+                if (down && event.repeatCount == 0) armed = if (event.downTime >= since + PROMPT_GRACE_MS) event.keyCode else null
+                else if (!down && armed == event.keyCode) {
+                    armed = null
+                    app.runner.answer(allow)
                 }
-                KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_BUTTON_B -> {
-                    if (!down) app.runner.answer(false)
-                    return true
-                }
+                return true
             }
         }
         if (event.keyCode == KeyEvent.KEYCODE_HOME && app.settings.settings.value.ownHome) {
@@ -146,9 +153,24 @@ class HandsService : AccessibilityService() {
         return ScreenText.format(root?.packageName?.toString() ?: pkg, tree)
     }
 
-    /** Everything a node says, including its children's text (a card's button often has no text of its own). */
+    /** The node a press on [id] actually acts on: the element, or its nearest focusable or clickable ancestor. */
+    private fun pressTarget(id: Int): AccessibilityNodeInfo? {
+        val target = nodes[id] ?: return null
+        var n: AccessibilityNodeInfo? = target
+        while (n != null && !n.isFocusable && !n.isClickable) n = n.parent
+        return n ?: target
+    }
+
+    /**
+     * Everything a press on [id] would act on says: the element and the node really pressed, with their children's text
+     * (a card's button often has no text of its own). The guard reads this, so it judges what gets pressed.
+     */
     @Synchronized
-    fun label(id: Int): String? = nodes[id]?.let { labelOf(it) }
+    fun label(id: Int): String? {
+        val target = nodes[id] ?: return null
+        val pressed = pressTarget(id) ?: target
+        return listOf(labelOf(target), labelOf(pressed)).distinct().joinToString(" ")
+    }
 
     fun focusedLabel(): String? = rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)?.let { labelOf(it) }
 
@@ -166,10 +188,7 @@ class HandsService : AccessibilityService() {
      */
     @Synchronized
     fun press(id: Int): String {
-        val target = nodes[id] ?: return "No element [$id]; read the screen again."
-        var n: AccessibilityNodeInfo? = target
-        while (n != null && !n.isFocusable && !n.isClickable) n = n.parent
-        val node = n ?: target
+        val node = pressTarget(id) ?: return "No element [$id]; read the screen again."
         if (Build.VERSION.SDK_INT >= 33 && node.isFocusable && node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)) {
             Thread.sleep(150)
             if (performGlobalAction(GLOBAL_ACTION_DPAD_CENTER)) return "Pressed [$id]."
@@ -230,6 +249,7 @@ class HandsService : AccessibilityService() {
         const val TAG = "VelaHands"
         const val PROBE_ACTION = "app.vela.tv.PROBE"
         const val PROBE_PERMISSION = "android.permission.DUMP"
+        private const val PROMPT_GRACE_MS = 400L
 
         @Volatile
         var current: HandsService? = null

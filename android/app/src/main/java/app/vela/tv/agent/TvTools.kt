@@ -157,7 +157,7 @@ class TvTools(private val app: VelaApp) {
                 str("entity_id", "target entity, or comma-separated entities", required = false)
                 obj("data", "extra service data", required = false)
             },
-            check = { a -> Guard.homeService(a.str("domain"), a.str("service"), entities(a)) },
+            check = { a -> homeRisk(a.str("domain"), a.str("service"), entities(a), a["data"] as? JsonObject) },
         ) { a ->
             val ha = app.settings.settings.value.homeAssistant() ?: return@tool ToolOutcome("Home Assistant isn't set up.", isError = true)
             val data = buildJsonObject {
@@ -189,6 +189,7 @@ class TvTools(private val app: VelaApp) {
         tool(
             "layout_set", "Replace the home screen layout. Read it first with layout_get and keep rows the owner didn't ask to change. Format:\n${Layouts.SCHEMA_HELP}",
             props = { str("layout", "the whole layout as a JSON string") },
+            check = { a -> Layouts.decode(a.str("layout")).getOrNull()?.let(::layoutRisk) },
         ) { a ->
             Layouts.decode(a.str("layout")).fold(
                 { app.settings.setLayout(it); ToolOutcome("Home screen updated.") },
@@ -196,6 +197,33 @@ class TvTools(private val app: VelaApp) {
             )
         },
     )
+
+    /** The guard reads every target the call will reach, including ones inside [data]. Devices and areas can hold anything. */
+    private fun homeRisk(domain: String, service: String, ids: List<String>, data: JsonObject?): GuardHit? {
+        val inData = data?.get("entity_id")?.let { e ->
+            when (e) {
+                is JsonPrimitive -> e.contentOrNull?.split(',')?.map { it.trim() }.orEmpty()
+                is JsonArray -> e.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+                else -> emptyList()
+            }
+        }.orEmpty()
+        val broad = listOf("device_id", "area_id", "floor_id", "label_id").filter { data?.containsKey(it) == true }
+        if (broad.isNotEmpty()) return GuardHit(Risk.SECURITY, "$domain.$service on a whole ${broad.first().removeSuffix("_id")}")
+        return Guard.homeService(domain, service, ids + inData)
+    }
+
+    /** A saved tile runs later without the agent, so its action is judged now, when the agent writes it. */
+    private fun layoutRisk(layout: app.vela.tv.layout.HomeLayout): GuardHit? = layout.rows.asSequence()
+        .mapNotNull { (it.source as? app.vela.tv.layout.Source.Pinned)?.items }
+        .flatten()
+        .mapNotNull { item ->
+            when (val act = item.action) {
+                is app.vela.tv.layout.TileAction.HomeService -> Guard.homeService(act.domain, act.service, listOf(act.entityId))
+                is app.vela.tv.layout.TileAction.OpenUri -> linkRisk(act.uri, act.packageName)
+                else -> null
+            }?.let { hit -> hit.copy(reason = "a home tile \"${item.title}\" would ${hit.risk.label}: ${hit.reason}") }
+        }
+        .firstOrNull()
 
     private fun jellyfin() = app.settings.settings.value.jellyfin(app.settings.deviceId)
 

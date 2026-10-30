@@ -31,6 +31,11 @@ class Runner(private val app: VelaApp, private val scope: CoroutineScope) {
     /** The question waiting for the owner's OK, if any. */
     val pending: StateFlow<String?> = _pending
 
+    /** When the current question appeared (uptime ms), for telling fresh remote presses from ones already under way. */
+    @Volatile
+    var pendingSince: Long? = null
+        private set
+
     private var job: Job? = null
     private var answer: CompletableDeferred<Boolean>? = null
     private var history: List<Msg> = emptyList()
@@ -62,6 +67,7 @@ class Runner(private val app: VelaApp, private val scope: CoroutineScope) {
             } finally {
                 lastAt = System.currentTimeMillis()
                 _running.value = false
+                pendingSince = null
                 _pending.value = null
                 hands?.overlay?.show(_lines.value.takeLast(2).map { it.text }, hideAfterMs = 6000)
             }
@@ -81,9 +87,11 @@ class Runner(private val app: VelaApp, private val scope: CoroutineScope) {
         val d = CompletableDeferred<Boolean>()
         answer = d
         val q = "Vela wants to ${hit.risk.label}: ${hit.reason}"
+        pendingSince = android.os.SystemClock.uptimeMillis()
         _pending.value = q
         hands?.overlay?.show(_lines.value.map { it.text }, prompt = q)
         val ok = withTimeoutOrNull(60_000) { d.await() } ?: false
+        pendingSince = null
         _pending.value = null
         add(Line("step", if (ok) "Allowed." else "Not allowed."))
         return ok
@@ -106,7 +114,9 @@ class Runner(private val app: VelaApp, private val scope: CoroutineScope) {
     }
 
     private fun describe(c: ToolCall): String {
-        val a = c.arguments.entries.joinToString(" ") { (k, v) -> "$k=${v.toString().trim('"').take(40)}" }
+        // Short values only: a whole layout or long text would fill the overlay.
+        val a = c.arguments.entries.map { (k, v) -> k to v.toString().trim('"') }.filter { it.second.length <= 40 }
+            .joinToString(" ") { (k, v) -> "$k=$v" }
         return "${c.name.replace('_', ' ')} $a".trim()
     }
 

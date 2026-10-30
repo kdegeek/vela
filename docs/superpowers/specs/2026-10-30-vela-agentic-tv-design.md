@@ -91,6 +91,34 @@ Settings and secrets live in the app's private storage on the box.
   the launcher and agent are built: does Home reach it, how much of YouTube's and other apps'
   screens the tree exposes, and whether node clicks land.
 
-## 8. Test box facts
+## 8. Test box facts (2026-10-30)
 
-To be filled in from the box (`ro.build.version.sdk`, `wm size`, model).
+The owner's Google TV boxes haven't been connected yet. Two devices were measured:
+
+| Device | Android | Panel | Surface apps get |
+|---|---|---|---|
+| Fire TV smart TV (AFTTIFF43, Fire OS 7.7) | 9 (API 28) | 3840x2160 | 1920x1080 at 320 dpi |
+| Google TV emulator (`android-34;google-tv`, `tv_4k`) | 14 (API 34) | 3840x2160 | 1920x1080 at 320 dpi |
+
+**4K on stock software:** both give third-party apps a 1080p surface on a 4K panel. A native 4K interface needs Vela
+firmware (or a box that doesn't override the size). The layout is in dp, so it is unchanged at 4K.
+
+**Milestone 0 answers (Google TV emulator):**
+
+1. **Home reaches the accessibility service.** With "Home opens Vela" on, Home from inside YouTube opens Vela's home
+   screen. This is the emulator image, not a box with the 2026 Google TV update that broke Projectivy; check again on a
+   real box. On the Fire TV, a third-party home app (tvhome) already replaces Home the same way.
+2. **Screens are readable.** Google TV's own setup screen came through as buttons with text and ids
+   (`[15] Button "Cancel" #vanilla_exit_cancel {focused,click}`). A playing SmartTube video showed nothing readable
+   (the app draws its own surface), as expected; its controls weren't tested.
+3. **Clicks:** a plain accessibility click on a TV guided-step button only moved focus. Presses now focus the element
+   and send the remote's OK (global D-pad action, Android 13+), which is how a remote does it.
+
+**Testing note:** `adb shell input keyevent` never reaches accessibility services (injected events skip the filter), so
+remote keys are tested through a virtual HID remote made with the shell's `hid` command.
+
+**End to end on the emulator** (scripted OpenAI-compatible stand-in for the model): the agent read the screen, pressed
+Cancel, tried to open a Play Store link, which the guard resolved to `com.android.vending` and put to the owner on the
+TV; Back on the remote declined it and the agent was told not to try another way; OK on a second run allowed it and the
+Play Store opened. The agent then rewrote the home layout and the new row appeared. Not yet run against a real model:
+no key or LAN model server was available in this session.

@@ -61,17 +61,21 @@ data class VelaSettings(
         homeAssistantToken = mask(homeAssistantToken),
     )
 
-    /** Applies an edit from the phone page, where a masked secret means "unchanged". */
+    /**
+     * Applies an edit from the phone page, where a masked secret means "unchanged". A secret is kept only while the
+     * server it belongs to stays the same: pointing a saved key at a new address would send the key there.
+     */
     fun merge(edit: VelaSettings) = edit.copy(
-        apiKey = keep(edit.apiKey, apiKey),
-        jellyfinToken = keep(edit.jellyfinToken, jellyfinToken),
-        homeAssistantToken = keep(edit.homeAssistantToken, homeAssistantToken),
+        apiKey = if (edit.provider == provider && edit.baseUrl.trim() == baseUrl.trim()) keep(edit.apiKey, apiKey) else unmasked(edit.apiKey),
+        jellyfinToken = if (edit.jellyfinUrl.trim() == jellyfinUrl.trim()) keep(edit.jellyfinToken, jellyfinToken) else unmasked(edit.jellyfinToken),
+        homeAssistantToken = if (edit.homeAssistantUrl.trim() == homeAssistantUrl.trim()) keep(edit.homeAssistantToken, homeAssistantToken) else unmasked(edit.homeAssistantToken),
     )
 
     companion object {
         const val MASK = "••••••"
         private fun mask(s: String) = if (s.isBlank()) "" else MASK
         private fun keep(edited: String, old: String) = if (edited == MASK) old else edited
+        private fun unmasked(edited: String) = if (edited == MASK) "" else edited
     }
 }
 
