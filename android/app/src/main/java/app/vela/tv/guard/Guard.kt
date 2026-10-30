@@ -29,8 +29,20 @@ object Guard {
         """\b(factory (data )?reset|reset to factory|erase (everything|all)|wipe|clear (all )?data)\b""",
         RegexOption.IGNORE_CASE,
     )
-    private val securityDomains = setOf("lock", "alarm_control_panel", "camera")
-    private val securityEntity = Regex("""garage|gate|lock|alarm|front_door|back_door""", RegexOption.IGNORE_CASE)
+    private val securityDomains = setOf("lock", "alarm_control_panel", "camera", "siren")
+    private val systemDomains = setOf("homeassistant", "hassio", "system_log", "recorder", "backup", "update")
+    private val securityEntity = Regex("""garage|gate|lock|alarm|front_door|back_door|camera|siren""", RegexOption.IGNORE_CASE)
+
+    /**
+     * Everyday domains that run without asking unless the entity looks like a security device. Scenes, scripts and
+     * automations are opaque (one could unlock a door), but "movie mode" must not nag every evening: they pass unless
+     * named like a security device. Any domain not listed here asks first.
+     */
+    private val everyday = setOf(
+        "light", "switch", "media_player", "remote", "fan", "climate", "humidifier", "vacuum", "cover",
+        "scene", "script", "automation", "input_boolean", "input_number", "input_select", "input_button", "button",
+        "notify", "tts", "number", "select",
+    )
     private val stores = setOf("com.android.vending", "com.amazon.venezia")
     private val installers = setOf("com.android.packageinstaller", "com.google.android.packageinstaller")
 
@@ -53,16 +65,31 @@ object Guard {
     /** Calling Home Assistant service [domain].[service] on [entityIds]. */
     fun homeService(domain: String, service: String, entityIds: List<String>): GuardHit? {
         val target = entityIds.joinToString().ifEmpty { "everything in $domain" }
-        if (domain in securityDomains) return GuardHit(Risk.SECURITY, "$domain.$service on $target")
-        if (entityIds.any { securityEntity.containsMatchIn(it) }) return GuardHit(Risk.SECURITY, "$domain.$service on $target")
-        return null
+        val d = domain.lowercase()
+        return when {
+            d in systemDomains -> GuardHit(Risk.RESET, "$domain.$service changes Home Assistant itself")
+            d in securityDomains -> GuardHit(Risk.SECURITY, "$domain.$service on $target")
+            entityIds.any { securityEntity.containsMatchIn(it) } -> GuardHit(Risk.SECURITY, "$domain.$service on $target")
+            d == "cover" && entityIds.isEmpty() -> GuardHit(Risk.SECURITY, "$domain.$service on every cover, garage doors included")
+            d !in everyday -> GuardHit(Risk.SECURITY, "$domain.$service isn't an everyday device")
+            else -> null
+        }
     }
 
-    /** Opening a link: store pages and payment links count as installs or purchases. */
-    fun uri(uri: String): GuardHit? = when {
-        uri.startsWith("market:") || uri.startsWith("amzn://apps") -> GuardHit(Risk.INSTALL, "opens an app store page")
-        Regex("""(checkout|/buy|/purchase|/subscribe|paypal\.com|pay\.google)""", RegexOption.IGNORE_CASE).containsMatchIn(uri) ->
-            GuardHit(Risk.PURCHASE, "the link looks like a payment page")
+    private val storeLink = Regex(
+        """^\s*(market:|amzn:|intent:.*package=(com\.android\.vending|com\.amazon\.venezia))|play\.google\.com/store|amazon\.[a-z.]+/(gp/mas|.*appstore)|\.apk(\?|#|$)""",
+        RegexOption.IGNORE_CASE,
+    )
+    private val payLink = Regex("""checkout|/buy|/purchase|/subscribe|paypal\.com|pay\.google""", RegexOption.IGNORE_CASE)
+
+    /**
+     * Opening a link. [handler] is the package Android resolved the link to, when known: whatever the link looks like,
+     * landing in an app store or installer counts as an install.
+     */
+    fun uri(uri: String, handler: String? = null): GuardHit? = when {
+        handler in stores || handler in installers -> GuardHit(Risk.INSTALL, "the link opens $handler")
+        storeLink.containsMatchIn(uri) -> GuardHit(Risk.INSTALL, "opens an app store page or app download")
+        payLink.containsMatchIn(uri) -> GuardHit(Risk.PURCHASE, "the link looks like a payment page")
         else -> null
     }
 }

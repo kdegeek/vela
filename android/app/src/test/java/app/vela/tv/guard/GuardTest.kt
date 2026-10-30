@@ -37,12 +37,23 @@ class GuardTest {
         assertEquals(Risk.SECURITY, Guard.homeService("alarm_control_panel", "alarm_disarm", emptyList())?.risk)
         assertNull(Guard.homeService("light", "turn_off", listOf("light.living_room")))
         assertNull(Guard.homeService("media_player", "volume_set", listOf("media_player.soundbar")))
+        assertNull(Guard.homeService("scene", "turn_on", listOf("scene.movie_mode")))
+        assertEquals(Risk.SECURITY, Guard.homeService("script", "turn_on", listOf("script.unlock_front_door"))?.risk)
+        assertEquals(Risk.SECURITY, Guard.homeService("cover", "open_cover", emptyList())?.risk)
+        assertEquals(Risk.SECURITY, Guard.homeService("shell_command", "run", emptyList())?.risk)
+        assertEquals(Risk.RESET, Guard.homeService("homeassistant", "restart", emptyList())?.risk)
     }
 
     @Test
     fun `store and payment links`() {
         assertEquals(Risk.INSTALL, Guard.uri("market://details?id=com.x")?.risk)
         assertEquals(Risk.PURCHASE, Guard.uri("https://www.paypal.com/checkoutnow?token=1")?.risk)
+        assertEquals(Risk.INSTALL, Guard.uri("MARKET://details?id=com.x")?.risk)
+        assertEquals(Risk.INSTALL, Guard.uri("intent://x#Intent;package=com.android.vending;end")?.risk)
+        assertEquals(Risk.INSTALL, Guard.uri("https://play.google.com/store/apps/details?id=com.x")?.risk)
+        assertEquals(Risk.INSTALL, Guard.uri("https://example.com/app.apk")?.risk)
+        assertEquals(Risk.INSTALL, Guard.uri("https://short.link/x", handler = "com.amazon.venezia")?.risk)
         assertNull(Guard.uri("https://www.youtube.com/watch?v=abc"))
+        assertNull(Guard.uri("plex://play/?metadataKey=1", handler = "com.plexapp.android"))
     }
 }
