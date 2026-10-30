@@ -37,7 +37,9 @@ dependencies {
     implementation(libs.activity.compose)
     implementation(libs.coroutines.android)
     implementation(libs.serialization.json)
+    implementation(libs.okhttp)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+    testImplementation(libs.mockwebserver)
 }

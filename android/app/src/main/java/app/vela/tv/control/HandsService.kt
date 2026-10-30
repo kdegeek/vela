@@ -42,7 +42,7 @@ class HandsService : AccessibilityService() {
                 }
                 else -> "unknown cmd $cmd"
             }
-            Log.i(TAG, "probe $cmd -> \n$result")
+            Log.i(TAG, "probe $cmd -> \n$result") // debug builds only: the receiver isn't registered otherwise
         }
     }
 
@@ -50,8 +50,9 @@ class HandsService : AccessibilityService() {
         Log.i(TAG, "connected sdk=${Build.VERSION.SDK_INT} model=${Build.MODEL}")
         if (BuildConfig.DEBUG) {
             val filter = IntentFilter(PROBE_ACTION)
-            if (Build.VERSION.SDK_INT >= 33) registerReceiver(probe, filter, RECEIVER_EXPORTED)
-            else @Suppress("UnspecifiedRegisterReceiverFlag") registerReceiver(probe, filter)
+            // Only senders holding DUMP (the adb shell has it; ordinary apps can't get it) may drive the probe.
+            if (Build.VERSION.SDK_INT >= 33) registerReceiver(probe, filter, PROBE_PERMISSION, null, RECEIVER_EXPORTED)
+            else @Suppress("UnspecifiedRegisterReceiverFlag") registerReceiver(probe, filter, PROBE_PERMISSION, null)
         }
     }
 
@@ -65,11 +66,11 @@ class HandsService : AccessibilityService() {
         val pkg = event.packageName?.toString() ?: return
         if (pkg == lastPkg) return
         lastPkg = pkg
-        Log.i(TAG, "foreground $pkg (${event.className})")
+        if (BuildConfig.DEBUG) Log.i(TAG, "foreground $pkg (${event.className})")
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
-        Log.i(TAG, "key ${KeyEvent.keyCodeToString(event.keyCode)} action=${event.action} repeat=${event.repeatCount} long=${event.isLongPress}")
+        if (BuildConfig.DEBUG) Log.i(TAG, "key ${KeyEvent.keyCodeToString(event.keyCode)} action=${event.action} repeat=${event.repeatCount} long=${event.isLongPress}")
         if (homeIntercept && event.keyCode == KeyEvent.KEYCODE_HOME) {
             if (event.action == KeyEvent.ACTION_UP) {
                 startActivity(Intent(this, ProbeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP))
@@ -149,5 +150,6 @@ class HandsService : AccessibilityService() {
     companion object {
         const val TAG = "VelaHands"
         const val PROBE_ACTION = "app.vela.tv.PROBE"
+        const val PROBE_PERMISSION = "android.permission.DUMP"
     }
 }
