@@ -29,7 +29,8 @@ class HandsService : AccessibilityService() {
     private var pkg: String? = null
     private val main = Handler(Looper.getMainLooper())
     private var homeHeld: Runnable? = null
-    private var armed: Int? = null
+    /** The answer key pressed down, and which prompt (by its start time) it was pressed for. */
+    private var armed: Pair<Int, Long>? = null
     lateinit var overlay: Overlay
         private set
 
@@ -79,6 +80,7 @@ class HandsService : AccessibilityService() {
         if (BuildConfig.DEBUG) Log.i(TAG, "key ${KeyEvent.keyCodeToString(event.keyCode)} action=${event.action} pending=${app.runner.pending.value != null}")
         val down = event.action == KeyEvent.ACTION_DOWN
         val since = app.runner.pendingSince
+        if (since == null) armed = null
         if (since != null) {
             val allow = when (event.keyCode) {
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_BUTTON_A -> true
@@ -88,8 +90,9 @@ class HandsService : AccessibilityService() {
             if (allow != null) {
                 // Only a press that started after the prompt had been on screen a moment counts, so an OK already
                 // on its way (or held) when the prompt appeared can't approve it.
-                if (down && event.repeatCount == 0) armed = if (event.downTime >= since + PROMPT_GRACE_MS) event.keyCode else null
-                else if (!down && armed == event.keyCode) {
+                if (down && event.repeatCount == 0) {
+                    armed = if (event.downTime >= since + PROMPT_GRACE_MS) event.keyCode to since else null
+                } else if (!down && armed == (event.keyCode to since) && event.downTime >= since + PROMPT_GRACE_MS) {
                     armed = null
                     app.runner.answer(allow)
                 }

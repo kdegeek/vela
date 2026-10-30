@@ -64,13 +64,17 @@ object Guard {
 
     /** Calling Home Assistant service [domain].[service] on [entityIds]. */
     fun homeService(domain: String, service: String, entityIds: List<String>): GuardHit? {
-        val target = entityIds.joinToString().ifEmpty { "everything in $domain" }
+        // "all" (and "none") are Home Assistant's whole-domain targets: judged the same as naming no entity.
+        val wholeDomain = entityIds.isEmpty() || entityIds.any { it.trim().lowercase() in setOf("all", "none") }
+        val target = if (wholeDomain) "everything in $domain" else entityIds.joinToString()
         val d = domain.lowercase()
         return when {
             d in systemDomains -> GuardHit(Risk.RESET, "$domain.$service changes Home Assistant itself")
             d in securityDomains -> GuardHit(Risk.SECURITY, "$domain.$service on $target")
             entityIds.any { securityEntity.containsMatchIn(it) } -> GuardHit(Risk.SECURITY, "$domain.$service on $target")
-            d == "cover" && entityIds.isEmpty() -> GuardHit(Risk.SECURITY, "$domain.$service on every cover, garage doors included")
+            d == "cover" && wholeDomain -> GuardHit(Risk.SECURITY, "$domain.$service on every cover, garage doors included")
+            d in setOf("script", "automation", "scene", "button", "input_button") && wholeDomain ->
+                GuardHit(Risk.SECURITY, "$domain.$service on every $domain at once")
             d !in everyday -> GuardHit(Risk.SECURITY, "$domain.$service isn't an everyday device")
             else -> null
         }

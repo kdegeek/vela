@@ -42,6 +42,9 @@ class GuardTest {
         assertEquals(Risk.SECURITY, Guard.homeService("cover", "open_cover", emptyList())?.risk)
         assertEquals(Risk.SECURITY, Guard.homeService("shell_command", "run", emptyList())?.risk)
         assertEquals(Risk.RESET, Guard.homeService("homeassistant", "restart", emptyList())?.risk)
+        assertEquals(Risk.SECURITY, Guard.homeService("cover", "open_cover", listOf("ALL"))?.risk)
+        assertEquals(Risk.SECURITY, Guard.homeService("script", "turn_on", listOf("all"))?.risk)
+        assertNull(Guard.homeService("light", "turn_off", listOf("all")))
     }
 
     @Test
