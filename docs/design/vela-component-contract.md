@@ -517,6 +517,9 @@ get explicit hex values in that block. `field-sizing: content`, `text-wrap: bala
 - No ID renamed or removed; no request, lock, polling, token or approval logic changed.
 - Allowed script edits: adding `className`/`dataset.state` to elements the script already creates
   (log lines, task articles, management articles and their buttons, e.g. `danger` on delete buttons).
+- Coordinator correction after browser QA: explicit entry to the profile, memory or routine editor
+  resets that form's native validation state before restoring every draft field. This does not run
+  during polling, reloads or conflicts and does not change request bodies, revisions or locks.
 - Markup may gain wrappers, classes, `aria-*` and the inline SVG sail. Attributes must stay double-quoted.
 - The test harness detects `hidden` with `/\bhidden\b/` on the whole attribute string, so
   `class="visually-hidden"` or `aria-hidden="true"` would mark an element hidden. Either avoid those

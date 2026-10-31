@@ -77,7 +77,7 @@ internal suspend fun saveOwnerLayout(app: VelaApp, layout: HomeLayout) = withCon
             if (running || owner != null) InlineStatus("Vela is working. Stop the current task to arrange home.", tone = StatusTone.Caution)
             else message?.let { InlineStatus(it, tone = if (failed) StatusTone.Danger else if (busy) StatusTone.Neutral else StatusTone.Success) }
         }
-        itemsIndexed(layout.rows, key = { _, row -> row.id }) { index, row ->
+        itemsIndexed(layout.rows, key = { _, row -> ownerRowKey(row.id) }) { index, row ->
             Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
                 VelaListRow(row.title, supporting = listOfNotNull(row.style.cardFormat().name, sourceLabel(row.source)).joinToString(" · "))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(VelaSpace.S), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {

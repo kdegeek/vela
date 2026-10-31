@@ -58,4 +58,11 @@ class LayoutEditsTest {
         assertTrue(Layouts.decode(Layouts.encode(LayoutEdits.move(duplicate, pinned.id, 1))).isFailure)
         assertTrue(Layouts.decode(Layouts.encode(HomeLayout(rows = emptyList()))).isFailure)
     }
+    @Test fun validOwnerIdsCannotCollideWithHomeOrEditorChrome() {
+        val chrome = listOf("hero", "pair", "empty", "arrange", "status", "defaults", "vela-page-header")
+        val checked = Layouts.decode(Layouts.encode(HomeLayout(rows = chrome.map { pinned.copy(id = it) }))).getOrThrow()
+        val keys = chrome + checked.rows.map { ownerRowKey(it.id) }
+        assertEquals(keys.size, keys.distinct().size)
+        assertEquals(chrome, checked.rows.map { it.id }) // Persisted identity is retained for edits and focus.
+    }
 }

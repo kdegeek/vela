@@ -2,6 +2,9 @@ package app.vela.tv.launcher
 
 import app.vela.tv.layout.HomeLayout
 
+/** Owner IDs share a lazy list with shell chrome, but never its key namespace. */
+internal fun ownerRowKey(id: String): String = "row:$id"
+
 /** Edits preserve every row's identity, source, action and presentation. */
 internal object LayoutEdits {
     fun move(layout: HomeLayout, rowId: String, delta: Int): HomeLayout {

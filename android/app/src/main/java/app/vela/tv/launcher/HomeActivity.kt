@@ -86,13 +86,13 @@ class HomeActivity : ComponentActivity() {
                 if (showHero && scrollHero) item("hero") { Hero(presentation.focused, compact, loading, Modifier.safeHorizontal()) }
                 if (!settings.agentReady) insetItem("pair") { PairCard(app, Modifier.fillMaxWidth()) }
                 if (!presentation.loaded) {
-                    layout.rows.forEach { spec -> item(spec.id) { SkeletonRow(spec.title, spec.style.cardFormat()) } }
+                    layout.rows.forEach { spec -> item(ownerRowKey(spec.id)) { SkeletonRow(spec.title, spec.style.cardFormat()) } }
                 } else {
                     if (presentation.rows.all { it.tiles.isEmpty() && it.error == null }) insetItem("empty") {
                         EmptyState("Your home is ready", "Open Apps or connect your library from Settings.", "Settings", onSettings)
                     }
                     presentation.rows.filter { it.tiles.isNotEmpty() || it.error != null }.forEach { row ->
-                        item(row.spec.id) { TileRow(row, { presentation.focused = it }, onSelect, onRetry = { retry++ }) }
+                        item(ownerRowKey(row.spec.id)) { TileRow(row, { presentation.focused = it }, onSelect, onRetry = { retry++ }) }
                     }
                 }
                 insetItem("arrange") {

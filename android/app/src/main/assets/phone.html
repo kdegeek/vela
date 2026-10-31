@@ -654,6 +654,7 @@ async function loadProfiles() {
 }
 function editProfile(profile=null) {
  if(!profileSnapshot || managementBusy) return;
+ $('profileForm').reset(); // A newly opened draft starts with fresh native validation state.
  profileEditing=profile;profileEditRevision=exactRevision(profileSnapshot.revision);
  $('profileName').value=profile?.displayName||'';const prefs=profile?.preferences||{};
  $('audioLanguages').value=(prefs.audioLanguages||[]).join(', ');$('subtitleLanguages').value=(prefs.subtitleLanguages||[]).join(', ');
@@ -691,6 +692,7 @@ async function loadMemories(append=false) {
 }
 function editMemory(entry=null) {
  if(!memoryPage || managementBusy) return;
+ $('memoryForm').reset();
  memoryEditing=entry;memoryEditRevision=exactRevision(memoryPage.revision);
  $('memoryKind').value=entry?.kind||'preference';$('memoryText').value=entry?.text||'';$('memoryTags').value=(entry?.tags||[]).join(', ');$('memoryShare').checked=entry?!!entry.shareWithAgent:false;
  put('memoryEditorHeading',entry?'Edit these exact words':'Save explicit memory');$('memoryForm').hidden=false;
@@ -724,6 +726,7 @@ function scheduleFields() {
 }
 function editRoutine(routine=null) {
  if(managementBusy) return;routineEditing=routine;const spec=routine?.spec||{},schedule=spec.schedule||{type:'once'};
+ $('routineForm').reset();
  $('routineName').value=spec.name||'';$('routineTask').value=spec.task||'';$('routineSchedule').value=schedule.type;
  $('routineInstant').value=schedule.at||schedule.firstAt?new Date(schedule.at||schedule.firstAt).toISOString():'';
  $('routineInterval').value=String((schedule.everyMillis||3600000)/60000);$('routineZone').value=schedule.zone||'America/Chicago';$('routineTime').value=schedule.time||'18:30';$('routineDays').value=(schedule.days||[1,2,3,4,5]).join(',');$('routineDay').value=String(schedule.day||1);

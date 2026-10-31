@@ -16,7 +16,7 @@ import app.vela.tv.control.NowPlayingAccess
 import app.vela.tv.design.*
 
 @Composable internal fun SettingsHub(app: VelaApp, resume: Int, mediaAccess: NowPlayingAccess,
-    origin: String?, restore: Int, reportError: (String) -> Unit, openPage: (Page, String) -> Unit,
+    restoreOrigin: String?, restored: (String) -> Unit, reportError: (String) -> Unit, openPage: (Page, String) -> Unit,
     nowPlaying: () -> Unit, changed: () -> Unit) {
     val settings by app.settings.settings.collectAsState()
     val status = remember(resume, settings) { DeviceStatus.read(app) }
@@ -24,11 +24,12 @@ import app.vela.tv.design.*
     val origins = remember { listOf("profiles", "routines", "external", "arrange").associateWith { FocusRequester() } }
     // These are the keyed lazy items below, including VelaPage's header.
     val originIndexes = mapOf("profiles" to 4, "routines" to 5, "external" to 7, "arrange" to 24)
-    LaunchedEffect(restore) {
-        if (restore > 0 && origin in origins) {
-            list.scrollToItem(originIndexes.getValue(origin!!))
+    LaunchedEffect(restoreOrigin) {
+        if (restoreOrigin in origins) {
+            val origin = restoreOrigin!!
+            list.scrollToItem(originIndexes.getValue(origin))
             withFrameNanos { }
-            origins.getValue(origin).requestFocus()
+            if (origins.getValue(origin).requestFocus()) restored(origin)
         }
     }
     fun open(action: String) { runCatching { app.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }

@@ -37,7 +37,7 @@ import kotlinx.coroutines.*
     var nowPlayingVisible by remember { mutableStateOf(false) }
     var mediaAccess by remember { mutableStateOf(NowPlayingAccess.LOADING) }
     var settingsOrigin by rememberSaveable { mutableStateOf<String?>(null) }
-    var restoreSettings by remember { mutableIntStateOf(0) }
+    var restoreSettingsOrigin by rememberSaveable { mutableStateOf<String?>(null) }
     val pages = rememberSaveableStateHolder()
     val scope = rememberCoroutineScope()
     val data = remember(app) { HomeData(app) }
@@ -58,7 +58,8 @@ import kotlinx.coroutines.*
         withFrameNanos { }
         tabs.getValue(page.tab).requestFocus()
     } }
-    fun openSettingsChild(page: Page, origin: String) { settingsOrigin = origin; selected = page }
+    fun openSettingsChild(page: Page, origin: String) { restoreSettingsOrigin = null; settingsOrigin = origin; selected = page }
+    fun returnToSettings() { restoreSettingsOrigin = settingsOrigin; selected = Page.SETTINGS }
     fun askScreen() { app.startActivity(Intent(app, AskActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
     fun perform(action: TileAction, closeTitle: Boolean = false) {
         if (opening) return
@@ -77,7 +78,7 @@ import kotlinx.coroutines.*
             .onFailure { failedAction = null; error = it.message ?: "Couldn't start the task." }
     }
     BackHandler(enabled = tile == null && error == null && !nowPlayingDetails) {
-        if (selected.isSettingsChild) { selected = Page.SETTINGS; restoreSettings++ }
+        if (selected.isSettingsChild) returnToSettings()
         else if (selected != Page.HOME || !homeTabFocused) {
             selected = Page.HOME; homeReset++; home.focused = null; focusTab(Page.HOME)
         }
@@ -89,7 +90,7 @@ import kotlinx.coroutines.*
                 Column(Modifier.fillMaxSize().then(if (shortSurface) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                     .padding(top = VelaSpace.SafeVertical, bottom = VelaSpace.SafeVertical)) {
                     TopBar(selected, identity, agentIndicator(running, pending, lines.lastOrNull()?.text), navigation, tabs,
-                        { selected = it }, { openSettingsChild(Page.PROFILES, "profiles") }, ::askScreen, { home.focused = null }, { homeTabFocused = it })
+                        { restoreSettingsOrigin = null; selected = it }, { openSettingsChild(Page.PROFILES, "profiles") }, ::askScreen, { home.focused = null }, { homeTabFocused = it })
                     Spacer(Modifier.height(VelaSpace.Xs))
                     LaunchedEffect(Unit) { focusTab(Page.HOME) }
                     Box((if (shortSurface) Modifier.height(300.dp) else Modifier.weight(1f)).focusProperties {
@@ -104,13 +105,14 @@ import kotlinx.coroutines.*
                                 Page.LIST -> RowsPage(app, RowSpec("my-list", "My list", Source.Watchlist), resume + refresh, ::select)
                                 Page.HOUSE -> HousePage(app, resume + refresh, ::select, { selected = Page.SETTINGS }) { refresh++ }
                                 Page.ACTIVITY -> ActivityPage(app, remoteAnswers, ::ask, ::askScreen)
-                                Page.SETTINGS -> SettingsHub(app, resume, mediaAccess, settingsOrigin, restoreSettings,
+                                Page.SETTINGS -> SettingsHub(app, resume, mediaAccess, restoreSettingsOrigin,
+                                    { if (restoreSettingsOrigin == it) restoreSettingsOrigin = null },
                                     { failedAction = null; error = it }, { page, origin -> openSettingsChild(page, origin) },
                                     { nowPlayingDetails = true }) { refresh++ }
                                 Page.PROFILES -> ProfilesPage(app)
                                 Page.ROUTINES -> RoutinesPage(app)
                                 Page.CONTROL -> ExternalControlPage(app)
-                                Page.ARRANGE -> ArrangeHome(app) { selected = Page.SETTINGS; restoreSettings++ }
+                                Page.ARRANGE -> ArrangeHome(app, ::returnToSettings)
                             }
                         }
                     }

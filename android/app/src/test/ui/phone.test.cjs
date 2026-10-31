@@ -19,11 +19,19 @@ class Element {
    if(name.toLowerCase() === 'hidden') continue; // HTML boolean attributes stay booleans, even hidden="false".
    if(name === 'data-key') this.dataset.key = value; else this[name === 'class' ? 'className' : name] = value;
   }
+  this.defaultValue = this.value;
+  this.defaultChecked = [...attributes.matchAll(/(?:^|\s)([^\s=/>]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g)].some(([,name])=>name.toLowerCase()==='checked');
  }
  addEventListener(type, listener) { this.listeners[type] = listener; }
  emit(type) { return this.listeners[type]?.({preventDefault(){}}); }
  replaceChildren(...children) { this.children = children; }
  append(...children) { this.children.push(...children); }
+ reset() {
+  for(const element of this.elements || []) {
+   if(element.tagName === 'INPUT' && element.type === 'checkbox') element.checked = element.defaultChecked;
+   else if(['INPUT','SELECT','TEXTAREA'].includes(element.tagName)) element.value = element.defaultValue;
+  }
+ }
 }
 function state(overrides={}) {
  return {running:false,lines:[],tasks:[],pendingId:null,pending:null,settings:{model:'saved-model'},
