@@ -210,6 +210,11 @@ class JellyfinClient(
         ),
     )
 
+    /** Ordered episodes for a series; series themselves are containers and cannot be direct-played. */
+    suspend fun episodes(seriesId: String, limit: Int = 100): List<JellyfinItem> = items(
+        url("Shows", seriesId, "Episodes", query = mapOf("userId" to signedIn(), "limit" to "$limit", "fields" to "Overview,Genres")),
+    )
+
     fun imageUrl(itemId: String, type: ImageType, maxWidth: Int): String =
         base.newBuilder().apply {
             addPathSegment("Items"); addPathSegment(itemId); addPathSegment("Images"); addPathSegment(type.name)

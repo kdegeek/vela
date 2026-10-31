@@ -74,7 +74,7 @@ jobs:
           cache: gradle
       - name: Android platform the Compose libraries compile against
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
-      - run: ./gradlew --no-daemon testDebugUnitTest assembleDebug
+      - run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
       - uses: actions/upload-artifact@v4
         if: always()
         with:

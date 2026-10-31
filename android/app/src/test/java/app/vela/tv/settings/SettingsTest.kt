@@ -29,4 +29,20 @@ class SettingsTest {
         val merged = saved.merge(saved.redacted().copy(provider = ProviderKind.ANTHROPIC, baseUrl = "", apiKey = "sk-ant-new"))
         assertEquals("sk-ant-new", merged.apiKey)
     }
+
+    @Test fun `server addresses cannot hide credentials or alter URL routing`() {
+        for (url in listOf("ftp://server", "https://user:pass@server", "https://server/?api_key=secret", "https://server/#fragment", "not a url")) {
+            org.junit.Assert.assertTrue(url, runCatching { saved.copy(baseUrl = url).validated() }.isFailure)
+        }
+    }
+    @Test fun `private LAN servers and reverse proxy paths are accepted`() {
+        assertEquals("http://ha.local:8123/proxy", saved.copy(baseUrl = "http://ha.local:8123/proxy").validated().baseUrl)
+    }
+    @Test fun `jellyfin requires an explicit user for progress and browsing`() {
+        org.junit.Assert.assertNull(VelaSettings(jellyfinUrl = "http://jf", jellyfinToken = "t").jellyfin("device"))
+    }
+    @Test fun `invalid appearance and credential newlines are rejected`() {
+        org.junit.Assert.assertTrue(runCatching { saved.copy(appearance = "unknown").validated() }.isFailure)
+        org.junit.Assert.assertTrue(runCatching { saved.copy(apiKey = "a\nb").validated() }.isFailure)
+    }
 }

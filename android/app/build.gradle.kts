@@ -50,6 +50,7 @@ dependencies {
     implementation(libs.ktor.server.cio)
     implementation(libs.zxing)
 
+    testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.mockwebserver)

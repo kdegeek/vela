@@ -40,4 +40,18 @@ class HomeLayoutTest {
     fun `the default layout is valid`() {
         assertEquals(Layouts.default, Layouts.decode(Layouts.encode(Layouts.default)).getOrThrow())
     }
+
+    @Test fun `watchlist is a composable source`() {
+        val layout = HomeLayout(rows = listOf(RowSpec("saved", "My list", Source.Watchlist)))
+        assertEquals(layout, Layouts.decode(Layouts.encode(layout)).getOrThrow())
+    }
+    @Test fun `unsupported versions invalid ids and duplicate tile keys are rejected`() {
+        for (text in listOf(
+            """{"version":2,"rows":[{"id":"r","title":"A","source":{"type":"apps"}}]}""",
+            """{"rows":[{"id":"","title":"A","source":{"type":"apps"}}]}""",
+            """{"rows":[{"id":"r","title":" ","source":{"type":"apps"}}]}""",
+            """{"rows":[{"id":"r","title":"A","source":{"type":"apps","packages":["x","x"]}}]}""",
+            """{"rows":[{"id":"r","title":"A","source":{"type":"jellyfin_search","query":""}}]}"""
+        )) assertTrue(text, Layouts.decode(text).isFailure)
+    }
 }

@@ -40,6 +40,9 @@ sealed interface Source {
     @Serializable @SerialName("pinned")
     data class Pinned(val items: List<PinnedItem>) : Source
 
+    @Serializable @SerialName("watchlist")
+    data object Watchlist : Source
+
     /** Home Assistant entities, shown with their state; choosing one toggles it. */
     @Serializable @SerialName("home_entities")
     data class HomeEntities(val entityIds: List<String>) : Source
@@ -80,6 +83,7 @@ object Layouts {
             RowSpec("apps", "Apps", Source.Apps(), TileStyle.APP),
             RowSpec("resume", "Continue watching", Source.JellyfinResume),
             RowSpec("latest", "Recently added", Source.JellyfinLatest(), TileStyle.POSTER),
+            RowSpec("watchlist", "My list", Source.Watchlist),
         ),
     )
 
@@ -87,11 +91,36 @@ object Layouts {
 
     /** Parses and checks a layout. Errors are worded for the agent, which wrote the document. */
     fun decode(text: String): Result<HomeLayout> = runCatching {
+        require(text.length <= 256_000) { "layout is too large" }
         val layout = json.decodeFromString(HomeLayout.serializer(), text)
         require(layout.rows.isNotEmpty()) { "a layout needs at least one row" }
         val dup = layout.rows.groupBy { it.id }.filterValues { it.size > 1 }.keys
         require(dup.isEmpty()) { "row ids must be unique; repeated: ${dup.joinToString()}" }
         require(layout.rows.size <= 20) { "at most 20 rows" }
+        require(layout.version == 1) { "unsupported layout version ${layout.version}" }
+        layout.rows.forEach { row ->
+            require(row.id.matches(Regex("[a-zA-Z0-9_-]{1,64}"))) { "row ids need 1–64 letters, digits, - or _" }
+            require(row.title.isNotBlank() && row.title.length <= 120) { "row titles need 1–120 characters" }
+            when (val source = row.source) {
+                is Source.Apps -> require(source.packages == null || (source.packages.size <= 100 && source.packages.distinct().size == source.packages.size)) { "app packages must be unique; at most 100" }
+                is Source.Pinned -> {
+                    require(source.items.size <= 100) { "at most 100 pinned tiles per row" }
+                    source.items.forEach { item ->
+                        require(item.title.isNotBlank() && item.title.length <= 200) { "tile titles need 1–200 characters" }
+                        when (val action = item.action) {
+                            is TileAction.AskAgent -> require(action.prompt.isNotBlank() && action.prompt.length <= 8000) { "invalid tile prompt" }
+                            is TileAction.LaunchApp -> require(action.packageName.isNotBlank()) { "missing package" }
+                            is TileAction.PlayJellyfin -> require(action.itemId.isNotBlank()) { "missing item id" }
+                            is TileAction.OpenUri -> require(action.uri.isNotBlank() && action.uri.length <= 8192) { "invalid tile link" }
+                            is TileAction.HomeService -> require(action.domain.isNotBlank() && action.service.isNotBlank() && action.entityId.isNotBlank()) { "home tiles need a domain, service and entity" }
+                        }
+                    }
+                }
+                is Source.HomeEntities -> require(source.entityIds.size <= 100 && source.entityIds.distinct().size == source.entityIds.size) { "entity ids must be unique; at most 100" }
+                is Source.JellyfinSearch -> require(source.query.isNotBlank() && source.query.length <= 500) { "search query needs 1–500 characters" }
+                else -> Unit
+            }
+        }
         layout
     }
 
@@ -99,6 +128,7 @@ object Layouts {
     const val SCHEMA_HELP = """{"rows":[{"id":"unique","title":"Shown above the row","style":"wide|poster|app","source":SOURCE}]}
 SOURCE is one of:
  {"type":"apps","packages":["com.plexapp.android",...] or omitted for all}
+ {"type":"watchlist"}
  {"type":"jellyfin_resume"}
  {"type":"jellyfin_latest","libraryName":"Movies" or omitted}
  {"type":"jellyfin_search","query":"..."}

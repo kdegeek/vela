@@ -3,157 +3,101 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="dark">
-<title>Vela</title>
+<meta name="color-scheme" content="light dark">
+<title>Vela · Your TV, in reach</title>
 <style>
-  :root {
-    --abyss: oklch(0.15 0.035 268);
-    --nebula: oklch(0.28 0.07 285);
-    --starlight: oklch(0.97 0.012 85);
-    --dim: oklch(0.97 0.012 85 / 0.6);
-    --line: oklch(0.97 0.012 85 / 0.14);
-    --warn: oklch(0.82 0.12 80);
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; min-height: 100dvh; background: var(--abyss); color: var(--starlight);
-    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
-    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
-  }
-  main { max-width: 34rem; margin-inline: auto; display: grid; gap: 1.25rem; }
-  h1 { font: italic 400 2.2rem/1 Georgia, serif; margin: 0.5rem 0 0; }
-  h2 { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); margin: 0 0 0.5rem; }
-  section { background: var(--nebula); border: 1px solid var(--line); border-radius: 1rem; padding: 1rem; }
-  label { display: grid; gap: 0.25rem; font-size: 0.85rem; color: var(--dim); margin-block: 0.6rem; }
-  input, select, textarea {
-    font: inherit; color: var(--starlight); background: var(--abyss); border: 1px solid var(--line);
-    border-radius: 0.6rem; padding: 0.65rem 0.75rem; width: 100%;
-  }
-  button {
-    font: inherit; font-weight: 600; border: 0; border-radius: 999px; padding: 0.7rem 1.2rem;
-    background: var(--starlight); color: var(--abyss); cursor: pointer;
-  }
-  button.quiet { background: transparent; color: var(--starlight); border: 1px solid var(--line); }
-  .row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-  .row > input { flex: 1 1 12rem; }
-  #log { display: grid; gap: 0.4rem; max-height: 45dvh; overflow: auto; }
-  .you { justify-self: end; background: var(--abyss); padding: 0.4rem 0.7rem; border-radius: 0.8rem; }
-  .step { color: var(--dim); font-size: 0.85rem; }
-  .error { color: var(--warn); }
-  #pending { display: none; border-color: var(--warn); }
-  #pending.on { display: block; }
-  .hint { color: var(--dim); font-size: 0.85rem; }
-  details > summary { cursor: pointer; color: var(--dim); }
-  [hidden] { display: none !important; }
+:root{color-scheme:light dark;--abyss:light-dark(oklch(96% .015 85),oklch(18% .04 275));--surface:light-dark(oklch(99% .01 85),oklch(23% .04 275));--ink:light-dark(oklch(22% .04 275),oklch(96% .02 85));--dim:color-mix(in oklch,var(--ink) 75%,var(--abyss));--line:color-mix(in oklch,var(--ink) 28%,var(--abyss));--gold:light-dark(oklch(43% .08 80),oklch(83% .08 80));--danger:light-dark(oklch(44% .18 25),oklch(82% .1 25));--gutter:clamp(1rem,.5rem + 2vw,2.5rem);font:16px/1.5 system-ui,sans-serif;scrollbar-gutter:stable;overflow-wrap:break-word}
+*{box-sizing:border-box;min-inline-size:0}body{margin:0;background:var(--abyss);color:var(--ink);min-block-size:100svh}h1,h2,h3,p{margin:0}h1,h2{font-family:Georgia,serif;font-weight:400;text-wrap:balance}h1{font-size:clamp(2rem,1.5rem + 2vw,3rem)}h2{font-size:1.6rem}header,main{max-inline-size:76rem;margin-inline:auto;padding:var(--gutter)}header{padding-block-start:calc(var(--gutter) + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:1rem;flex-wrap:wrap}header p{color:var(--dim)}header .status{margin-inline-start:auto;color:var(--gold)}main{padding-block-start:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,28rem),1fr));gap:1.25rem;padding-block-end:calc(var(--gutter) + env(safe-area-inset-bottom,0px))}section{background:var(--surface);border:1px solid var(--line);border-radius:1.25rem;padding:var(--gutter);display:flex;flex-direction:column;gap:1rem}section.wide{grid-column:1/-1}label{display:grid;gap:.375rem;color:var(--dim)}input,select,textarea,button{font:inherit;color:var(--ink)}input,select,textarea{inline-size:100%;background:var(--abyss);border:1px solid var(--line);border-radius:.65rem;padding:.75rem}textarea{min-block-size:10rem;resize:vertical}input[type=checkbox]{inline-size:1.3rem;block-size:1.3rem}button,summary{cursor:pointer;touch-action:manipulation}button{min-block-size:44px;padding:.65rem 1.15rem;background:var(--abyss);border:1px solid var(--line);border-radius:2rem}button.primary{background:var(--gold);color:var(--abyss);border-color:var(--gold)}button:disabled{opacity:.5;cursor:wait}button:active,summary:active{background:var(--line)}:focus-visible{outline:3px solid var(--gold);outline-offset:3px}input:user-invalid{border-color:var(--danger)}.row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}.row input:not([type=checkbox]){flex:1;min-inline-size:min(100%,14rem)}.stack,form,details[open]{display:grid;gap:1rem}.hint{color:var(--dim);font-size:.9rem}.error{color:var(--danger)}[hidden]{display:none!important}#log{block-size:19rem;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;display:flex;flex-direction:column;gap:.75rem;padding:.5rem;border-block:1px solid var(--line)}#log .you{align-self:end;border-radius:.75rem;background:var(--abyss);padding:.65rem 1rem;max-inline-size:90%}#log .step{color:var(--dim);font-size:.9rem}#log .said{color:var(--ink)}#pending{border:1px solid var(--gold);padding:1rem;border-radius:.75rem;display:grid;gap:1rem}#tasks{display:grid;gap:.75rem;max-block-size:18rem;overflow-y:auto}#tasks article{padding:.75rem;border-block-end:1px solid var(--line)}.remote{display:grid;grid-template-columns:repeat(3,minmax(44px,1fr));gap:.65rem;max-inline-size:20rem;align-self:center}.remote button{border-radius:.75rem;min-block-size:52px}.remote .up{grid-column:2}.remote .left{grid-column:1}.remote .down{grid-column:2}.remote .back{grid-column:1}pre{white-space:pre-wrap;margin:0;font:inherit;color:var(--dim)}summary{min-block-size:44px;padding-block:.5rem}.check{display:flex;align-items:center;gap:.75rem}.sr-only{position:absolute;inline-size:1px;block-size:1px;overflow:clip;clip-path:inset(50%)}
+@media(hover:hover) and (pointer:fine){button:hover,summary:hover{border-color:var(--gold);color:var(--gold)}button.primary:hover{color:var(--abyss);background:color-mix(in oklch,var(--gold),var(--ink) 10%)}}
 </style>
 </head>
 <body>
+<header><div><h1>Vela</h1><p>Your TV, in reach.</p></div><p id="connection" class="status" role="status">Connecting…</p></header>
 <main>
-  <h1>Vela</h1>
-  <p id="unpaired" class="error" hidden>Scan the code on the TV's home screen to pair this phone.</p>
-
-  <section id="pending">
-    <h2>Vela is asking</h2>
-    <p id="pendingText"></p>
-    <div class="row"><button id="allow">Allow</button><button class="quiet" id="deny">Don't</button></div>
-  </section>
-
-  <section>
-    <h2>Ask Vela</h2>
-    <div id="log"></div>
-    <form id="askForm" class="row" style="margin-top: 0.75rem">
-      <input id="ask" placeholder="Put on the next episode of Severance" autocomplete="off">
-      <button>Ask</button>
-      <button type="button" class="quiet" id="stop" hidden>Stop</button>
-    </form>
-  </section>
-
-  <section>
-    <h2>AI</h2>
-    <p class="hint">Use an API key, a model server on your network (Ollama, LM Studio, vLLM), or any OpenAI-compatible gateway.</p>
-    <form id="settingsForm">
-      <label>Provider
-        <select name="provider">
-          <option value="anthropic">Anthropic (Claude API key)</option>
-          <option value="openai">OpenAI-compatible (OpenAI, OpenRouter, Ollama, LM Studio, gateway)</option>
-        </select>
-      </label>
-      <label>Server address <input name="baseUrl" placeholder="https://api.openai.com/v1 or http://192.168.1.20:11434/v1"></label>
-      <label>API key <input name="apiKey" type="password" autocomplete="off"></label>
-      <label>Model <input name="model" placeholder="claude-sonnet-5-5, gpt-5.5, qwen3:32b…"></label>
-      <details>
-        <summary>Jellyfin and Home Assistant</summary>
-        <label>Jellyfin address <input name="jellyfinUrl" placeholder="http://192.168.1.10:8096"></label>
-        <label>Jellyfin API key <input name="jellyfinToken" type="password" autocomplete="off"></label>
-        <label>Jellyfin user id <input name="jellyfinUserId"></label>
-        <label>Home Assistant address <input name="homeAssistantUrl" placeholder="http://homeassistant.local:8123"></label>
-        <label>Home Assistant token <input name="homeAssistantToken" type="password" autocomplete="off"></label>
-      </details>
-      <label class="row" style="color: var(--starlight)"><input type="checkbox" name="ownHome" style="width:auto"> Home button opens Vela (hold Home to ask)</label>
-      <div class="row"><button>Save</button><span id="saved" class="hint"></span></div>
-    </form>
-  </section>
+<section id="unpaired" class="wide" hidden><h2>Connect this phone</h2><p>Open Settings on Vela and scan the QR code. The pairing code stays between your phone and the TV.</p></section>
+<section><h2>Ask Vela</h2><p class="hint">Find a film. Set the mood. Make the TV your own.</p>
+<div id="log" role="log" aria-label="Conversation"></div>
+<div id="pending" hidden><p id="pendingText"></p><div class="row"><button id="allow" class="primary">Allow once</button><button id="deny">Decline</button></div></div>
+<form id="askForm"><div class="row"><label class="sr-only" for="ask">Ask Vela</label><input id="ask" placeholder="Play something good tonight" maxlength="8000" required><button class="primary">Ask</button></div></form>
+<div class="row"><button id="stop" hidden>Stop task</button><button id="clear">Clear activity</button><span id="chatError" class="error" role="alert"></span></div>
+</section>
+<section><h2>The remote</h2><p class="hint">Use the arrows and OK just like your TV remote. Stop an active agent task before taking over.</p>
+<div class="remote" aria-label="TV remote"><button class="up" data-key="up" aria-label="Up">↑</button><button class="left" data-key="left" aria-label="Left">←</button><button data-key="select">OK</button><button data-key="right" aria-label="Right">→</button><button class="down" data-key="down" aria-label="Down">↓</button><button class="back" data-key="back">Back</button><button data-key="home">Home</button></div>
+<details><summary>Device &amp; permissions</summary><pre id="device">Waiting for the TV…</pre></details>
+<h3>Recent activity</h3><div id="tasks"></div>
+</section>
+<section><h2>Connections</h2><p class="hint">Credentials are stored on the TV. A masked key keeps its saved value while its server address stays the same.</p>
+<form id="settingsForm">
+<label>AI provider<select name="provider"><option value="openai">OpenAI compatible · cloud or local</option><option value="anthropic">Anthropic</option></select></label>
+<label>Server address<input name="baseUrl" type="url" placeholder="https://provider.example/v1"></label>
+<p class="hint">OpenAI compatible servers need the API base path, usually /v1. For Anthropic, leave the address blank for the official API.</p>
+<label>API key<input name="apiKey" type="password" autocomplete="off" maxlength="8192"></label>
+<label>Model<input name="model" placeholder="Model name from your provider" maxlength="200"></label>
+<details><summary>Jellyfin &amp; Home Assistant</summary>
+<label>Jellyfin address<input name="jellyfinUrl" type="url" placeholder="http://192.168.1.10:8096"></label>
+<label>Jellyfin API key<input name="jellyfinToken" type="password" autocomplete="off" maxlength="8192"></label>
+<label>Jellyfin user ID<input name="jellyfinUserId"></label>
+<p class="hint">All three Jellyfin fields are required to browse and save progress.</p>
+<label>Home Assistant address<input name="homeAssistantUrl" type="url" placeholder="http://homeassistant.local:8123"></label>
+<label>Home Assistant token<input name="homeAssistantToken" type="password" autocomplete="off" maxlength="8192"></label>
+</details>
+<details><summary>Appearance &amp; Home button</summary>
+<label>TV theme<select name="appearance"><option value="night">Night</option><option value="day">Day</option></select></label>
+<label class="check"><input type="checkbox" name="reduceMotion">Reduce motion</label>
+<label class="check"><input type="checkbox" name="highContrast">High contrast</label>
+<label class="check"><input type="checkbox" name="ownHome">Home opens Vela · hold Home to ask</label>
+</details>
+<div class="row"><button class="primary">Save connections</button><span id="saved" role="status"></span></div>
+</form><button id="test">Test saved connections</button><pre id="testResults" role="status"></pre>
+</section>
+<section><h2>Your home screen</h2><p class="hint">Ask Vela to arrange rows for you, or edit the layout here. Changes apply as soon as you save.</p>
+<div class="row"><button id="loadLayout">Load current layout</button></div>
+<label>Layout JSON<textarea id="layout" spellcheck="false" maxlength="256000" placeholder="Load the current layout to begin"></textarea></label>
+<div class="row"><button id="saveLayout" class="primary">Save layout</button><span id="layoutStatus" role="status"></span></div>
+</section>
 </main>
 <script>
-  const hashToken = new URLSearchParams(location.hash.slice(1)).get("t");
-  if (hashToken) { localStorage.setItem("vela-token", hashToken); history.replaceState(null, "", location.pathname); }
-  const token = localStorage.getItem("vela-token") || "";
-  const $ = (id) => document.getElementById(id);
-  const form = $("settingsForm");
-  let loaded = false;
-
-  async function api(path, opts = {}) {
-    const res = await fetch(path, { ...opts, headers: { "X-Vela-Token": token, "Content-Type": "application/json" } });
-    if (res.status === 401) { $("unpaired").hidden = false; throw new Error("unpaired"); }
-    if (!res.ok) throw new Error(await res.text());
-    return res.headers.get("content-type")?.includes("json") ? res.json() : res.text();
-  }
-
-  function render(state) {
-    const log = $("log");
-    log.replaceChildren(...state.lines.map((l) => {
-      const p = document.createElement("div");
-      p.className = l.kind;
-      p.textContent = l.text; // agent text can echo anything on screen: never insert it as HTML
-      return p;
-    }));
-    log.scrollTop = log.scrollHeight;
-    $("stop").hidden = !state.running;
-    $("pending").classList.toggle("on", !!state.pending);
-    $("pendingText").textContent = state.pending || "";
-    if (!loaded) {
-      loaded = true;
-      for (const [k, v] of Object.entries(state.settings)) {
-        const el = form.elements[k];
-        if (!el) continue;
-        if (el.type === "checkbox") el.checked = !!v; else el.value = v;
-      }
-    }
-  }
-
-  async function poll() {
-    try { render(await api("/api/state")); } catch (e) { if (e.message === "unpaired") return; }
-    setTimeout(poll, 1200);
-  }
-
-  $("askForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const text = $("ask").value.trim();
-    if (!text) return;
-    $("ask").value = "";
-    await api("/api/ask", { method: "POST", body: JSON.stringify({ text }) });
-  });
-  $("stop").addEventListener("click", () => api("/api/stop", { method: "POST" }));
-  $("allow").addEventListener("click", () => api("/api/answer", { method: "POST", body: JSON.stringify({ allow: true }) }));
-  $("deny").addEventListener("click", () => api("/api/answer", { method: "POST", body: JSON.stringify({ allow: false }) }));
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const s = {};
-    for (const el of form.elements) if (el.name) s[el.name] = el.type === "checkbox" ? el.checked : el.value.trim();
-    try { await api("/api/settings", { method: "POST", body: JSON.stringify(s) }); $("saved").textContent = "Saved."; }
-    catch (err) { $("saved").textContent = err.message; }
-  });
-  poll();
+'use strict';
+const $ = id => document.getElementById(id);
+const incoming = new URLSearchParams(location.hash.slice(1)).get('t');
+try { if(incoming) { localStorage.setItem('vela-token',incoming); history.replaceState(null,'',location.pathname); } } catch (_) {}
+const token = incoming || (()=>{try{return localStorage.getItem('vela-token')||''}catch(_){return ''}})();
+const form = $('settingsForm');
+let loaded = false, pendingId = null, lastLog = '', lastTasks = '', polling = false;
+async function api(path, opts={}) {
+ const response = await fetch(path,{...opts,signal:AbortSignal.timeout(25000),headers:{'X-Vela-Token':token,'Content-Type':'application/json'},cache:'no-store'});
+ if(response.status===401){$('unpaired').hidden=false;throw Error('Scan the QR code in TV Settings to pair this phone.');}
+ if(!response.ok)throw Error((await response.text()).slice(0,500));
+ return response.json();
+}
+function render(state) {
+ $('connection').textContent = state.running ? 'Vela is working…' : 'Connected to your TV';
+ $('unpaired').hidden = true;
+ const logKey=JSON.stringify(state.lines);
+ if(logKey!==lastLog){lastLog=logKey;const atEnd=$('log').scrollHeight-$('log').scrollTop-$('log').clientHeight<50;
+ $('log').replaceChildren(...state.lines.map(line=>{const p=document.createElement('div');p.className=['you','said','step','error'].includes(line.kind)?line.kind:'step';p.textContent=line.text;return p;}));
+ if(atEnd)$('log').scrollTop=$('log').scrollHeight;}
+ $('stop').hidden=!state.running;
+ document.querySelectorAll('[data-key]').forEach(button=>button.disabled=state.running);
+ pendingId=state.pendingId;$('pending').hidden=!pendingId;$('pendingText').textContent=state.pending||'';
+ $('allow').disabled=$('deny').disabled=!pendingId;
+ if(!loaded){loaded=true;for(const [key,value]of Object.entries(state.settings)){const field=form.elements.namedItem(key);if(field){if(field.type==='checkbox')field.checked=!!value;else field.value=value;}}}
+ const d=state.device;$('device').textContent=`${d.model} · Android API ${d.androidApi}\nSurface ${d.surfaceWidth} × ${d.surfaceHeight}\nTV control: ${d.accessibility?'enabled':'needs Accessibility permission'}\nMedia access: ${d.mediaAccess?'enabled':'needs notification access'}`;
+ const taskKey=JSON.stringify(state.tasks);
+ if(taskKey!==lastTasks){lastTasks=taskKey;$('tasks').replaceChildren(...state.tasks.slice().reverse().map(task=>{const article=document.createElement('article');const title=document.createElement('strong');title.textContent=task.task;const detail=document.createElement('p');detail.className='hint';detail.textContent=`${task.state} · ${task.detail||new Date(task.startedAt).toLocaleTimeString()}`;article.append(title,detail);return article;}));}
+}
+async function poll(){if(polling)return;polling=true;try{render(await api('/api/state'));}catch(error){$('connection').textContent='Disconnected · '+error.message;}finally{polling=false;setTimeout(poll,1500);}}
+async function action(path,body,status='chatError'){try{$(status).textContent='';const result=await api(path,{method:'POST',...(body===undefined?{}:{body:JSON.stringify(body)})});return result;}catch(error){$(status).textContent=error.message;throw error;}}
+$('askForm').addEventListener('submit',async event=>{event.preventDefault();const text=$('ask').value.trim();if(!text)return;try{await action('/api/ask',{text});$('ask').value='';}catch(_){} });
+$('stop').addEventListener('click',()=>action('/api/stop').catch(()=>{}));
+$('clear').addEventListener('click',()=>action('/api/history/clear').catch(()=>{}));
+for(const [id,allow]of [['allow',true],['deny',false]])$(id).addEventListener('click',async()=>{const displayed=pendingId;$('allow').disabled=$('deny').disabled=true;try{await action('/api/answer',{allow,promptId:displayed});}catch(_){} });
+document.querySelectorAll('[data-key]').forEach(button=>button.addEventListener('click',()=>action('/api/remote',{key:button.dataset.key}).catch(()=>{})));
+form.addEventListener('submit',async event=>{event.preventDefault();const settings={};for(const field of form.elements)if(field.name)settings[field.name]=field.type==='checkbox'?field.checked:field.value.trim();try{await action('/api/settings',settings,'saved');loaded=false;render(await api('/api/state'));$('saved').textContent='Saved on your TV.';}catch(_){} });
+$('test').addEventListener('click',async()=>{$('test').disabled=true;try{const results=await action('/api/connections/test',undefined,'testResults');$('testResults').textContent=Object.entries(results).map(([name,result])=>`${name}: ${result}`).join('\n');}catch(_){}finally{$('test').disabled=false;}});
+$('loadLayout').addEventListener('click',async()=>{try{$('layout').value=JSON.stringify(await api('/api/layout'),null,2);$('layoutStatus').textContent='Loaded.';}catch(error){$('layoutStatus').textContent=error.message;}});
+$('saveLayout').addEventListener('click',async()=>{try{const layout=JSON.parse($('layout').value);await api('/api/layout',{method:'PUT',body:JSON.stringify(layout)});$('layoutStatus').textContent='Saved on your TV.';}catch(error){$('layoutStatus').textContent=error.message;}});
+poll();
 </script>
 </body>
 </html>

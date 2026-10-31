@@ -9,6 +9,8 @@ import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.net.Uri
 import app.vela.tv.VelaApp
+import app.vela.tv.DeviceStatus
+import kotlinx.serialization.json.Json
 import app.vela.tv.control.HandsService
 import app.vela.tv.control.MediaListener
 import app.vela.tv.guard.Guard
@@ -44,6 +46,9 @@ class TvTools(private val app: VelaApp) {
     }
 
     fun all(): List<Tool> = listOf(
+        tool("device_status", "Device capabilities, rendering surface and configured integrations. Configured is not a connectivity check.") {
+            ToolOutcome(Json.encodeToString(DeviceStatus.serializer(), DeviceStatus.read(app)))
+        },
         tool("screen_read", "Read what is on the TV now: the app in front and its elements, numbered like [12].") {
             ToolOutcome(hands().snapshot())
         },
@@ -69,7 +74,7 @@ class TvTools(private val app: VelaApp) {
             check = { a -> if (a.str("key") == "select") hands().let { Guard.press(it.focusedLabel(), it.foreground) } else null },
         ) { a ->
             val h = hands()
-            val times = (a.intOrNull("times") ?: 1).coerceIn(1, 20)
+            val times = if (a.str("key") == "select") 1 else (a.intOrNull("times") ?: 1).coerceIn(1, 20)
             var r = ""
             repeat(times) {
                 r = when (val k = a.str("key")) {
@@ -129,9 +134,12 @@ class TvTools(private val app: VelaApp) {
             },
         ) { a ->
             val all = sessions()
-            val c = a.strOrNull("package")?.let { p -> all.firstOrNull { it.packageName == p } }
-                ?: all.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING } ?: all.firstOrNull()
-                ?: return@tool ToolOutcome("Nothing is playing.", isError = true)
+            val targetPackage = a.strOrNull("package")
+            val c = if (targetPackage != null) all.firstOrNull { it.packageName == targetPackage }
+                else all.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING } ?: all.firstOrNull()
+            if (c == null) return@tool ToolOutcome("No active media session for ${targetPackage ?: "playback"}.", isError = true)
+            if (a.str("action") in setOf("seek", "skip") && a.intOrNull("seconds") == null)
+                return@tool ToolOutcome("seek and skip require seconds.", isError = true)
             val t = c.transportControls
             val s = (a.intOrNull("seconds") ?: 0) * 1000L
             when (a.str("action")) {
@@ -140,7 +148,7 @@ class TvTools(private val app: VelaApp) {
                 "stop" -> t.stop()
                 "next" -> t.skipToNext()
                 "previous" -> t.skipToPrevious()
-                "seek" -> t.seekTo(s)
+                "seek" -> t.seekTo(s.coerceAtLeast(0))
                 "skip" -> t.seekTo(((c.playbackState?.position ?: 0L) + s).coerceAtLeast(0))
             }
             delay(SETTLE_MS)
@@ -176,6 +184,13 @@ class TvTools(private val app: VelaApp) {
             val jf = jellyfin() ?: return@tool ToolOutcome("Jellyfin isn't set up.", isError = true)
             val items = jf.search(a.str("query"), 20)
             ToolOutcome(items.ifEmpty { return@tool ToolOutcome("Nothing in Jellyfin matches.") }.joinToString("\n") { "${it.id}: ${it.type} ${it.seriesName?.let { s -> "$s – " } ?: ""}${it.name} (${it.year ?: "?"})" })
+        },
+        tool("jellyfin_latest", "Recently added movies and episodes in the owner's Jellyfin library.") {
+            val jf = jellyfin() ?: return@tool ToolOutcome("Jellyfin isn't set up.", true)
+            ToolOutcome(jf.latest(30).joinToString("\n") { "${it.id}: ${it.type} ${it.name} (${it.year ?: "?"})" })
+        },
+        tool("watchlist_get", "Saved titles and actions on the owner's My list.") {
+            ToolOutcome(Json.encodeToString(app.settings.watchlist.value))
         },
         tool("jellyfin_play", "Play a Jellyfin movie or episode by id in Vela's player, resuming where the owner left off.", props = { str("item_id", "id from jellyfin_search or jellyfin_resume") }) { a ->
             jellyfin() ?: return@tool ToolOutcome("Jellyfin isn't set up.", isError = true)
@@ -329,6 +344,7 @@ private fun tool(
     val p = Props().apply(props)
     val schema = buildJsonObject {
         put("type", "object")
+        put("additionalProperties", false)
         putJsonObject("properties") { p.obj.forEach { (k, v) -> put(k, v) } }
         putJsonArray("required") { p.required.forEach { add(JsonPrimitive(it)) } }
     }
@@ -341,5 +357,5 @@ private fun tool(
 
 private fun JsonObject.strOrNull(k: String): String? = (this[k] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
 private fun JsonObject.str(k: String): String = strOrNull(k) ?: throw IllegalArgumentException("missing $k")
-private fun JsonObject.intOrNull(k: String): Int? = (this[k] as? JsonPrimitive)?.let { it.intOrNull ?: it.contentOrNull?.toDoubleOrNull()?.toInt() }
+private fun JsonObject.intOrNull(k: String): Int? = (this[k] as? JsonPrimitive)?.let { it.intOrNull }
 private fun JsonObject.int(k: String): Int = intOrNull(k) ?: throw IllegalArgumentException("missing number $k")

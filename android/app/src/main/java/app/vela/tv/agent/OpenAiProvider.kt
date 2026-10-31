@@ -30,7 +30,7 @@ class OpenAiProvider(
     override suspend fun complete(system: String, history: List<Msg>, tools: List<ToolSpec>): Turn {
         val headers = if (apiKey.isNullOrBlank()) emptyMap() else mapOf("Authorization" to "Bearer $apiKey")
         val reply = client.postJson(endpoint, headers, requestBody(system, history, tools))
-        reply.requireOk("The model server")
+        reply.requireOk("The model server", apiKey)
         return parse(reply.parseObject("The model server"))
     }
 
@@ -83,6 +83,8 @@ class OpenAiProvider(
     private fun parse(root: JsonObject): Turn {
         val message = (root["choices"] as? JsonArray)?.firstOrNull()?.jsonObject?.get("message") as? JsonObject
             ?: throw ProviderException("The model server's reply had no answer in it")
+        val reason = ((root["choices"] as? JsonArray)?.firstOrNull() as? JsonObject)?.get("finish_reason") as? JsonPrimitive
+        if (reason?.contentOrNull in setOf("length", "content_filter")) throw ProviderException("The model could not finish its answer (${reason?.contentOrNull}). Try a shorter request.")
         val text = (message["content"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
         val calls = (message["tool_calls"] as? JsonArray).orEmpty().mapIndexed { i, el ->
             val call = el.jsonObject

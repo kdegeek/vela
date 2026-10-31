@@ -11,6 +11,7 @@ import app.vela.tv.layout.TileStyle
 import app.vela.tv.media.JellyfinClient.ImageType
 import app.vela.tv.media.JellyfinItem
 import app.vela.tv.player.PlayerActivity
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
@@ -38,6 +39,7 @@ class HomeData(private val app: VelaApp) {
 
     suspend fun load(spec: RowSpec): LoadedRow = try {
         LoadedRow(spec, withContext(Dispatchers.IO) { tiles(spec) })
+    } catch (e: CancellationException) { throw e
     } catch (e: Exception) {
         LoadedRow(spec, emptyList(), e.message ?: e.toString())
     }
@@ -53,9 +55,12 @@ class HomeData(private val app: VelaApp) {
                     Tile("app:$pkg", label, TileAction.LaunchApp(pkg), image = banner)
                 }
             }
-            is Source.JellyfinResume -> jellyfin(spec)?.resume(20)?.map { it.tile(spec, "Continue watching") }.orEmpty()
-            is Source.JellyfinLatest -> jellyfin(spec)?.latest(20, src.libraryName)?.map { it.tile(spec, "Recently added") }.orEmpty()
-            is Source.JellyfinSearch -> jellyfin(spec)?.search(src.query, 20)?.map { it.tile(spec, spec.title) }.orEmpty()
+            is Source.JellyfinResume -> jellyfin(spec)?.let { jf -> jf.resume(20).map { it.tile(spec, "Continue watching", jf) } }.orEmpty()
+            is Source.JellyfinLatest -> jellyfin(spec)?.let { jf -> jf.latest(20, src.libraryName).map { it.tile(spec, "Recently added", jf) } }.orEmpty()
+            is Source.JellyfinSearch -> jellyfin(spec)?.let { jf -> jf.search(src.query, 20).map { it.tile(spec, spec.title, jf) } }.orEmpty()
+            is Source.Watchlist -> app.settings.watchlist.value.mapIndexed { i, p ->
+                Tile("saved:$i", p.title, p.action, p.subtitle, p.imageUrl, p.imageUrl, "My list")
+            }
             is Source.Pinned -> src.items.mapIndexed { i, p ->
                 Tile("pin:${spec.id}:$i", p.title, p.action, subtitle = p.subtitle, image = p.imageUrl, backdrop = p.imageUrl, kicker = spec.title)
             }
@@ -73,8 +78,7 @@ class HomeData(private val app: VelaApp) {
     private fun jellyfin(spec: RowSpec) = app.settings.settings.value.jellyfin(app.settings.deviceId)
         ?: if (spec.id in setOf("resume", "latest")) null else throw IllegalStateException("Jellyfin isn't set up")
 
-    private fun JellyfinItem.tile(spec: RowSpec, kicker: String): Tile {
-        val jf = app.settings.settings.value.jellyfin(app.settings.deviceId)!!
+    private fun JellyfinItem.tile(spec: RowSpec, kicker: String, jf: app.vela.tv.media.JellyfinClient): Tile {
         val poster = spec.style == TileStyle.POSTER
         val art = when {
             poster && hasPrimary -> jf.imageUrl(id, ImageType.Primary, 704)
@@ -100,12 +104,12 @@ class HomeData(private val app: VelaApp) {
     suspend fun perform(action: TileAction) {
         when (action) {
             is TileAction.LaunchApp -> (app.packageManager.getLeanbackLaunchIntentForPackage(action.packageName)
-                ?: app.packageManager.getLaunchIntentForPackage(action.packageName))?.let { start(it) }
+                ?: app.packageManager.getLaunchIntentForPackage(action.packageName) ?: error("That app is not installed." )).let { start(it) }
             is TileAction.OpenUri -> start(Intent(Intent.ACTION_VIEW, Uri.parse(action.uri)).apply { action.packageName?.let { setPackage(it) } })
             is TileAction.PlayJellyfin -> start(PlayerActivity.intent(app, action.itemId))
             is TileAction.AskAgent -> app.runner.ask(action.prompt)
             is TileAction.HomeService -> withContext(Dispatchers.IO) {
-                app.settings.settings.value.homeAssistant()?.call(
+                (app.settings.settings.value.homeAssistant() ?: error("Connect Home Assistant in Settings.")).call(
                     action.domain, action.service,
                     buildJsonObject { put("entity_id", JsonArray(listOf(JsonPrimitive(action.entityId)))) },
                 )
@@ -113,5 +117,5 @@ class HomeData(private val app: VelaApp) {
         }
     }
 
-    private fun start(i: Intent) = runCatching { app.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+    private fun start(i: Intent) = app.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }

@@ -1,6 +1,8 @@
 package app.vela.tv.settings
 
 import android.content.Context
+import android.util.AtomicFile
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import app.vela.tv.agent.AnthropicProvider
 import app.vela.tv.agent.OpenAiProvider
 import app.vela.tv.agent.Provider
@@ -36,6 +38,9 @@ data class VelaSettings(
     val homeAssistantToken: String = "",
     /** Home opens Vela (hold Home to ask). Off by default: the box may already have a home app the owner uses. */
     val ownHome: Boolean = false,
+    val appearance: String = "night",
+    val reduceMotion: Boolean = false,
+    val highContrast: Boolean = false,
 ) {
     val agentReady get() = when (provider) {
         ProviderKind.ANTHROPIC -> apiKey.isNotBlank()
@@ -48,11 +53,25 @@ data class VelaSettings(
     }
 
     fun jellyfin(deviceId: String): JellyfinClient? =
-        if (jellyfinUrl.isBlank() || jellyfinToken.isBlank()) null
+        if (jellyfinUrl.isBlank() || jellyfinToken.isBlank() || jellyfinUserId.isBlank()) null
         else JellyfinClient(jellyfinUrl, jellyfinToken, jellyfinUserId.ifBlank { null }, deviceId)
 
     fun homeAssistant(): HomeAssistant? =
         if (homeAssistantUrl.isBlank() || homeAssistantToken.isBlank()) null else HomeAssistant(homeAssistantUrl, homeAssistantToken)
+
+    fun validated(): VelaSettings {
+        require(appearance in setOf("night", "day")) { "Appearance must be night or day." }
+        require(model.length <= 200) { "Model name is too long." }
+        for ((label, value) in listOf("Model server" to baseUrl, "Jellyfin" to jellyfinUrl, "Home Assistant" to homeAssistantUrl)) {
+            if (value.isBlank()) continue
+            val url = value.toHttpUrlOrNull()
+            require(url != null && url.username.isEmpty() && url.password.isEmpty() && url.fragment == null && url.query == null) {
+                "$label needs an http(s) address without credentials, query or fragment."
+            }
+        }
+        require(listOf(apiKey, jellyfinToken, homeAssistantToken).all { it.length <= 8192 && '\n' !in it && '\r' !in it }) { "Invalid credential." }
+        return this
+    }
 
     /** The same settings with every secret replaced by whether it is set, for the phone page. */
     fun redacted() = copy(
@@ -90,27 +109,54 @@ class SettingsStore(context: Context) {
     private val _layout = MutableStateFlow(read("layout.json")?.let { Layouts.decode(it).getOrNull() } ?: Layouts.default)
     val layout: StateFlow<HomeLayout> = _layout
 
+    private val _watchlist = MutableStateFlow(read("watchlist.json")?.let {
+        runCatching { json.decodeFromString<List<app.vela.tv.layout.PinnedItem>>(it) }.getOrNull()
+    }.orEmpty())
+    val watchlist: StateFlow<List<app.vela.tv.layout.PinnedItem>> = _watchlist
+
+    @Synchronized
+    fun saveTitle(item: app.vela.tv.layout.PinnedItem) {
+        val items = (_watchlist.value.filter { it.action != item.action } + item).takeLast(200)
+        write("watchlist.json", json.encodeToString(items))
+        _watchlist.value = items
+    }
+    @Synchronized
+    fun removeTitle(item: app.vela.tv.layout.PinnedItem) {
+        val items = _watchlist.value.filter { it.action != item.action }
+        write("watchlist.json", json.encodeToString(items))
+        _watchlist.value = items
+    }
+
     /** Shown on the TV as part of the phone page's address; every phone request must carry it. */
     val pairingToken: String = read("pairing")?.trim()?.takeIf { it.length >= 16 } ?: newToken().also { write("pairing", it) }
 
     val deviceId: String = read("device-id")?.trim()?.takeIf { it.isNotEmpty() } ?: newToken().also { write("device-id", it) }
 
+    @Synchronized
     fun update(s: VelaSettings) {
+        s.validated()
         write("settings.json", json.encodeToString(VelaSettings.serializer(), s))
         _settings.value = s
     }
 
+    @Synchronized
     fun setLayout(l: HomeLayout) {
+        Layouts.decode(Layouts.encode(l)).getOrThrow()
         write("layout.json", Layouts.encode(l))
         _layout.value = l
     }
 
-    private fun read(name: String): String? = File(dir, name).takeIf { it.exists() }?.readText()
+    private fun read(name: String): String? = runCatching {
+        AtomicFile(File(dir, name)).openRead().bufferedReader().use { it.readText() }
+    }.getOrNull()
 
     private fun write(name: String, text: String) {
-        val tmp = File(dir, "$name.tmp")
-        tmp.writeText(text)
-        tmp.renameTo(File(dir, name))
+        val file = AtomicFile(File(dir, name))
+        val stream = file.startWrite()
+        try {
+            stream.write(text.toByteArray(Charsets.UTF_8))
+            file.finishWrite(stream)
+        } catch (e: Exception) { file.failWrite(stream); throw e }
     }
 
     private fun newToken(): String {

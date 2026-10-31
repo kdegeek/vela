@@ -59,6 +59,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.vela.tv.VelaApp
+import app.vela.tv.design.LocalReducedMotion
+import app.vela.tv.design.LocalHighContrast
+import app.vela.tv.design.EmptyState
 import app.vela.tv.layout.TileStyle
 import coil3.compose.AsyncImage
 import com.google.zxing.BarcodeFormat
@@ -70,53 +73,60 @@ import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
-private val Abyss = Color(0xFF0E1024)
-private val Starlight = Color(0xFFF6F1E7)
-private val Dim = Starlight.copy(alpha = 0.65f)
+private val Abyss: Color @Composable get() = androidx.compose.material3.MaterialTheme.colorScheme.background
+private val Starlight: Color @Composable get() = androidx.compose.material3.MaterialTheme.colorScheme.onBackground
+private val Dim: Color @Composable get() = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
 private val Display = FontFamily.Serif
 
 /** Vela's home: the focused title's art fills the screen, rows of tiles below. All sizes are dp of a 960x540 canvas, so 1080p and 4K look the same, only sharper. */
 class HomeActivity : ComponentActivity() {
+    private val resumed = androidx.compose.runtime.mutableIntStateOf(0)
+    override fun onResume() { super.onResume(); resumed.intValue++ }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val app = application as VelaApp
-        setContent { Home(app) }
+        setContent { TvShell(app, resumed.intValue) }
     }
 }
 
 @Composable
-private fun Home(app: VelaApp) {
+internal fun HomeContent(app: VelaApp, refresh: Int, onSelect: (Tile) -> Unit, onSettings: () -> Unit) {
     val data = remember { HomeData(app) }
     val layout by app.settings.layout.collectAsState()
     val settings by app.settings.settings.collectAsState()
+    val saved by app.settings.watchlist.collectAsState()
+    var loading by remember { mutableStateOf(true) }
     var rows by remember { mutableStateOf<List<LoadedRow>>(emptyList()) }
     var focused by remember { mutableStateOf<Tile?>(null) }
     val scope = rememberCoroutineScope()
     val first = remember { FocusRequester() }
     val list = androidx.compose.foundation.lazy.rememberLazyListState()
 
-    LaunchedEffect(layout, settings) {
+    LaunchedEffect(layout, settings, refresh, saved) {
+        loading = true
         rows = layout.rows.map { spec -> async { data.load(spec) } }.awaitAll()
+        loading = false
     }
     LaunchedEffect(rows.isNotEmpty()) {
         if (rows.any { it.tiles.isNotEmpty() }) runCatching { first.requestFocus() }
     }
-    BackHandler { } // this is home: Back has nowhere to go
 
     Box(Modifier.fillMaxSize().background(Abyss)) {
-        Crossfade(targetState = focused?.backdrop ?: (focused?.image as? String), animationSpec = tween(700), label = "backdrop") { url ->
-            if (url != null) AsyncImage(url, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        Crossfade(targetState = focused?.backdrop ?: (focused?.image as? String), animationSpec = tween(if (LocalReducedMotion.current) 0 else 600), label = "backdrop") { url ->
+            if (url != null && !LocalHighContrast.current) AsyncImage(url, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         }
         Box(Modifier.fillMaxSize().background(Brush.horizontalGradient(0f to Abyss, 0.55f to Abyss.copy(alpha = 0.55f), 1f to Color.Transparent)))
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.35f to Color.Transparent, 1f to Abyss)))
 
-        Column(Modifier.fillMaxSize().padding(start = 48.dp, top = 28.dp)) {
-            TopBar(app, Modifier.padding(end = 48.dp))
-            Spacer(Modifier.height(24.dp))
+        Column(Modifier.fillMaxSize().padding(start = 40.dp)) {
             // Until the AI is set up, the pairing card stands where the hero goes, so the rows never scroll it away.
-            if (!settings.agentReady) PairCard(app, Modifier.height(170.dp))
-            else Hero(focused, Modifier.height(170.dp).fillMaxWidth(0.55f))
+            if (!settings.agentReady) PairCard(app, Modifier.height(150.dp))
+            else Hero(focused, Modifier.height(150.dp).fillMaxWidth(0.55f))
             Spacer(Modifier.height(12.dp))
+            if (loading) androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().padding(end = 40.dp))
+            if (!loading && rows.all { it.tiles.isEmpty() && it.error == null }) {
+                EmptyState("Your home is ready", "Open Apps or connect Jellyfin from Settings to bring your library here.", "Settings", onSettings)
+            }
             LazyColumn(
                 Modifier.fillMaxSize(),
                 state = list,
@@ -134,7 +144,7 @@ private fun Home(app: VelaApp) {
                             focused = it
                             scope.launch { list.animateScrollToItem(rows.take(index).count { r -> r.tiles.isNotEmpty() || r.error != null }) }
                         }) { t ->
-                            scope.launch { data.perform(t.action) }
+                            onSelect(t)
                         }
                     }
                 }
@@ -144,40 +154,13 @@ private fun Home(app: VelaApp) {
 }
 
 @Composable
-private fun TopBar(app: VelaApp, modifier: Modifier) {
-    var now by remember { mutableStateOf(Date()) }
-    LaunchedEffect(Unit) { while (true) { now = Date(); delay(15_000) } }
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("Vela", color = Starlight, fontSize = 30.sp, fontFamily = Display, fontStyle = FontStyle.Italic)
-        Spacer(Modifier.weight(1f))
-        Pill("Ask Vela") { app.startActivity(android.content.Intent(app, AskActivity::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
-        Spacer(Modifier.width(20.dp))
-        Text(DateFormat.getTimeInstance(DateFormat.SHORT).format(now), color = Starlight, fontSize = 18.sp)
-    }
-}
-
-@Composable
-private fun Pill(label: String, onClick: () -> Unit) {
-    val source = remember { MutableInteractionSource() }
-    val focused by source.collectIsFocusedAsState()
-    Text(
-        label,
-        color = if (focused) Abyss else Starlight,
-        fontSize = 15.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(if (focused) Starlight else Starlight.copy(alpha = 0.12f))
-            .clickable(interactionSource = source, indication = null, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 7.dp),
-    )
-}
-
-@Composable
 private fun Hero(t: Tile?, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.Bottom) {
-        // Apps have no story to tell; the hero is for titles.
-        if (t == null || t.action is app.vela.tv.layout.TileAction.LaunchApp) return@Column
+        if (t == null || t.action is app.vela.tv.layout.TileAction.LaunchApp) {
+            Text("Your evening, on your terms.", color = Starlight, fontSize = 36.sp, fontFamily = Display)
+            Text("Ask for a show. Set the mood. Make yourself at home.", color = Dim, fontSize = 16.sp, modifier = Modifier.padding(top = 8.dp))
+            return@Column
+        }
         t.kicker?.let { Text(it.uppercase(), color = Dim, fontSize = 12.sp, letterSpacing = 1.5.sp) }
         Text(t.title, color = Starlight, fontSize = 40.sp, fontFamily = Display, maxLines = 1, overflow = TextOverflow.Ellipsis)
         t.subtitle?.let { Text(it, color = Dim, fontSize = 15.sp, maxLines = 1) }
@@ -191,7 +174,7 @@ private fun Hero(t: Tile?, modifier: Modifier) {
 }
 
 @Composable
-private fun TileRow(row: LoadedRow, first: FocusRequester?, onFocus: (Tile) -> Unit, onClick: (Tile) -> Unit) {
+internal fun TileRow(row: LoadedRow, first: FocusRequester?, onFocus: (Tile) -> Unit, onClick: (Tile) -> Unit) {
     Column {
         Text(row.spec.title, color = Starlight, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp))
         if (row.error != null) {
@@ -212,9 +195,9 @@ private fun TileRow(row: LoadedRow, first: FocusRequester?, onFocus: (Tile) -> U
 }
 
 @Composable
-private fun TileCard(t: Tile, style: TileStyle, requester: FocusRequester?, onFocus: (Tile) -> Unit, onClick: (Tile) -> Unit) {
+internal fun TileCard(t: Tile, style: TileStyle, requester: FocusRequester?, onFocus: (Tile) -> Unit, onClick: (Tile) -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (focused) 1.08f else 1f, tween(160), label = "scale")
+    val scale by animateFloatAsState(if (focused) 1.08f else 1f, tween(if (LocalReducedMotion.current) 0 else 160), label = "scale")
     val (w, h) = when (style) {
         TileStyle.POSTER -> 112.dp to 168.dp
         TileStyle.APP -> 160.dp to 90.dp
@@ -231,7 +214,7 @@ private fun TileCard(t: Tile, style: TileStyle, requester: FocusRequester?, onFo
                 .then(if (focused) Modifier.border(2.dp, Starlight, shape) else Modifier)
                 .let { if (requester != null) it.focusRequester(requester) else it }
                 .onFocusChanged { focused = it.isFocused; if (it.isFocused) onFocus(t) }
-                .clickable { onClick(t) },
+                .clickable(onClickLabel = "Open ${t.title}") { onClick(t) },
             contentAlignment = Alignment.Center,
         ) {
             if (t.image != null) {
@@ -245,15 +228,15 @@ private fun TileCard(t: Tile, style: TileStyle, requester: FocusRequester?, onFo
                 }
             }
         }
-        if (style != TileStyle.APP && t.image != null) {
+        if (t.image != null) {
             Text(t.title, color = if (focused) Starlight else Dim, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
         }
     }
 }
 
 @Composable
-private fun PairCard(app: VelaApp, modifier: Modifier) {
-    val url = remember { app.phone.pairingUrl() }
+internal fun PairCard(app: VelaApp, modifier: Modifier) {
+    val url = app.phone.pairingUrl()
     Row(
         modifier.clip(RoundedCornerShape(16.dp)).background(Abyss.copy(alpha = 0.8f)).border(1.dp, Starlight.copy(alpha = 0.15f), RoundedCornerShape(16.dp)).padding(18.dp),
         verticalAlignment = Alignment.CenterVertically,

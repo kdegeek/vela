@@ -23,7 +23,7 @@ class AnthropicProvider(
     override suspend fun complete(system: String, history: List<Msg>, tools: List<ToolSpec>): Turn {
         val headers = mapOf("x-api-key" to apiKey, "anthropic-version" to "2023-06-01")
         val reply = client.postJson(endpoint, headers, requestBody(system, history, tools))
-        reply.requireOk("Anthropic")
+        reply.requireOk("Anthropic", apiKey)
         return parse(reply.parseObject("Anthropic"))
     }
 
@@ -89,6 +89,7 @@ class AnthropicProvider(
     private fun textBlock(text: String) = buildJsonObject { put("type", "text"); put("text", text) }
 
     private fun parse(root: JsonObject): Turn {
+        if ((root["stop_reason"] as? JsonPrimitive)?.contentOrNull == "max_tokens") throw ProviderException("The model reached its response limit. Try a shorter request.")
         val blocks = root["content"] as? JsonArray ?: throw ProviderException("Anthropic's reply had no content")
         val text = StringBuilder()
         val calls = mutableListOf<ToolCall>()
