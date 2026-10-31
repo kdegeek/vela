@@ -1,5 +1,9 @@
 # Approved glass implementation — actual renders
 
+**Field correction:** the [newer field evidence](../field-correction-20261031/README.md)
+supersedes Ask/profile input styling shown by this build. The original PNGs and
+hashes remain frozen here; the interactive gallery uses the corrected frames.
+
 The owner approved the [warm cinematic glass concepts](../../explorations/liquid-glass-20261031/README.md).
 The implementation now runs in the Android application and the production phone
 page. The [interactive capture gallery](index.html) contains **14 actual captures**;

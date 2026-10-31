@@ -86,8 +86,8 @@ import app.vela.tv.design.*
                     item("editor-actions-end") { EditorActions(false) }
                 } else Column(Modifier.fillMaxSize().padding(VelaSpace.M), verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
                     Text(title, style = Vela.type.title, color = Vela.colors.ink, modifier = Modifier.semantics { heading() })
-                    LazyColumn(Modifier.weight(1f).fillMaxWidth().focusRestorer(), contentPadding = PaddingValues(VelaSpace.Xs),
-                        verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                    LazyColumn(Modifier.weight(1f).fillMaxWidth().focusRestorer(), contentPadding = PaddingValues(VelaSpace.Xxs),
+                        verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
                         if (person != null && !sideBySide) item("editor-person") { person() }
                         content()
                     }

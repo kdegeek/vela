@@ -44,6 +44,11 @@ an essential boundary. Fields and child buttons remain flat inside it. The dense
 variant provides a stable reading surface. `VelaAmbientBackground` is the calm
 sparse/management scene; it performs no effects or network reads.
 
+Text fields use a static label above a filled rounded input. The focus ring follows
+the input container only; labels never cut through its edge or sit on a floating
+opaque patch. The editable target retains the accessible label and existing input
+behavior. Search actions align with the input container below the label.
+
 `VelaBackdrop(model, modifier)` keeps its current signature. It owns bounded,
 cached soft artwork and theme-specific scrims, compatible with minSdk 28. It must
 not rely on API31 RenderEffect/Modifier.blur, perform image work on Main, blur

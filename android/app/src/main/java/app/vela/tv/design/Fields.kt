@@ -2,11 +2,12 @@ package app.vela.tv.design
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -14,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
 
 @Composable fun VelaTextField(value: String, onValueChange: (String) -> Unit, label: String,
     modifier: Modifier = Modifier, supporting: String? = null, error: String? = null, placeholder: String? = null,
@@ -26,26 +28,31 @@ import androidx.compose.ui.text.input.VisualTransformation
     val countMin = if (singleLine) 1 else minLines.coerceAtLeast(1)
     val countMax = if (singleLine) 1 else maxLines.coerceAtLeast(countMin)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
-        OutlinedTextField(value, { if (enabled && !readOnly) onValueChange(it.take(maxLength.coerceAtLeast(0))) },
-            modifier = Modifier.fillMaxWidth().velaFocusRing(focused, VelaShapes.Field, c.focusRing,
+        // Keep the label outside the input: a floating outlined label reserves space inside
+        // the focus outline and leaves a visible cutout against translucent parent surfaces.
+        Text(label, style = Vela.type.meta, color = if (error != null) c.danger else c.inkMuted,
+            modifier = Modifier.clearAndSetSemantics {})
+        TextField(value, { if (enabled && !readOnly) onValueChange(it.take(maxLength.coerceAtLeast(0))) },
+            modifier = Modifier.fillMaxWidth()
+                .then(if (!focused) Modifier.border(1.dp,
+                    if (error != null) c.danger else c.lineStrong, VelaShapes.Field) else Modifier)
+                .velaFocusRing(focused, VelaShapes.Field, if (error != null) c.danger else c.focusRing,
                 if (c.highContrast) VelaSize.HighContrastRing else VelaSize.ControlRing, VelaSize.ControlRingOffset)
-                .semantics { if (!enabled) disabled() },
+                .semantics { contentDescription = label; if (!enabled) disabled() },
             // Read-only retains the field's existing single focus target while making it unavailable.
             enabled = true, readOnly = readOnly || !enabled, textStyle = Vela.type.body,
-            label = { Text(label, style = Vela.type.label) },
             placeholder = placeholder?.let { text -> { Text(text, style = Vela.type.body) } },
             isError = error != null, visualTransformation = if (secret && !revealSecret) PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions = keyboardOptions, keyboardActions = if (enabled && !readOnly) keyboardActions else KeyboardActions.Default, singleLine = singleLine,
             minLines = countMin, maxLines = countMax, interactionSource = source, shape = VelaShapes.Field,
-            colors = OutlinedTextFieldDefaults.colors(
+            colors = TextFieldDefaults.colors(
                 focusedTextColor = if (enabled) c.ink else c.inkMuted, unfocusedTextColor = if (enabled) c.ink else c.inkSubtle,
-                focusedContainerColor = c.surfaceFocused, unfocusedContainerColor = c.canvas,
-                errorContainerColor = if (focused) c.surfaceFocused else c.canvas,
+                focusedContainerColor = c.surfaceFocused, unfocusedContainerColor = c.surfaceRaised,
+                errorContainerColor = if (focused) c.surfaceFocused else c.surfaceRaised,
                 cursorColor = c.accent, errorCursorColor = c.danger,
                 // The shared outset ring is the sole focused outline; fill and cursor also change.
-                focusedBorderColor = Color.Transparent, unfocusedBorderColor = c.lineStrong,
-                errorBorderColor = if (focused) Color.Transparent else c.danger,
-                focusedLabelColor = c.ink, unfocusedLabelColor = c.inkMuted, errorLabelColor = c.danger,
+                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+                errorIndicatorColor = Color.Transparent,
                 focusedPlaceholderColor = c.inkMuted, unfocusedPlaceholderColor = c.inkSubtle, errorTextColor = c.ink))
         if (error != null) InlineStatus(error, tone = StatusTone.Danger)
         else if (supporting != null) Text(supporting, style = Vela.type.body, color = c.inkMuted, modifier = Modifier.readingWidth())

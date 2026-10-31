@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -60,10 +61,10 @@ import kotlinx.coroutines.*
     }
     GlassDestinationPage("Search", Modifier.fillMaxSize().imePadding(), inset = false) {
         insetItem("query") { GlassManagementGroup {
-            Row(horizontalArrangement = Arrangement.spacedBy(VelaSpace.S), verticalAlignment = Alignment.CenterVertically) {
+            Row(horizontalArrangement = Arrangement.spacedBy(VelaSpace.S), verticalAlignment = Alignment.Bottom) {
                 VelaTextField(query, { query = it }, "Search titles and apps", Modifier.weight(1f), maxLength = 500,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { submitted = query.trim(); retry++ }))
-                VelaButton("Search", enabled = query.isNotBlank(), variant = ButtonVariant.Primary) { submitted = query.trim(); retry++ }
+                VelaButton("Search", Modifier.heightIn(min = TextFieldDefaults.MinHeight), enabled = query.isNotBlank(), variant = ButtonVariant.Primary) { submitted = query.trim(); retry++ }
             }
         } }
         if (submitted.isBlank()) insetItem("empty") { EmptyState("What are you in the mood for?", "Search your Jellyfin library and installed apps, or ask Vela to find something across your streaming apps.") }
