@@ -1,6 +1,9 @@
 package app.vela.tv.home
 
-import app.vela.tv.media.await
+import app.vela.tv.network.awaitResponse
+import app.vela.tv.network.SingleAttemptBody
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.Json
@@ -26,24 +29,27 @@ class HomeAssistant(
     client: OkHttpClient = OkHttpClient(),
 ) {
     private val base = baseUrl.trimEnd('/').toHttpUrl()
-    private val http = client.newBuilder().callTimeout(10, TimeUnit.SECONDS).build()
+    private val http = client.newBuilder().callTimeout(10, TimeUnit.SECONDS).retryOnConnectionFailure(false).followRedirects(false).followSslRedirects(false).build()
     private val json = Json { ignoreUnknownKeys = true }
 
     private suspend fun send(segments: List<String>, method: String = "GET", body: JsonObject? = null): String =
         sendOrNull(segments, method, body, nullOn404 = false)!!
 
-    private suspend fun sendOrNull(segments: List<String>, method: String, body: JsonObject?, nullOn404: Boolean): String? {
+    private suspend fun sendOrNull(segments: List<String>, method: String, body: JsonObject?, nullOn404: Boolean): String? = withContext(Dispatchers.IO) {
         val url = base.newBuilder().apply { segments.forEach { addPathSegment(it) } }.build()
         val request = Request.Builder().url(url)
             .header("Authorization", "Bearer $token")
-            .method(method, if (method == "GET") null else (body ?: JsonObject(emptyMap())).toString().toRequestBody(JSON_TYPE))
+            .method(method, if (method == "GET") null else SingleAttemptBody((body ?: JsonObject(emptyMap())).toString().toRequestBody(JSON_TYPE)))
             .build()
-        return http.newCall(request).await().use { res ->
-            val text = res.body.string()
+        http.newCall(request).awaitResponse { res ->
+            val source = res.body.source()
+            source.request(8_388_609)
+            if (source.buffer.size > 8_388_608) throw IOException("Home Assistant response exceeded 8 MiB")
+            val text = source.readUtf8()
             when {
                 res.code == 401 -> throw HomeAssistantAuthError("Home Assistant rejected the access token (401)")
                 res.code == 404 && nullOn404 -> null
-                !res.isSuccessful -> throw IOException("Home Assistant $method ${url.encodedPath} failed: ${res.code} ${text.take(200)}")
+                !res.isSuccessful -> throw IOException("Home Assistant $method ${url.encodedPath} failed: ${res.code} ${text.replace(token, "[redacted]").take(200)}")
                 else -> text
             }
         }

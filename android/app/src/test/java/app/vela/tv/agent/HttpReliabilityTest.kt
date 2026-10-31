@@ -46,4 +46,19 @@ class HttpReliabilityTest {
             assertTrue(runCatching { OpenAiProvider(server.url("/v1").toString(), null, "test").complete("s", emptyList(), emptyList()) }.exceptionOrNull() is ProviderException)
         }
     }
+
+    @Test fun `503 follow-ups cannot exceed the three explicit model attempts`() = runTest {
+        MockWebServer().use { server ->
+            server.start()
+            repeat(6) { server.enqueue(MockResponse.Builder().code(503).addHeader("Retry-After", "0").body("{}").build()) }
+            assertTrue(runCatching { OpenAiProvider(server.url("/v1").toString(), null, "test").complete("s", listOf(Msg.User("hi")), emptyList()) }.exceptionOrNull() is ProviderException)
+            assertEquals(3, server.requestCount)
+        }
+    }
+    @Test fun `credential is redacted before the error detail is truncated`() {
+        val key = "dummy-credential-for-boundary-test"
+        val body = """{"error":{"message":"${"x".repeat(195)}$key trailing"}}"""
+        val error = runCatching { HttpReply(401, body).requireOk("Model", key) }.exceptionOrNull()!!
+        assertFalse(error.message!!, error.message!!.contains("dummy"))
+    }
 }

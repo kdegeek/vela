@@ -1,7 +1,5 @@
 package app.vela.tv.launcher
 
-import android.content.Intent
-import android.net.Uri
 import app.vela.tv.VelaApp
 import app.vela.tv.agent.TvTools
 import app.vela.tv.layout.RowSpec
@@ -10,13 +8,13 @@ import app.vela.tv.layout.TileAction
 import app.vela.tv.layout.TileStyle
 import app.vela.tv.media.JellyfinClient.ImageType
 import app.vela.tv.media.JellyfinItem
-import app.vela.tv.player.PlayerActivity
+import app.vela.tv.agent.ProfileExecution
+import app.vela.tv.media.plex.PlexBrowsePolicy
+import app.vela.tv.media.plex.PlexItem
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** One tile, ready to draw. [image] is anything Coil can load: a URL or a Drawable (app banners). */
 data class Tile(
@@ -58,6 +56,7 @@ class HomeData(private val app: VelaApp) {
             is Source.JellyfinResume -> jellyfin(spec)?.let { jf -> jf.resume(20).map { it.tile(spec, "Continue watching", jf) } }.orEmpty()
             is Source.JellyfinLatest -> jellyfin(spec)?.let { jf -> jf.latest(20, src.libraryName).map { it.tile(spec, "Recently added", jf) } }.orEmpty()
             is Source.JellyfinSearch -> jellyfin(spec)?.let { jf -> jf.search(src.query, 20).map { it.tile(spec, spec.title, jf) } }.orEmpty()
+            is Source.PlexLibrary, is Source.PlexRecent, is Source.PlexSearch, is Source.PlexResume, is Source.PlexOnDeck -> plexTiles(spec)
             is Source.Watchlist -> app.settings.watchlist.value.mapIndexed { i, p ->
                 Tile("saved:$i", p.title, p.action, p.subtitle, p.imageUrl, p.imageUrl, "My list")
             }
@@ -77,6 +76,49 @@ class HomeData(private val app: VelaApp) {
 
     private fun jellyfin(spec: RowSpec) = app.settings.settings.value.jellyfin(app.settings.deviceId)
         ?: if (spec.id in setOf("resume", "latest")) null else throw IllegalStateException("Jellyfin isn't set up")
+
+    private suspend fun plexTiles(spec: RowSpec): List<Tile> {
+        val profile = ProfileExecution.capture(app.householdOrNull())
+        PlexBrowsePolicy.requireAllowed(profile.profile)
+        val settings = app.settings.settings.value
+        fun requireCurrent() {
+            profile.requireCurrent()
+            check(app.settings.settings.value === settings) { "Plex settings changed. Reload this row." }
+        }
+        val plex = settings.plex(app.settings.deviceId, beforeRead = {
+            requireCurrent()
+            PlexBrowsePolicy.requireAllowed(profile.profile)
+        }) ?: error("Plex isn't set up. Add its server address and token from your paired phone.")
+        requireCurrent()
+        val page = when (val source = spec.source) {
+            is Source.PlexLibrary -> plex.browse(source.libraryId)
+            is Source.PlexRecent -> plex.recent(source.libraryId)
+            is Source.PlexSearch -> plex.search(source.libraryId, source.query)
+            is Source.PlexResume -> plex.resume()
+            is Source.PlexOnDeck -> plex.onDeck()
+            else -> error("Invalid Plex source.")
+        }
+        requireCurrent()
+        // Decoration has one shared budget. Missing/slow/invalid art leaves readable title cards.
+        val images = mutableMapOf<String, ByteArray>()
+        withTimeoutOrNull(3_000) {
+            page.items.take(6).forEach { item ->
+                requireCurrent()
+                val image = try { plex.artwork(item) } catch (e: CancellationException) { throw e } catch (_: Exception) { null }
+                if (image != null) images[item.id] = image
+            }
+        }
+        requireCurrent()
+        return page.items.map { it.plexTile(images[it.id]) }
+    }
+
+    private fun PlexItem.plexTile(image: ByteArray?): Tile = Tile(
+        key = "plex:$serverId:$id", title = seriesTitle ?: title,
+        action = TileAction.SearchApp(PlexBrowsePolicy.APP_PACKAGE, (seriesTitle ?: title).take(500)),
+        subtitle = listOfNotNull(if (seriesTitle != null) title else year?.toString(), "Search in Plex").joinToString(" · "),
+        image = image, kicker = "Plex · Search in app", overview = summary,
+        progress = progress,
+    )
 
     private fun JellyfinItem.tile(spec: RowSpec, kicker: String, jf: app.vela.tv.media.JellyfinClient): Tile {
         val poster = spec.style == TileStyle.POSTER
@@ -100,22 +142,8 @@ class HomeData(private val app: VelaApp) {
         )
     }
 
-    /** Runs a tile's action. The owner chose it with the remote, so no guard applies. */
+    /** Every activation (human, phone or accessibility) enters the same guarded controller. */
     suspend fun perform(action: TileAction) {
-        when (action) {
-            is TileAction.LaunchApp -> (app.packageManager.getLeanbackLaunchIntentForPackage(action.packageName)
-                ?: app.packageManager.getLaunchIntentForPackage(action.packageName) ?: error("That app is not installed." )).let { start(it) }
-            is TileAction.OpenUri -> start(Intent(Intent.ACTION_VIEW, Uri.parse(action.uri)).apply { action.packageName?.let { setPackage(it) } })
-            is TileAction.PlayJellyfin -> start(PlayerActivity.intent(app, action.itemId))
-            is TileAction.AskAgent -> app.runner.ask(action.prompt)
-            is TileAction.HomeService -> withContext(Dispatchers.IO) {
-                (app.settings.settings.value.homeAssistant() ?: error("Connect Home Assistant in Settings.")).call(
-                    action.domain, action.service,
-                    buildJsonObject { put("entity_id", JsonArray(listOf(JsonPrimitive(action.entityId)))) },
-                )
-            }
-        }
+        app.runner.performTile(action)
     }
-
-    private fun start(i: Intent) = app.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
 }

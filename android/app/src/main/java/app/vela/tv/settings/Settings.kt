@@ -10,6 +10,7 @@ import app.vela.tv.home.HomeAssistant
 import app.vela.tv.layout.HomeLayout
 import app.vela.tv.layout.Layouts
 import app.vela.tv.media.JellyfinClient
+import app.vela.tv.media.plex.PlexClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.SerialName
@@ -41,7 +42,14 @@ data class VelaSettings(
     val appearance: String = "night",
     val reduceMotion: Boolean = false,
     val highContrast: Boolean = false,
+    val plexUrl: String = "",
+    val plexToken: String = "",
 ) {
+    val plexConfigured get() = plexUrl.isNotBlank() && plexToken.isNotBlank()
+    fun plex(deviceId: String, beforeRead: () -> Unit = {}): PlexClient? =
+        if (plexConfigured) PlexClient(plexUrl, plexToken, deviceId, beforeRead = beforeRead) else null
+
+    override fun toString() = "VelaSettings(provider=$provider, agentConfigured=$agentReady, plexConfigured=$plexConfigured, credentials=[redacted])"
     val agentReady get() = when (provider) {
         ProviderKind.ANTHROPIC -> apiKey.isNotBlank()
         ProviderKind.OPENAI -> baseUrl.isNotBlank() && model.isNotBlank()
@@ -70,6 +78,9 @@ data class VelaSettings(
             }
         }
         require(listOf(apiKey, jellyfinToken, homeAssistantToken).all { it.length <= 8192 && '\n' !in it && '\r' !in it }) { "Invalid credential." }
+        if (plexUrl.isNotBlank()) PlexClient.validateAddress(plexUrl)
+        require(plexToken.isEmpty() || PlexClient.validToken(plexToken)) { "Invalid Plex credential." }
+        require(plexToken.isEmpty() || !plexUrl.contains(plexToken)) { "Plex address must not contain its credential." }
         return this
     }
 
@@ -78,6 +89,7 @@ data class VelaSettings(
         apiKey = mask(apiKey),
         jellyfinToken = mask(jellyfinToken),
         homeAssistantToken = mask(homeAssistantToken),
+        plexToken = mask(plexToken),
     )
 
     /**
@@ -88,6 +100,7 @@ data class VelaSettings(
         apiKey = if (edit.provider == provider && edit.baseUrl.trim() == baseUrl.trim()) keep(edit.apiKey, apiKey) else unmasked(edit.apiKey),
         jellyfinToken = if (edit.jellyfinUrl.trim() == jellyfinUrl.trim()) keep(edit.jellyfinToken, jellyfinToken) else unmasked(edit.jellyfinToken),
         homeAssistantToken = if (edit.homeAssistantUrl.trim() == homeAssistantUrl.trim()) keep(edit.homeAssistantToken, homeAssistantToken) else unmasked(edit.homeAssistantToken),
+        plexToken = if (edit.plexUrl.trim() == plexUrl.trim()) keep(edit.plexToken, plexToken) else unmasked(edit.plexToken),
     )
 
     companion object {
@@ -155,8 +168,10 @@ class SettingsStore(context: Context) {
         val stream = file.startWrite()
         try {
             stream.write(text.toByteArray(Charsets.UTF_8))
+            stream.fd.sync()
             file.finishWrite(stream)
         } catch (e: Exception) { file.failWrite(stream); throw e }
+        if (read(name) != text) throw java.io.IOException("Settings commit could not be verified.")
     }
 
     private fun newToken(): String {

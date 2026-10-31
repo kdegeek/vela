@@ -82,4 +82,48 @@ class AgentReliabilityTest {
         val calls = trimmed.filterIsInstance<Msg.Assistant>().flatMap { it.calls }.map { it.id }
         assertEquals(calls, trimmed.filterIsInstance<Msg.ToolResult>().map { it.callId })
     }
+    @Test fun `oversized argument batch is omitted whole while retaining the owner goal`() {
+        val calls = (1..12).map { ToolCall("arg$it", "act", buildJsonObject { put("text", "x".repeat(32_000)) }) }
+        val messages = listOf(Msg.User("owner goal"), Msg.Assistant("batch", calls)) +
+            calls.map { Msg.ToolResult(it.id, it.name, "ok") }
+        assertTrue(messages.sumOf { it.toString().length } > 385_000)
+        val trimmed = ConversationWindow.trim(messages)
+        assertTrue(trimmed.sumOf { it.toString().length } <= 100_000)
+        assertEquals(messages.first(), trimmed.first())
+        assertTrue(trimmed.filterIsInstance<Msg.Assistant>().all { it.calls.isEmpty() })
+        assertTrue(trimmed.filterIsInstance<Msg.ToolResult>().isEmpty())
+    }
+
+    @Test fun `context eviction never truncates arguments of retained exchanges`() {
+        val calls = (1..12).map { ToolCall("arg$it", "act", buildJsonObject { put("text", "x".repeat(32_000)) }) }
+        val recent = ToolCall("recent", "act", buildJsonObject { put("text", "exact arguments") })
+        val messages = listOf(Msg.User("goal"), Msg.Assistant(null, calls)) +
+            calls.map { Msg.ToolResult(it.id, it.name, "ok") } +
+            listOf(Msg.Assistant(null, listOf(recent)), Msg.ToolResult(recent.id, recent.name, "observed"))
+        val trimmed = ConversationWindow.trim(messages)
+        assertTrue(trimmed.sumOf { it.toString().length } <= 100_000)
+        assertEquals(listOf(recent), trimmed.filterIsInstance<Msg.Assistant>().flatMap { it.calls })
+        assertEquals(listOf(recent.id), trimmed.filterIsInstance<Msg.ToolResult>().map { it.callId })
+    }
+
+    @Test fun `agent sends and retains bounded exchanges after oversized argument batch`() = runTest {
+        val calls = (1..12).map { ToolCall("arg$it", "act", buildJsonObject { put("text", "x".repeat(32_000)) }) }
+        val action = object : Tool {
+            override val spec = ToolSpec("act", "act", buildJsonObject {})
+            override suspend fun run(args: JsonObject) = ToolOutcome("observed")
+        }
+        var turn = 0
+        val provider = object : Provider {
+            override suspend fun complete(system: String, history: List<Msg>, tools: List<ToolSpec>): Turn {
+                assertTrue(history.sumOf { it.toString().length } <= 100_000)
+                assertEquals(Msg.User("owner goal"), history.first())
+                return if (turn++ == 0) Turn(null, calls) else throw ProviderException("offline")
+            }
+        }
+        val result = Agent(provider, listOf(action), "s", { _, _ -> true }).run("owner goal")
+        assertEquals(2, turn)
+        assertTrue(result.sumOf { it.toString().length } <= 100_000)
+        assertTrue(result.filterIsInstance<Msg.ToolResult>().isEmpty())
+    }
+
 }

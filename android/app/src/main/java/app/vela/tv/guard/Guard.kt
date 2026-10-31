@@ -29,6 +29,7 @@ object Guard {
         """\b(factory (data )?reset|reset to factory|erase (everything|all)|wipe|clear (all )?data)\b""",
         RegexOption.IGNORE_CASE,
     )
+    private val securityPress = Regex("""garage[ _-]?door|\b(unlock|disarm|alarm|camera|siren)\b""", RegexOption.IGNORE_CASE)
     private val securityDomains = setOf("lock", "alarm_control_panel", "camera", "siren")
     private val systemDomains = setOf("homeassistant", "hassio", "system_log", "recorder", "backup", "update")
     private val securityEntity = Regex("""garage|gate|lock|alarm|front_door|back_door|camera|siren""", RegexOption.IGNORE_CASE)
@@ -53,6 +54,7 @@ object Guard {
         if (t.isEmpty()) return null
         val quoted = "\"${t.take(80)}\""
         return when {
+            securityPress.containsMatchIn(t) -> GuardHit(Risk.SECURITY, quoted)
             reset.containsMatchIn(t) -> GuardHit(Risk.RESET, quoted)
             purchase.containsMatchIn(t) -> GuardHit(Risk.PURCHASE, quoted)
             account.containsMatchIn(t) -> GuardHit(Risk.ACCOUNT, quoted)
@@ -72,7 +74,7 @@ object Guard {
             d in systemDomains -> GuardHit(Risk.RESET, "$domain.$service changes Home Assistant itself")
             d in securityDomains -> GuardHit(Risk.SECURITY, "$domain.$service on $target")
             entityIds.any { securityEntity.containsMatchIn(it) } -> GuardHit(Risk.SECURITY, "$domain.$service on $target")
-            d == "cover" && wholeDomain -> GuardHit(Risk.SECURITY, "$domain.$service on every cover, garage doors included")
+            d == "cover" -> GuardHit(Risk.SECURITY, "$domain.$service on $target; covers can include garage doors")
             d in setOf("script", "automation", "scene", "button", "input_button") && wholeDomain ->
                 GuardHit(Risk.SECURITY, "$domain.$service on every $domain at once")
             d !in everyday -> GuardHit(Risk.SECURITY, "$domain.$service isn't an everyday device")

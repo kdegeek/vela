@@ -7,37 +7,46 @@
 <title>Vela · Your TV, in reach</title>
 <style>
 :root{color-scheme:light dark;--abyss:light-dark(oklch(96% .015 85),oklch(18% .04 275));--surface:light-dark(oklch(99% .01 85),oklch(23% .04 275));--ink:light-dark(oklch(22% .04 275),oklch(96% .02 85));--dim:color-mix(in oklch,var(--ink) 75%,var(--abyss));--line:color-mix(in oklch,var(--ink) 28%,var(--abyss));--gold:light-dark(oklch(43% .08 80),oklch(83% .08 80));--danger:light-dark(oklch(44% .18 25),oklch(82% .1 25));--gutter:clamp(1rem,.5rem + 2vw,2.5rem);font:16px/1.5 system-ui,sans-serif;scrollbar-gutter:stable;overflow-wrap:break-word}
-*{box-sizing:border-box;min-inline-size:0}body{margin:0;background:var(--abyss);color:var(--ink);min-block-size:100svh}h1,h2,h3,p{margin:0}h1,h2{font-family:Georgia,serif;font-weight:400;text-wrap:balance}h1{font-size:clamp(2rem,1.5rem + 2vw,3rem)}h2{font-size:1.6rem}header,main{max-inline-size:76rem;margin-inline:auto;padding:var(--gutter)}header{padding-block-start:calc(var(--gutter) + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:1rem;flex-wrap:wrap}header p{color:var(--dim)}header .status{margin-inline-start:auto;color:var(--gold)}main{padding-block-start:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,28rem),1fr));gap:1.25rem;padding-block-end:calc(var(--gutter) + env(safe-area-inset-bottom,0px))}section{background:var(--surface);border:1px solid var(--line);border-radius:1.25rem;padding:var(--gutter);display:flex;flex-direction:column;gap:1rem}section.wide{grid-column:1/-1}label{display:grid;gap:.375rem;color:var(--dim)}input,select,textarea,button{font:inherit;color:var(--ink)}input,select,textarea{inline-size:100%;background:var(--abyss);border:1px solid var(--line);border-radius:.65rem;padding:.75rem}textarea{min-block-size:10rem;resize:vertical}input[type=checkbox]{inline-size:1.3rem;block-size:1.3rem}button,summary{cursor:pointer;touch-action:manipulation}button{min-block-size:44px;padding:.65rem 1.15rem;background:var(--abyss);border:1px solid var(--line);border-radius:2rem}button.primary{background:var(--gold);color:var(--abyss);border-color:var(--gold)}button:disabled{opacity:.5;cursor:wait}button:active,summary:active{background:var(--line)}:focus-visible{outline:3px solid var(--gold);outline-offset:3px}input:user-invalid{border-color:var(--danger)}.row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}.row input:not([type=checkbox]){flex:1;min-inline-size:min(100%,14rem)}.stack,form,details[open]{display:grid;gap:1rem}.hint{color:var(--dim);font-size:.9rem}.error{color:var(--danger)}[hidden]{display:none!important}#log{block-size:19rem;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;display:flex;flex-direction:column;gap:.75rem;padding:.5rem;border-block:1px solid var(--line)}#log .you{align-self:end;border-radius:.75rem;background:var(--abyss);padding:.65rem 1rem;max-inline-size:90%}#log .step{color:var(--dim);font-size:.9rem}#log .said{color:var(--ink)}#pending{border:1px solid var(--gold);padding:1rem;border-radius:.75rem;display:grid;gap:1rem}#tasks{display:grid;gap:.75rem;max-block-size:18rem;overflow-y:auto}#tasks article{padding:.75rem;border-block-end:1px solid var(--line)}.remote{display:grid;grid-template-columns:repeat(3,minmax(44px,1fr));gap:.65rem;max-inline-size:20rem;align-self:center}.remote button{border-radius:.75rem;min-block-size:52px}.remote .up{grid-column:2}.remote .left{grid-column:1}.remote .down{grid-column:2}.remote .back{grid-column:1}pre{white-space:pre-wrap;margin:0;font:inherit;color:var(--dim)}summary{min-block-size:44px;padding-block:.5rem}.check{display:flex;align-items:center;gap:.75rem}.sr-only{position:absolute;inline-size:1px;block-size:1px;overflow:clip;clip-path:inset(50%)}
+*{box-sizing:border-box;min-inline-size:0}body{margin:0;background:var(--abyss);color:var(--ink);min-block-size:100svh}h1,h2,h3,p{margin:0}h1,h2{font-family:Georgia,serif;font-weight:400;text-wrap:balance}h1{font-size:clamp(2rem,1.5rem + 2vw,3rem)}h2{font-size:1.6rem}header,main{max-inline-size:76rem;margin-inline:auto;padding:var(--gutter)}header{padding-block-start:calc(var(--gutter) + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:1rem;flex-wrap:wrap}header p{color:var(--dim)}header .status{margin-inline-start:auto;color:var(--gold)}main{padding-block-start:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,28rem),1fr));gap:1.25rem;padding-block-end:calc(var(--gutter) + env(safe-area-inset-bottom,0px))}section{background:var(--surface);border:1px solid var(--line);border-radius:1.25rem;padding:var(--gutter);display:flex;flex-direction:column;gap:1rem}section.wide{grid-column:1/-1}label{display:grid;gap:.375rem;color:var(--dim)}input,select,textarea,button{font:inherit;color:var(--ink)}input,select,textarea{inline-size:100%;background:var(--abyss);border:1px solid var(--line);border-radius:.65rem;padding:.75rem}textarea{min-block-size:10rem;resize:vertical}input[type=checkbox]{inline-size:1.3rem;block-size:1.3rem}button,summary{cursor:pointer;touch-action:manipulation}button{min-block-size:44px;padding:.65rem 1.15rem;background:var(--abyss);border:1px solid var(--line);border-radius:2rem}button.primary{background:var(--gold);color:var(--abyss);border-color:var(--gold)}button:disabled{opacity:.55;cursor:not-allowed}button:active,summary:active{background:var(--line)}:focus-visible{outline:3px solid var(--gold);outline-offset:3px}input:user-invalid{border-color:var(--danger)}.row{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}.row input:not([type=checkbox]){flex:1;min-inline-size:min(100%,14rem)}.stack,form,details[open]{display:grid;gap:1rem}.hint{color:var(--dim);font-size:.9rem}.error{color:var(--danger)}[hidden]{display:none!important}#log{block-size:clamp(12rem,40svh,24rem);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;display:flex;flex-direction:column;gap:.75rem;padding:.5rem;border-block:1px solid var(--line)}#log .you{align-self:end;border-radius:.75rem;background:var(--abyss);padding:.65rem 1rem;max-inline-size:90%}#log .step{color:var(--dim);font-size:.9rem}#log .said{color:var(--ink)}#pending{border:1px solid var(--gold);padding:1rem;border-radius:.75rem;display:grid;gap:1rem}#tasks{display:grid;gap:.75rem;max-block-size:18rem;overflow-y:auto}#tasks article{padding:.75rem;border-block-end:1px solid var(--line)}.remote{inline-size:min(100%,20rem);display:grid;grid-template-columns:repeat(3,minmax(44px,1fr));gap:.65rem;max-inline-size:20rem;align-self:center}.remote button{border-radius:.75rem;min-block-size:52px}.remote .up{grid-column:2}.remote .left{grid-column:1}.remote .down{grid-column:2}.remote .back{grid-column:1}pre{white-space:pre-wrap;margin:0;font:inherit;color:var(--dim)}summary{min-block-size:44px;padding-block:.5rem}.check{display:flex;align-items:center;gap:.75rem;min-block-size:44px}.sr-only{position:absolute;inline-size:1px;block-size:1px;overflow:clip;clip-path:inset(50%)}
 @media(hover:hover) and (pointer:fine){button:hover,summary:hover{border-color:var(--gold);color:var(--gold)}button.primary:hover{color:var(--abyss);background:color-mix(in oklch,var(--gold),var(--ink) 10%)}}
+.section-nav{display:flex;flex-wrap:wrap;gap:.5rem;max-inline-size:76rem;margin-inline:auto;padding-inline:var(--gutter);padding-block-end:var(--gutter)}a{color:var(--gold);touch-action:manipulation}.section-nav a{display:inline-flex;align-items:center;min-block-size:44px;padding-inline:1rem;padding-block:.5rem;border:1px solid var(--line);border-radius:2rem;text-decoration:none}a:active{background:var(--line)}section{scroll-margin-block:1rem}#connectionHelp{max-inline-size:76rem;margin-inline:auto;padding-inline:var(--gutter);padding-block-end:var(--gutter)}#pending:focus-visible{outline-offset:4px}#log:empty::before{content:"Your conversation will appear here. Ask a question to get started.";color:var(--dim)}#tasks:empty::before{content:"No activity yet. Tasks stay on the TV until cleared or Vela restarts.";color:var(--dim)}
+@media(hover:hover) and (pointer:fine){.section-nav a:hover{background:var(--surface);border-color:var(--gold)}}
+@media(forced-colors:active){button,.section-nav a{border:1px solid ButtonText}}
+.management-list{display:grid;gap:1rem;max-block-size:32rem;overflow-y:auto;overscroll-behavior:contain}.management-list article{display:grid;gap:.75rem;padding-block:1rem;border-block-end:1px solid var(--line)}.management-list p{white-space:pre-wrap;overflow-wrap:anywhere}#profileExport{max-block-size:20rem}#externalCredentialPanel{display:grid;gap:1rem;border:1px solid var(--gold);padding:1rem;border-radius:.75rem}textarea{field-sizing:content;min-block-size:4lh;max-block-size:16lh}input:active,select:active,textarea:active{border-color:var(--gold)}
 </style>
 </head>
 <body>
 <header><div><h1>Vela</h1><p>Your TV, in reach.</p></div><p id="connection" class="status" role="status">Connecting…</p></header>
+<nav class="section-nav" aria-label="Companion sections"><a href="#chat">Ask</a><a href="#remoteSection">Remote</a><a href="#profilesSection">Profiles</a><a href="#memoriesSection">Memory</a><a href="#routinesSection">Routines</a><a href="#externalSection">External control</a><a href="#connections">Connections</a><a href="#homeLayout">Home screen</a></nav>
+<div id="connectionHelp"><p class="hint">Keep this phone and the TV on the same network. Your unsent text stays here while reconnecting.</p><button id="reconnect" type="button">Retry connection</button></div>
 <main>
 <section id="unpaired" class="wide" hidden><h2>Connect this phone</h2><p>Open Settings on Vela and scan the QR code. The pairing code stays between your phone and the TV.</p></section>
-<section><h2>Ask Vela</h2><p class="hint">Find a film. Set the mood. Make the TV your own.</p>
-<div id="log" role="log" aria-label="Conversation"></div>
-<div id="pending" hidden><p id="pendingText"></p><div class="row"><button id="allow" class="primary">Allow once</button><button id="deny">Decline</button></div></div>
-<form id="askForm"><div class="row"><label class="sr-only" for="ask">Ask Vela</label><input id="ask" placeholder="Play something good tonight" maxlength="8000" required><button class="primary">Ask</button></div></form>
+<section id="chat" aria-labelledby="chatHeading"><h2 id="chatHeading">Ask Vela</h2><p class="hint">Find a film. Set the mood. Make the TV your own.</p>
+<div id="log" role="log" aria-label="Conversation" tabindex="0"></div>
+<div id="pending" role="region" aria-labelledby="pendingText" tabindex="-1" hidden><p id="pendingText"></p><div class="row"><button id="allow" class="primary">Allow once</button><button id="deny">Decline</button></div></div>
+<form id="askForm"><label for="ask">Your request</label><div class="row"><input id="ask" autocomplete="off" aria-describedby="chatError" placeholder="Play something good tonight" maxlength="8000" required><button class="primary">Ask</button></div></form>
 <div class="row"><button id="stop" hidden>Stop task</button><button id="clear">Clear activity</button><span id="chatError" class="error" role="alert"></span></div>
 </section>
-<section><h2>The remote</h2><p class="hint">Use the arrows and OK just like your TV remote. Stop an active agent task before taking over.</p>
+<section id="remoteSection" aria-labelledby="remoteHeading"><h2 id="remoteHeading">The remote</h2><p id="remoteStatus" class="hint" role="status">Connect to the TV to use the remote.</p>
 <div class="remote" aria-label="TV remote"><button class="up" data-key="up" aria-label="Up">↑</button><button class="left" data-key="left" aria-label="Left">←</button><button data-key="select">OK</button><button data-key="right" aria-label="Right">→</button><button class="down" data-key="down" aria-label="Down">↓</button><button class="back" data-key="back">Back</button><button data-key="home">Home</button></div>
 <details><summary>Device &amp; permissions</summary><pre id="device">Waiting for the TV…</pre></details>
-<h3>Recent activity</h3><div id="tasks"></div>
+<h3>Recent activity</h3><div id="tasks" tabindex="0" aria-label="Recent activity"></div>
 </section>
-<section><h2>Connections</h2><p class="hint">Credentials are stored on the TV. A masked key keeps its saved value while its server address stays the same.</p>
+<section id="connections" aria-labelledby="connectionsHeading"><h2 id="connectionsHeading">Connections</h2><p class="hint">Credentials are stored on the TV. A masked key keeps its saved value while its server address stays the same.</p>
 <form id="settingsForm">
 <label>AI provider<select name="provider"><option value="openai">OpenAI compatible · cloud or local</option><option value="anthropic">Anthropic</option></select></label>
 <label>Server address<input name="baseUrl" type="url" placeholder="https://provider.example/v1"></label>
 <p class="hint">OpenAI compatible servers need the API base path, usually /v1. For Anthropic, leave the address blank for the official API.</p>
 <label>API key<input name="apiKey" type="password" autocomplete="off" maxlength="8192"></label>
 <label>Model<input name="model" placeholder="Model name from your provider" maxlength="200"></label>
-<details><summary>Jellyfin &amp; Home Assistant</summary>
+<details><summary>Jellyfin, Plex &amp; Home Assistant</summary>
 <label>Jellyfin address<input name="jellyfinUrl" type="url" placeholder="http://192.168.1.10:8096"></label>
 <label>Jellyfin API key<input name="jellyfinToken" type="password" autocomplete="off" maxlength="8192"></label>
 <label>Jellyfin user ID<input name="jellyfinUserId"></label>
 <p class="hint">All three Jellyfin fields are required to browse and save progress.</p>
+<label>Plex server address<input name="plexUrl" type="url" maxlength="2048" placeholder="http://192.168.1.10:32400"></label>
+<label>Plex server token<input name="plexToken" type="password" autocomplete="off" maxlength="8192"></label>
+<p class="hint">Optional: enter your own Plex server address and token. Plex home rows browse this server; selecting a title searches the installed Plex app. Search does not start or verify playback.</p>
 <label>Home Assistant address<input name="homeAssistantUrl" type="url" placeholder="http://homeassistant.local:8123"></label>
 <label>Home Assistant token<input name="homeAssistantToken" type="password" autocomplete="off" maxlength="8192"></label>
 </details>
@@ -47,57 +56,414 @@
 <label class="check"><input type="checkbox" name="highContrast">High contrast</label>
 <label class="check"><input type="checkbox" name="ownHome">Home opens Vela · hold Home to ask</label>
 </details>
-<div class="row"><button class="primary">Save connections</button><span id="saved" role="status"></span></div>
+<div class="row"><button class="primary">Save connections</button><span id="saved" role="status" aria-live="polite"></span></div>
 </form><button id="test">Test saved connections</button><pre id="testResults" role="status"></pre>
 </section>
-<section><h2>Your home screen</h2><p class="hint">Ask Vela to arrange rows for you, or edit the layout here. Changes apply as soon as you save.</p>
+<section id="homeLayout" aria-labelledby="homeHeading"><h2 id="homeHeading">Your home screen</h2><p class="hint">Ask Vela to arrange rows for you, or edit the layout here. Changes apply as soon as you save.</p>
 <div class="row"><button id="loadLayout">Load current layout</button></div>
 <label>Layout JSON<textarea id="layout" spellcheck="false" maxlength="256000" placeholder="Load the current layout to begin"></textarea></label>
 <div class="row"><button id="saveLayout" class="primary">Save layout</button><span id="layoutStatus" role="status"></span></div>
 </section>
+<section id="profilesSection" aria-labelledby="profilesHeading"><h2 id="profilesHeading">Household profiles</h2>
+<p class="hint">Profiles personalize Vela. They have no PIN authentication and do not secure other Android apps. Home rows and My list remain shared.</p>
+<div class="row"><button id="loadProfiles" type="button">Load profiles / resolve conflict</button><button id="newProfile" type="button">New adult profile</button><button id="recoverHousehold" type="button">Recover household storage…</button></div>
+<p id="profileStatus" role="status" aria-live="polite"></p><div id="profileList" class="management-list"></div>
+<form id="profileForm" hidden><h3 id="profileEditorHeading">Profile preferences</h3>
+<label>Display name<input id="profileName" maxlength="60" required></label>
+<label>Audio languages · comma-separated BCP-47 tags<input id="audioLanguages" placeholder="en, es"></label>
+<label>Subtitle languages · comma-separated BCP-47 tags<input id="subtitleLanguages" placeholder="en"></label>
+<label>Subtitles<select id="profileSubtitles"><option value="automatic">Automatic</option><option value="on">On</option><option value="off">Off</option></select></label>
+<label class="check"><input id="profileAutoplay" type="checkbox">Autoplay next episode</label>
+<p class="hint">Existing access restrictions and provider/library preferences are preserved. Child profiles stay restrictive; opaque app control may be unavailable. Use the TV for owner review.</p>
+<div class="row"><button class="primary">Save profile</button><button id="cancelProfile" type="button">Close editor</button></div></form>
+</section>
+<section id="memoriesSection" aria-labelledby="memoriesHeading"><h2 id="memoriesHeading">Explicit memory</h2>
+<p class="hint">Only the exact words you Save are remembered. Never enter credentials. Sharing allows these words to be sent to your configured AI provider; memory is data and cannot grant permission.</p>
+<label>Memory profile<select id="memoryProfile"><option value="">Load profiles first</option></select></label>
+<div class="row"><button id="loadMemories" type="button">Load memory / resolve conflict</button><button id="newMemory" type="button">New memory</button></div>
+<p id="memoryStatus" role="status" aria-live="polite"></p><div id="memoryList" class="management-list"></div>
+<div class="row"><button id="moreMemories" type="button" hidden>Load next page</button><button id="clearMemories" type="button">Clear this profile’s memory…</button><button id="exportProfile" type="button">Export this profile…</button></div>
+<form id="memoryForm" hidden><h3 id="memoryEditorHeading">Save explicit memory</h3>
+<label>Kind<select id="memoryKind"><option value="preference">Preference</option><option value="fact">Fact</option></select></label>
+<label>Exact words<textarea id="memoryText" maxlength="2000" required></textarea></label>
+<label>Tags · comma-separated lowercase words<input id="memoryTags" placeholder="subtitles, films"></label>
+<label class="check"><input id="memoryShare" type="checkbox">Share this entry with the agent</label>
+<div class="row"><button class="primary">Save these words</button><button id="cancelMemory" type="button">Close editor</button></div></form>
+<div id="exportPanel" hidden><p class="hint">Private export is shown only on your request. Save it somewhere you trust.</p><label>Profile export<textarea id="profileExport" readonly></textarea></label><div class="row"><button id="downloadExport" type="button">Download JSON</button><button id="closeExport" type="button">Hide export</button></div></div>
+</section>
+<section id="routinesSection" aria-labelledby="routinesHeading"><h2 id="routinesHeading">Durable routines</h2>
+<p class="hint">Routines submit normal tasks and may need approval. A busy TV queues them until their deadline. Android wakes are inexact. Saving binds a routine to the current profile and its exact policy/preferences. Later changes or a different active profile fail closed; edit and Save deliberately to rebind.</p>
+<div class="row"><button id="loadRoutines" type="button">Refresh routines &amp; history</button><button id="newRoutine" type="button">New routine</button></div>
+<p id="routineStatus" role="status" aria-live="polite"></p><div id="routineList" class="management-list"></div>
+<form id="routineForm" hidden><h3>Routine editor</h3><label>Name<input id="routineName" maxlength="120" required></label>
+<label>Task<textarea id="routineTask" maxlength="8000" required></textarea></label>
+<label>Schedule<select id="routineSchedule"><option value="once">One shot</option><option value="interval">Interval</option><option value="weekly">Weekly / daily</option><option value="monthly">Monthly</option></select></label>
+<div id="instantFields" class="stack"><label>First instant · ISO 8601 with Z or offset<input id="routineInstant" placeholder="2026-11-01T18:30:00-06:00"></label><p class="hint">One-shot and interval schedules use a precise instant, including its UTC offset. They do not follow wall-clock changes.</p></div>
+<label id="intervalFields" hidden>Interval minutes · at least 15<input id="routineInterval" type="number" min="15" max="527040" value="60"></label>
+<div id="calendarFields" class="stack" hidden><label>Named time zone<input id="routineZone" placeholder="America/Chicago"></label><label>Local time<input id="routineTime" type="time" value="18:30"></label><label id="weeklyFields">ISO weekdays · Monday 1 through Sunday 7<input id="routineDays" placeholder="1,2,3,4,5"></label><label id="monthlyFields" hidden>Day of month · clamps to month end<input id="routineDay" type="number" min="1" max="31" value="1"></label></div>
+<label>Missed occurrence<select id="routineMissed"><option value="RUN_LATEST">Run latest within deadline</option><option value="SKIP">Skip missed occurrences</option></select></label>
+<label>Deadline / maximum lateness in minutes<input id="routineLateness" type="number" min="1" max="43200" value="1440"></label>
+<label class="check"><input id="routineEnabled" type="checkbox">Enabled</label>
+<div class="row"><button class="primary">Save routine</button><button id="cancelRoutine" type="button">Close editor</button></div></form>
+<h3>Run history</h3><div id="routineHistory" class="management-list"></div>
+</section>
+<section id="externalSection" aria-labelledby="externalHeading"><h2 id="externalHeading">External agent control</h2>
+<p class="hint">Disabled by default. Enabling creates a dedicated credential for an MCP listener on TV loopback (127.0.0.1:8766). Access from another computer requires an explicitly configured tunnel. This does not expose a LAN or public endpoint. External actions use the same restrictions and approvals.</p>
+<p id="externalStatus" role="status" aria-live="polite">Load status before enabling.</p>
+<div class="row"><button id="loadExternal" type="button">Load status</button><button id="enableExternal" type="button">Enable external control…</button><button id="revokeExternal" type="button">Revoke and stop external work…</button></div>
+<div id="externalCredentialPanel" hidden><p>Shown once from this enable response. Copy it now; refreshing cannot retrieve it.</p><label>Dedicated credential<input id="externalCredential" type="password" readonly autocomplete="off"></label><label class="check"><input id="showExternalCredential" type="checkbox">Show credential</label><button id="hideExternalCredential" type="button">Hide and discard credential</button></div>
+</section>
+
 </main>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
 const incoming = new URLSearchParams(location.hash.slice(1)).get('t');
-try { if(incoming) { localStorage.setItem('vela-token',incoming); history.replaceState(null,'',location.pathname); } } catch (_) {}
+try { if(incoming) localStorage.setItem('vela-token',incoming); } catch (_) {}
+try { if(incoming) history.replaceState(null,'',location.pathname); } catch (_) {}
 const token = incoming || (()=>{try{return localStorage.getItem('vela-token')||''}catch(_){return ''}})();
 const form = $('settingsForm');
-let loaded = false, pendingId = null, lastLog = '', lastTasks = '', polling = false;
+const controls = [...document.querySelectorAll('main button, main input, main select, main textarea')];
+const remoteButtons = [...document.querySelectorAll('[data-key]')];
+const occupied = new Set();
+let loaded = false, connected = false, running = false, answering = false, remoteSending = false;
+let pendingId = null, lastLog = '', lastTasks = '', polling = false, pollTimer;
+function put(id, text) { if ($(id).textContent !== text) $(id).textContent = text; }
+function syncControls() {
+ for (const control of controls) control.disabled = !connected || occupied.has(control);
+ for (const button of remoteButtons) button.disabled = !connected || running || remoteSending;
+ $('allow').disabled = $('deny').disabled = !connected || !pendingId || answering;
+ $('reconnect').disabled = polling;
+ syncManagement();
+ put('remoteStatus', !connected ? 'Reconnect to the TV to use the remote.' : running ? 'Vela is working. Stop the task before using the remote.' : 'Use the arrows and OK just like your TV remote.');
+}
 async function api(path, opts={}) {
  const response = await fetch(path,{...opts,signal:AbortSignal.timeout(25000),headers:{'X-Vela-Token':token,'Content-Type':'application/json'},cache:'no-store'});
- if(response.status===401){$('unpaired').hidden=false;throw Error('Scan the QR code in TV Settings to pair this phone.');}
- if(!response.ok)throw Error((await response.text()).slice(0,500));
+ if(response.status===401){connected=false;pendingId=null;$('pending').hidden=true;$('unpaired').hidden=false;discardCredential();syncControls();throw Error('Scan the QR code in TV Settings to pair this phone.');}
+ if(!response.ok) {
+  const raw = (await response.text()).slice(0,500); let message = raw;
+  try { const data = JSON.parse(raw); message = data.message || data.error || raw; } catch(_) {}
+  const error = Error(response.status === 409 ? `Conflict or busy: ${message}. Reload before reapplying a change; your draft is retained.` : message || `The TV returned ${response.status}. Try again.`);
+  error.status = response.status; throw error;
+ }
  return response.json();
 }
 function render(state) {
- $('connection').textContent = state.running ? 'Vela is working…' : 'Connected to your TV';
- $('unpaired').hidden = true;
- const logKey=JSON.stringify(state.lines);
- if(logKey!==lastLog){lastLog=logKey;const atEnd=$('log').scrollHeight-$('log').scrollTop-$('log').clientHeight<50;
- $('log').replaceChildren(...state.lines.map(line=>{const p=document.createElement('div');p.className=['you','said','step','error'].includes(line.kind)?line.kind:'step';p.textContent=line.text;return p;}));
- if(atEnd)$('log').scrollTop=$('log').scrollHeight;}
- $('stop').hidden=!state.running;
- document.querySelectorAll('[data-key]').forEach(button=>button.disabled=state.running);
- pendingId=state.pendingId;$('pending').hidden=!pendingId;$('pendingText').textContent=state.pending||'';
- $('allow').disabled=$('deny').disabled=!pendingId;
- if(!loaded){loaded=true;for(const [key,value]of Object.entries(state.settings)){const field=form.elements.namedItem(key);if(field){if(field.type==='checkbox')field.checked=!!value;else field.value=value;}}}
- const d=state.device;$('device').textContent=`${d.model} · Android API ${d.androidApi}\nSurface ${d.surfaceWidth} × ${d.surfaceHeight}\nTV control: ${d.accessibility?'enabled':'needs Accessibility permission'}\nMedia access: ${d.mediaAccess?'enabled':'needs notification access'}`;
- const taskKey=JSON.stringify(state.tasks);
- if(taskKey!==lastTasks){lastTasks=taskKey;$('tasks').replaceChildren(...state.tasks.slice().reverse().map(task=>{const article=document.createElement('article');const title=document.createElement('strong');title.textContent=task.task;const detail=document.createElement('p');detail.className='hint';detail.textContent=`${task.state} · ${task.detail||new Date(task.startedAt).toLocaleTimeString()}`;article.append(title,detail);return article;}));}
+ connected = true; running = state.running;
+ put('connection', running ? 'Vela is working…' : 'Connected to your TV');
+ $('connectionHelp').hidden = true; $('unpaired').hidden = true;
+ const logKey = JSON.stringify(state.lines);
+ if(logKey !== lastLog) {
+  lastLog = logKey;
+  const atEnd = $('log').scrollHeight - $('log').scrollTop - $('log').clientHeight < 50;
+  $('log').replaceChildren(...state.lines.map(line => {
+   const p = document.createElement('div'); p.className = ['you','said','step','error'].includes(line.kind) ? line.kind : 'step'; p.textContent = line.text; return p;
+  }));
+  if(atEnd) $('log').scrollTop = $('log').scrollHeight;
+ }
+ $('stop').hidden = !running;
+ const previousPrompt = pendingId;
+ pendingId = state.pendingId || null;
+ $('pending').hidden = !pendingId;
+ put('pendingText', state.pending || '');
+ // Announce a new prompt once; polling must never take keyboard focus away from a phone form.
+ if(pendingId && pendingId !== previousPrompt) put('chatError', 'Approval needed. Review the question above before allowing it.');
+ if(!loaded) {
+  loaded = true;
+  for(const [key,value] of Object.entries(state.settings)) {
+   const field = form.elements.namedItem(key);
+   if(field) { if(field.type === 'checkbox') field.checked = !!value; else field.value = value; }
+  }
+ }
+ const d = state.device;
+ put('device', `${d.model} · Android API ${d.androidApi}\nSurface ${d.surfaceWidth} × ${d.surfaceHeight}\nTV control: ${d.accessibility ? 'enabled' : 'needs Accessibility permission'}\nMedia access: ${d.mediaAccess ? 'enabled' : 'needs notification access'}`);
+ const taskKey = JSON.stringify(state.tasks);
+ if(taskKey !== lastTasks) {
+  lastTasks = taskKey;
+  $('tasks').replaceChildren(...state.tasks.slice().reverse().map(task => {
+   const article = document.createElement('article'), title = document.createElement('strong'), detail = document.createElement('p');
+   title.textContent = task.task; detail.className = 'hint';
+   detail.textContent = `${task.state} · ${new Date(task.startedAt).toLocaleTimeString()}${task.detail ? ' · ' + task.detail : ''}`;
+   article.append(title, detail); return article;
+  }));
+ }
+ syncControls();
 }
-async function poll(){if(polling)return;polling=true;try{render(await api('/api/state'));}catch(error){$('connection').textContent='Disconnected · '+error.message;}finally{polling=false;setTimeout(poll,1500);}}
-async function action(path,body,status='chatError'){try{$(status).textContent='';const result=await api(path,{method:'POST',...(body===undefined?{}:{body:JSON.stringify(body)})});return result;}catch(error){$(status).textContent=error.message;throw error;}}
-$('askForm').addEventListener('submit',async event=>{event.preventDefault();const text=$('ask').value.trim();if(!text)return;try{await action('/api/ask',{text});$('ask').value='';}catch(_){} });
-$('stop').addEventListener('click',()=>action('/api/stop').catch(()=>{}));
-$('clear').addEventListener('click',()=>action('/api/history/clear').catch(()=>{}));
-for(const [id,allow]of [['allow',true],['deny',false]])$(id).addEventListener('click',async()=>{const displayed=pendingId;$('allow').disabled=$('deny').disabled=true;try{await action('/api/answer',{allow,promptId:displayed});}catch(_){} });
-document.querySelectorAll('[data-key]').forEach(button=>button.addEventListener('click',()=>action('/api/remote',{key:button.dataset.key}).catch(()=>{})));
-form.addEventListener('submit',async event=>{event.preventDefault();const settings={};for(const field of form.elements)if(field.name)settings[field.name]=field.type==='checkbox'?field.checked:field.value.trim();try{await action('/api/settings',settings,'saved');loaded=false;render(await api('/api/state'));$('saved').textContent='Saved on your TV.';}catch(_){} });
-$('test').addEventListener('click',async()=>{$('test').disabled=true;try{const results=await action('/api/connections/test',undefined,'testResults');$('testResults').textContent=Object.entries(results).map(([name,result])=>`${name}: ${result}`).join('\n');}catch(_){}finally{$('test').disabled=false;}});
-$('loadLayout').addEventListener('click',async()=>{try{$('layout').value=JSON.stringify(await api('/api/layout'),null,2);$('layoutStatus').textContent='Loaded.';}catch(error){$('layoutStatus').textContent=error.message;}});
-$('saveLayout').addEventListener('click',async()=>{try{const layout=JSON.parse($('layout').value);await api('/api/layout',{method:'PUT',body:JSON.stringify(layout)});$('layoutStatus').textContent='Saved on your TV.';}catch(error){$('layoutStatus').textContent=error.message;}});
-poll();
+async function poll() {
+ if(polling) return;
+ clearTimeout(pollTimer); polling = true; syncControls();
+ try { render(await api('/api/state')); }
+ catch(error) {
+  connected = false; pendingId = null; $('pending').hidden = true; discardCredential();
+  put('connection', 'Disconnected · ' + error.message); $('connectionHelp').hidden = false;
+ } finally { polling = false; syncControls(); pollTimer = setTimeout(poll,1500); }
+}
+async function action(path, body) {
+ return api(path,{method:'POST',...(body === undefined ? {} : {body:JSON.stringify(body)})});
+}
+async function perform(elements, status, work) {
+ if(!connected || elements.some(element => occupied.has(element))) return;
+ for(const element of elements) occupied.add(element);
+ put(status, ''); syncControls();
+ try { await work(); }
+ catch(error) { put(status, error.message || 'Could not reach the TV. Reconnect and try again.'); }
+ finally { for(const element of elements) occupied.delete(element); syncControls(); }
+}
+$('reconnect').addEventListener('click', poll);
+$('askForm').addEventListener('submit', event => {
+ event.preventDefault(); const text = $('ask').value.trim(); if(!text) return;
+ perform([...$('askForm').elements], 'chatError', async () => {
+  put('chatError', 'Sending your request…'); await action('/api/ask', {text}); put('chatError', 'Request sent.'); $('ask').value = ''; await poll();
+ });
+});
+$('stop').addEventListener('click', () => perform([$('stop')], 'chatError', async () => { put('chatError', 'Stopping the task…'); await action('/api/stop'); await poll(); }));
+$('clear').addEventListener('click', () => perform([$('clear')], 'chatError', async () => { await action('/api/history/clear'); await poll(); }));
+for(const [id,allow] of [['allow',true],['deny',false]]) $(id).addEventListener('click', async () => {
+ if(!connected || !pendingId || answering) return;
+ const displayed = pendingId; answering = true; syncControls();
+ try {
+  await action('/api/answer', {allow,promptId:displayed});
+  if(pendingId === displayed) { pendingId = null; $('pending').hidden = true; }
+  put('chatError', allow ? 'Allowed once.' : 'Declined.'); await poll();
+ } catch(error) { put('chatError', error.message); await poll(); }
+ finally { answering = false; syncControls(); }
+});
+remoteButtons.forEach(button => button.addEventListener('click', async () => {
+ if(!connected || running || remoteSending) return;
+ remoteSending = true; syncControls();
+ try { await action('/api/remote', {key:button.dataset.key}); put('chatError', ''); }
+ catch(error) { put('chatError', error.message); }
+ finally { remoteSending = false; syncControls(); }
+}));
+form.addEventListener('submit', event => {
+ event.preventDefault();
+ const settings = {};
+ for(const field of form.elements) if(field.name) settings[field.name] = field.type === 'checkbox' ? field.checked : field.value.trim();
+ perform([...form.elements], 'saved', async () => {
+  put('saved', 'Saving on your TV…'); await action('/api/settings', settings);
+  // Rehydrate exactly once before unlocking editing; a later poll never discards an unsaved edit.
+  loaded = false; render(await api('/api/state')); put('saved', 'Saved on your TV.');
+ });
+});
+$('test').addEventListener('click', () => perform([$('test')], 'testResults', async () => {
+ put('testResults', 'Testing saved connections…');
+ const results = await action('/api/connections/test');
+ put('testResults', Object.entries(results).map(([name,result]) => `${name}: ${result}`).join('\n'));
+}));
+$('loadLayout').addEventListener('click', () => perform([$('loadLayout'),$('saveLayout'),$('layout')], 'layoutStatus', async () => {
+ put('layoutStatus', 'Loading from your TV…'); $('layout').value = JSON.stringify(await api('/api/layout'),null,2); put('layoutStatus', 'Loaded from your TV.');
+}));
+$('saveLayout').addEventListener('click', () => perform([$('loadLayout'),$('saveLayout'),$('layout')], 'layoutStatus', async () => {
+ let layout;
+ try { layout = JSON.parse($('layout').value); } catch(_) { throw Error('The layout is not valid JSON. Check commas and brackets, then save again.'); }
+ put('layoutStatus', 'Saving on your TV…'); await api('/api/layout',{method:'PUT',body:JSON.stringify(layout)}); put('layoutStatus', 'Saved on your TV.');
+}));
+// Management state is loaded explicitly, never from /api/state or its polling loop.
+let profileSnapshot = null, profileEditing = null, profileEditRevision = null;
+let memoryPage = null, memoryEditing = null, memoryEditRevision = null, memoryOwner = null;
+let routineSnapshot = null, routineEditing = null, managementBusy = false, exportText = '';
+let externalSnapshot = null;
+const managementDynamic = new Map(), runRequestKeys = new Map();
+const managementIds = ['loadProfiles','recoverHousehold','newProfile','profileName','audioLanguages','subtitleLanguages','profileSubtitles','profileAutoplay','cancelProfile','memoryProfile','loadMemories','newMemory','moreMemories','clearMemories','exportProfile','memoryKind','memoryText','memoryTags','memoryShare','cancelMemory','downloadExport','closeExport','loadRoutines','newRoutine','routineName','routineTask','routineSchedule','routineInstant','routineInterval','routineZone','routineTime','routineDays','routineDay','routineMissed','routineLateness','routineEnabled','cancelRoutine','loadExternal','enableExternal','revokeExternal','showExternalCredential','hideExternalCredential'];
+function syncManagement() {
+ for(const id of managementIds) $(id).disabled = !connected || managementBusy;
+ for(const buttons of managementDynamic.values()) for(const button of buttons) button.disabled = !connected || managementBusy;
+ for(const id of ['profileForm','memoryForm','routineForm']) for(const element of $(id).elements) element.disabled = !connected || managementBusy;
+ $('newProfile').disabled ||= !profileSnapshot;
+ $('enableExternal').disabled ||= externalSnapshot?.credentialPresent === true;
+ for(const id of ['loadMemories','exportProfile']) $(id).disabled ||= !$('memoryProfile').value;
+ for(const id of ['newMemory','clearMemories','moreMemories']) $(id).disabled ||= !memoryPage || memoryOwner !== $('memoryProfile').value;
+}
+function exactRevision(value) {
+ if(!Number.isSafeInteger(value) || value < 0) throw Error('This revision cannot be safely edited on this phone. Use the TV.');
+ return value;
+}
+const csv = value => value.split(',').map(x=>x.trim()).filter(Boolean);
+const routeId = value => encodeURIComponent(value);
+async function write(path, method, body) { return api(path,{method,body:JSON.stringify(body)}); }
+async function manage(status, work) {
+ if(!connected || managementBusy) return;
+ managementBusy = true; put(status,'Working…'); syncControls();
+ try { await work(); }
+ catch(error) { put(status,error.message || 'Unknown result. Reconnect and reload before repeating a change.'); }
+ finally { managementBusy = false; syncControls(); }
+}
+function list(id, entries, renderEntry, empty) {
+ const buttons = []; managementDynamic.set(id,buttons);
+ const articles = entries.map(entry=>{
+  const article = document.createElement('article');
+  const text = (tag,value) => { const node=document.createElement(tag);node.textContent=String(value);article.append(node);return node; };
+  const button = (label,listener) => { const node=document.createElement('button');node.type='button';node.textContent=label;node.addEventListener('click',listener);buttons.push(node);article.append(node);return node; };
+  renderEntry(entry,text,button); return article;
+ });
+ if(!articles.length) { const p=document.createElement('p');p.textContent=empty;articles.push(p); }
+ $(id).replaceChildren(...articles); syncManagement();
+}
+function closeExport() { exportText='';$('profileExport').value='';$('exportPanel').hidden=true; }
+async function loadProfiles() {
+ const data=await api('/api/profiles'); exactRevision(data.revision); profileSnapshot=data;
+ const current=$('memoryProfile').value;
+ $('memoryProfile').replaceChildren(...data.profiles.map(profile=>{
+  const option=document.createElement('option');option.value=profile.id;option.textContent=profile.displayName+' · '+profile.id.slice(0,8)+(profile.id===data.activeProfileId?' · active':'');return option;
+ }));
+ $('memoryProfile').value=data.profiles.some(p=>p.id===current)?current:data.activeProfileId;
+ if(memoryOwner && memoryOwner !== $('memoryProfile').value) { memoryPage=null;$('memoryForm').hidden=true;$('memoryList').replaceChildren();closeExport(); }
+ list('profileList',data.profiles,(profile,text,button)=>{
+  text('h3',profile.displayName+(profile.id===data.activeProfileId?' · active':''));text('p',`${profile.kind} · ${profile.id.slice(0,8)} · ${profile.preferences.subtitles || 'automatic'} subtitles · autoplay ${profile.preferences.autoplayNext?'on':'off'}`);
+  button('Edit preferences',()=>editProfile(profile));
+  if(profile.id!==data.activeProfileId) button('Switch to '+profile.displayName,()=>manage('profileStatus',async()=>{
+   if(!confirm('Switch profile? Current agent work will stop and prior conversation context will clear.')) { put('profileStatus','Switch canceled.');return; }
+   await action('/api/profiles/active',{revision:exactRevision(data.revision),profileId:profile.id});await loadProfiles();put('profileStatus','Profile switched. Prior context cleared.');
+  }));
+  if(profile.id!==data.activeProfileId && data.profiles.length>1) button('Delete profile…',()=>manage('profileStatus',async()=>{
+   if(!confirm(`Delete ${profile.displayName} and ALL of its explicit memories? This cannot be undone.`)) { put('profileStatus','Delete canceled.');return; }
+   await write('/api/profiles/'+routeId(profile.id),'DELETE',{revision:exactRevision(data.revision),deleteOwnedMemories:true});await loadProfiles();put('profileStatus','Profile and its memories deleted.');
+  }));
+ },'No profiles available.');
+ put('profileStatus','Profiles loaded. Existing open drafts retain their original revision; close and reopen an editor after a conflict.');
+}
+function editProfile(profile=null) {
+ if(!profileSnapshot || managementBusy) return;
+ profileEditing=profile;profileEditRevision=exactRevision(profileSnapshot.revision);
+ $('profileName').value=profile?.displayName||'';const prefs=profile?.preferences||{};
+ $('audioLanguages').value=(prefs.audioLanguages||[]).join(', ');$('subtitleLanguages').value=(prefs.subtitleLanguages||[]).join(', ');
+ $('profileSubtitles').value=prefs.subtitles||'automatic';$('profileAutoplay').checked=!!prefs.autoplayNext;
+ put('profileEditorHeading',profile?'Edit '+profile.displayName:'New adult profile');$('profileForm').hidden=false;
+}
+$('loadProfiles').addEventListener('click',()=>manage('profileStatus',loadProfiles));
+$('recoverHousehold').addEventListener('click',()=>manage('profileStatus',async()=>{
+ if(!confirm('Stop current work and reconcile saved household storage? No data will be reset or deleted.')) {put('profileStatus','Recovery canceled.');return;}
+ await action('/api/household/reload',{});await loadProfiles();put('profileStatus','Household storage reconciled. Review current data before reapplying any unknown write.');
+}));
+$('newProfile').addEventListener('click',()=>editProfile());$('cancelProfile').addEventListener('click',()=>{$('profileForm').hidden=true;});
+$('profileForm').addEventListener('submit',event=>{
+ event.preventDefault();manage('profileStatus',async()=>{
+  const profile={displayName:$('profileName').value.trim(),kind:profileEditing?.kind||'adult',preferences:{...(profileEditing?.preferences||{}),audioLanguages:csv($('audioLanguages').value),subtitleLanguages:csv($('subtitleLanguages').value),subtitles:$('profileSubtitles').value,autoplayNext:$('profileAutoplay').checked},restrictions:profileEditing?.restrictions||{}};
+  await write('/api/profiles'+(profileEditing?'/'+routeId(profileEditing.id):''),profileEditing?'PUT':'POST',{revision:exactRevision(profileEditRevision),profile});
+  $('profileForm').hidden=true;await loadProfiles();put('profileStatus','Profile saved.');
+ });
+});
+$('memoryProfile').addEventListener('change',()=>{memoryPage=null;memoryOwner=null;$('memoryForm').hidden=true;$('memoryList').replaceChildren();$('moreMemories').hidden=true;closeExport();put('memoryStatus','Load memory for this profile.');syncControls();});
+async function loadMemories(append=false) {
+ const owner=$('memoryProfile').value;if(!owner) throw Error('Choose a profile first.');
+ const offset=append?memoryPage.entries.length:0;
+ const page=await api(`/api/profiles/${routeId(owner)}/memories?offset=${offset}&limit=20${append?'&expectedRevision='+exactRevision(memoryPage.revision):''}`);exactRevision(page.revision);
+ if(page.profileId!==owner) throw Error('Memory response belongs to another profile. Reload profiles.');
+ memoryPage={...page,entries:append?[...memoryPage.entries,...page.entries]:page.entries};memoryOwner=owner;
+ list('memoryList',memoryPage.entries,(entry,text,button)=>{
+  text('h3',entry.kind);text('p',entry.text);text('p',`${(entry.tags||[]).join(', ')} · ${entry.shareWithAgent?'shared with agent':'private to owner'}`);
+  button('Edit memory',()=>editMemory(entry));button('Delete memory…',()=>manage('memoryStatus',async()=>{
+   if(!confirm('Delete these exact words from this profile’s saved memory?')) { put('memoryStatus','Delete canceled.');return; }
+   await write(`/api/profiles/${routeId(owner)}/memories/${routeId(entry.id)}`,'DELETE',{revision:exactRevision(memoryPage.revision)});await loadMemories();put('memoryStatus','Memory deleted; previously used context invalidated.');
+  }));
+ },'No explicit memory for this profile.');
+ $('moreMemories').hidden=memoryPage.entries.length>=page.total;put('memoryStatus',`${memoryPage.entries.length} of ${page.total} entries loaded. Open drafts retain their original revision.`);
+}
+function editMemory(entry=null) {
+ if(!memoryPage || managementBusy) return;
+ memoryEditing=entry;memoryEditRevision=exactRevision(memoryPage.revision);
+ $('memoryKind').value=entry?.kind||'preference';$('memoryText').value=entry?.text||'';$('memoryTags').value=(entry?.tags||[]).join(', ');$('memoryShare').checked=entry?!!entry.shareWithAgent:false;
+ put('memoryEditorHeading',entry?'Edit these exact words':'Save explicit memory');$('memoryForm').hidden=false;
+}
+$('loadMemories').addEventListener('click',()=>manage('memoryStatus',()=>loadMemories()));$('moreMemories').addEventListener('click',()=>manage('memoryStatus',()=>loadMemories(true)));
+$('newMemory').addEventListener('click',()=>editMemory());$('cancelMemory').addEventListener('click',()=>{$('memoryForm').hidden=true;});
+$('memoryForm').addEventListener('submit',event=>{
+ event.preventDefault();manage('memoryStatus',async()=>{
+  if(!memoryOwner || memoryOwner!==$('memoryProfile').value) throw Error('Load this profile’s memory first.');
+  const body={revision:exactRevision(memoryEditRevision),kind:$('memoryKind').value,text:$('memoryText').value.trim(),tags:csv($('memoryTags').value),shareWithAgent:$('memoryShare').checked};
+  await write(`/api/profiles/${routeId(memoryOwner)}/memories`+(memoryEditing?'/'+routeId(memoryEditing.id):''),memoryEditing?'PUT':'POST',body);
+  $('memoryForm').hidden=true;await loadMemories();put('memoryStatus','Exact words saved. Previously used context invalidated.');
+ });
+});
+$('clearMemories').addEventListener('click',()=>manage('memoryStatus',async()=>{
+ if(!memoryPage || memoryOwner!==$('memoryProfile').value) throw Error('Load this profile’s memory first.');
+ if(!confirm('Clear ALL explicit memory for the selected profile? This cannot be undone.')) { put('memoryStatus','Clear canceled.');return; }
+ await action(`/api/profiles/${routeId(memoryOwner)}/memories/clear`,{revision:exactRevision(memoryPage.revision),ownerConfirmed:true});await loadMemories();put('memoryStatus','Memory cleared; previously used context invalidated.');
+}));
+$('exportProfile').addEventListener('click',()=>manage('memoryStatus',async()=>{
+ if(!confirm('Export this profile, including private entries not shared with the agent, to this phone?')) { put('memoryStatus','Export canceled.');return; }
+ exportText=JSON.stringify(await api(`/api/profiles/${routeId($('memoryProfile').value)}/export`),null,2);$('profileExport').value=exportText;$('exportPanel').hidden=false;put('memoryStatus','Private export ready. Hide it when finished.');
+}));
+$('closeExport').addEventListener('click',closeExport);
+$('downloadExport').addEventListener('click',()=>{
+ if(!exportText || !connected) return;const url=URL.createObjectURL(new Blob([exportText],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='vela-profile.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+function scheduleFields() {
+ const kind=$('routineSchedule').value,calendar=kind==='weekly'||kind==='monthly';
+ $('instantFields').hidden=calendar;$('intervalFields').hidden=kind!=='interval';$('calendarFields').hidden=!calendar;$('weeklyFields').hidden=kind!=='weekly';$('monthlyFields').hidden=kind!=='monthly';
+}
+function editRoutine(routine=null) {
+ if(managementBusy) return;routineEditing=routine;const spec=routine?.spec||{},schedule=spec.schedule||{type:'once'};
+ $('routineName').value=spec.name||'';$('routineTask').value=spec.task||'';$('routineSchedule').value=schedule.type;
+ $('routineInstant').value=schedule.at||schedule.firstAt?new Date(schedule.at||schedule.firstAt).toISOString():'';
+ $('routineInterval').value=String((schedule.everyMillis||3600000)/60000);$('routineZone').value=schedule.zone||'America/Chicago';$('routineTime').value=schedule.time||'18:30';$('routineDays').value=(schedule.days||[1,2,3,4,5]).join(',');$('routineDay').value=String(schedule.day||1);
+ $('routineMissed').value=spec.missedRunPolicy||'RUN_LATEST';$('routineLateness').value=String((spec.maxLatenessMillis||86400000)/60000);$('routineEnabled').checked=spec.enabled!==false;
+ $('routineForm').hidden=false;scheduleFields();
+}
+function routineSpec() {
+ const kind=$('routineSchedule').value;let schedule;
+ if(kind==='once'||kind==='interval') {
+  const value=$('routineInstant').value.trim();if(!/(Z|[+-]\d\d:\d\d)$/i.test(value)) throw Error('Enter a complete ISO instant with Z or an explicit UTC offset.');
+  const at=Date.parse(value);if(!Number.isSafeInteger(at)) throw Error('Enter a valid scheduled instant.');
+  schedule=kind==='once'?{type:'once',at}:{type:'interval',firstAt:at,everyMillis:Number($('routineInterval').value)*60000};
+ } else if(kind==='weekly') schedule={type:'weekly',days:csv($('routineDays').value).map(Number),time:$('routineTime').value,zone:$('routineZone').value.trim()};
+ else if(kind==='monthly') schedule={type:'monthly',day:Number($('routineDay').value),time:$('routineTime').value,zone:$('routineZone').value.trim()};
+ else throw Error('Choose a supported schedule.');
+ if(kind==='interval'&&(!Number.isSafeInteger(schedule.everyMillis)||schedule.everyMillis<900000||schedule.everyMillis>31622400000)) throw Error('Interval must be 15 minutes to 366 days.');
+ if(kind==='weekly'&&(!schedule.days.length||schedule.days.some(day=>!Number.isInteger(day)||day<1||day>7))) throw Error('Choose weekdays 1–7.');
+ if(kind==='monthly'&&(!Number.isInteger(schedule.day)||schedule.day<1||schedule.day>31)) throw Error('Monthly day must be 1–31.');
+ const maxLatenessMillis=Number($('routineLateness').value)*60000;
+ if(!Number.isSafeInteger(maxLatenessMillis)||maxLatenessMillis<60000||maxLatenessMillis>2592000000) throw Error('Deadline must be one minute to 30 days.');
+ return {name:$('routineName').value.trim(),task:$('routineTask').value.trim(),schedule,enabled:$('routineEnabled').checked,missedRunPolicy:$('routineMissed').value,maxLatenessMillis};
+}
+async function runRequest(path,key) {
+ // Keep the key after a lost response. A second click retries the same deliberate request.
+ if(!runRequestKeys.has(key)) runRequestKeys.set(key,crypto.randomUUID());
+ try { const result=await action(path,{requestKey:runRequestKeys.get(key)});runRequestKeys.delete(key);return result; }
+ catch(error) {
+  const label=key.startsWith('run:')?'Retry same run request':'Retry same restart request';
+  for(const buttons of managementDynamic.values()) for(const button of buttons) if(button.dataset.requestOperation===key) button.textContent=label;
+  throw Error(`Run result unknown or refused: ${error.message}. Refresh history. Retry uses the same request key; it will not deliberately enqueue a second run.`); }
+}
+async function loadRoutines() {
+ routineSnapshot=await api('/api/routines');
+ list('routineList',routineSnapshot.routines,(routine,text,button)=>{
+  exactRevision(routine.revision);text('h3',routine.spec.name);text('p',routine.spec.task);text('p',`${routine.spec.enabled?'enabled':'disabled'} · ${JSON.stringify(routine.spec.schedule)} · next ${routine.nextRunAt==null?'exhausted / no future slot':new Date(routine.nextRunAt).toLocaleString()}`);
+  button('Edit routine',()=>editRoutine(routine));button(routine.spec.enabled?'Disable':'Enable',()=>manage('routineStatus',async()=>{await action(`/api/routines/${routeId(routine.id)}/enabled`,{revision:exactRevision(routine.revision),enabled:!routine.spec.enabled});await loadRoutines();put('routineStatus','Routine updated.');}));
+  const runButton=button(runRequestKeys.has('run:'+routine.id)?'Retry same run request':'Run now',()=>manage('routineStatus',async()=>{const run=await runRequest(`/api/routines/${routeId(routine.id)}/run`,'run:'+routine.id);await loadRoutines();put('routineStatus',`Run ${run.id||''}: ${run.state||'QUEUED'}. A queued task waits when control is busy; inspect history for its outcome.`);}));
+  runButton.dataset.requestOperation='run:'+routine.id;
+  button('Delete routine…',()=>manage('routineStatus',async()=>{if(!confirm('Delete this routine and cancel its pending work? Run history is retained.')) { put('routineStatus','Delete canceled.');return; }await write('/api/routines/'+routeId(routine.id),'DELETE',{revision:exactRevision(routine.revision)});await loadRoutines();put('routineStatus','Routine deleted; history retained.');}));
+ },'No routines saved.');
+ list('routineHistory',routineSnapshot.history.slice().reverse(),(run,text,button)=>{
+  text('h3',`${run.name} · ${run.state}`);text('p',`Queued ${new Date(run.queuedAt).toLocaleString()}${run.startedAt!=null?' · started '+new Date(run.startedAt).toLocaleString():''}${run.finishedAt!=null?' · finished '+new Date(run.finishedAt).toLocaleString():''}${run.detail?' · '+run.detail:''}`);
+  if(['QUEUED','RUNNING','CANCELING'].includes(run.state)) button('Cancel run',()=>manage('routineStatus',async()=>{await action(`/api/routine-runs/${routeId(run.id)}/cancel`,{});await loadRoutines();put('routineStatus','Cancellation requested. Check history for cleanup completion.');}));
+  if(routineSnapshot.routines.some(r=>r.id===run.routineId)) { const restartButton=button(runRequestKeys.has('restart:'+run.id)?'Retry same restart request':'Restart using current definition…',()=>manage('routineStatus',async()=>{if(!runRequestKeys.has('restart:'+run.id)&&!confirm('Cancel pending work for this routine and start its current definition again?')) {put('routineStatus','Restart canceled.');return;}await runRequest(`/api/routine-runs/${routeId(run.id)}/restart`,'restart:'+run.id);await loadRoutines();put('routineStatus','Restart queued; prior cleanup completes before dispatch.');}));restartButton.dataset.requestOperation='restart:'+run.id; }
+ },'No durable run history.');
+ put('routineStatus','Routines and history loaded. QUEUED waits for control; CANCELING waits for cleanup; FAILED / INTERRUPTED need review.');
+}
+$('loadRoutines').addEventListener('click',()=>manage('routineStatus',loadRoutines));$('newRoutine').addEventListener('click',()=>editRoutine());$('routineSchedule').addEventListener('change',scheduleFields);$('cancelRoutine').addEventListener('click',()=>{$('routineForm').hidden=true;});
+$('routineForm').addEventListener('submit',event=>{event.preventDefault();manage('routineStatus',async()=>{
+ const body={...(routineEditing?{revision:exactRevision(routineEditing.revision)}:{}),spec:routineSpec()};await write('/api/routines'+(routineEditing?'/'+routeId(routineEditing.id):''),routineEditing?'PUT':'POST',body);$('routineForm').hidden=true;await loadRoutines();put('routineStatus','Routine saved.');
+});});
+function discardCredential() { $('externalCredential').value='';$('externalCredential').type='password';$('showExternalCredential').checked=false;$('externalCredentialPanel').hidden=true; }
+async function loadExternal() {
+ const state=await api('/api/external-control');externalSnapshot=state;put('externalStatus',`${state.enabled?'Enabled':'Disabled'} · loopback 127.0.0.1:8766 · ${state.credentialPresent?'credential present: revoke before issuing a new one':'no credential'}. A separate tunnel is required off-device.${state.error?' '+state.error:''}`);
+}
+$('loadExternal').addEventListener('click',()=>manage('externalStatus',loadExternal));
+$('enableExternal').addEventListener('click',()=>manage('externalStatus',async()=>{
+ if(externalSnapshot?.credentialPresent) throw Error('Revoke the current credential before enabling again.');
+ if(!confirm('Enable external agent control and issue a dedicated credential? Only share with a trusted controller.')) {put('externalStatus','Enable canceled.');return;}
+ discardCredential();const result=await action('/api/external-control/enable',{ownerConfirmed:true});
+ if(typeof result.token!=='string'||!result.token) throw Error('Enable returned no credential. Load status before retrying.');
+ externalSnapshot=result.status;$('externalCredential').value=result.token;$('externalCredentialPanel').hidden=false;await loadExternal();
+}));
+$('revokeExternal').addEventListener('click',()=>manage('externalStatus',async()=>{
+ if(!confirm('Revoke the external credential, stop external work, and wait for control cleanup?')) {put('externalStatus','Revoke canceled.');return;}
+ await action('/api/external-control/revoke',{});discardCredential();await loadExternal();put('externalStatus','External control disabled; credential revoked and work drained.');
+}));
+$('showExternalCredential').addEventListener('change',()=>{$('externalCredential').type=$('showExternalCredential').checked?'text':'password';});$('hideExternalCredential').addEventListener('click',discardCredential);
+
+syncControls(); poll();
 </script>
 </body>
 </html>

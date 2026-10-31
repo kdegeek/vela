@@ -47,6 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Local TV fixture protocol regressions
+        run: python3 -m unittest discover -s dev/tv-fixtures -p 'test_*.py'
       - name: Install bats and shellcheck
         run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends bats shellcheck
       - name: shellcheck
@@ -74,7 +76,15 @@ jobs:
           cache: gradle
       - name: Android platform the Compose libraries compile against
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-37.0" "build-tools;37.0.0" > /dev/null
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test app/src/test/ui/phone.test.cjs
       - run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vela-tv-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -6,6 +6,7 @@
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Vela is a sideloaded launcher and agent for arbitrary installed apps. Broad visibility is its core function; scoped queries cannot cover unknown deep-link handlers. -->
@@ -65,6 +66,11 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/hands" />
         </service>
+
+        <service
+            android:name=".routines.RoutineJobService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <service
             android:name=".control.MediaListener"

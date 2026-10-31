@@ -21,6 +21,8 @@ data class DeviceStatus(
     val jellyfinConfigured: Boolean,
     val homeConfigured: Boolean,
     val nativeDpad: Boolean,
+    val runtime: app.vela.tv.runtime.RuntimeStatus = app.vela.tv.runtime.RuntimeStatus(),
+    val plexConfigured: Boolean = false,
 ) {
     companion object {
         fun read(app: VelaApp): DeviceStatus {
@@ -30,7 +32,8 @@ data class DeviceStatus(
                 metrics.widthPixels, metrics.heightPixels, s.agentReady, HandsService.current != null,
                 runCatching { app.getSystemService(MediaSessionManager::class.java).getActiveSessions(ComponentName(app, MediaListener::class.java)); true }.getOrDefault(false),
                 s.jellyfinUrl.isNotBlank() && s.jellyfinToken.isNotBlank() && s.jellyfinUserId.isNotBlank(),
-                s.homeAssistantUrl.isNotBlank() && s.homeAssistantToken.isNotBlank(), Build.VERSION.SDK_INT >= 33)
+                s.homeAssistantUrl.isNotBlank() && s.homeAssistantToken.isNotBlank(), Build.VERSION.SDK_INT >= 33, app.runtimeStatus.value,
+                plexConfigured = s.plexConfigured)
         }
     }
 }

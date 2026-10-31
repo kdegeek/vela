@@ -45,4 +45,27 @@ class SettingsTest {
         org.junit.Assert.assertTrue(runCatching { saved.copy(appearance = "unknown").validated() }.isFailure)
         org.junit.Assert.assertTrue(runCatching { saved.copy(apiKey = "a\nb").validated() }.isFailure)
     }
+
+    @Test fun `Plex is optional masked and never included in settings display`() {
+        val saved = VelaSettings(plexUrl = "http://plex.local:32400", plexToken = "plex-secret")
+        assertEquals(VelaSettings.MASK, saved.redacted().plexToken)
+        assertEquals("plex-secret", saved.merge(saved.redacted()).plexToken)
+        assertEquals("plex-secret", saved.merge(saved.redacted().copy(plexUrl = " http://plex.local:32400 ")).plexToken)
+        assertEquals("", saved.merge(saved.redacted().copy(plexToken = "")).plexToken)
+        assertEquals("", saved.merge(saved.redacted().copy(plexUrl = "http://other:32400")).plexToken)
+        assertEquals("new-token", saved.merge(saved.redacted().copy(plexUrl = "http://other:32400", plexToken = "new-token")).plexToken)
+        org.junit.Assert.assertFalse(saved.toString().contains("plex-secret"))
+        org.junit.Assert.assertNull(VelaSettings().plex("device"))
+        org.junit.Assert.assertNull(saved.copy(plexToken = "").plex("device"))
+        org.junit.Assert.assertNotNull(saved.plex("device"))
+    }
+    @Test fun `Plex rejects credential addresses unsafe tokens and oversized addresses`() {
+        for (url in listOf("https://user:pass@plex", "http://plex/?X-Plex-Token=token", "http://plex/#secret", "ftp://plex", "http://plex/" + "a".repeat(2048))) {
+            org.junit.Assert.assertTrue(runCatching { VelaSettings(plexUrl = url).validated() }.isFailure)
+        }
+        for (token in listOf("a\nb", "a\rb", "a\tb", "bad token", "a".repeat(8193))) {
+            org.junit.Assert.assertTrue(runCatching { VelaSettings(plexToken = token).validated() }.isFailure)
+        }
+        assertEquals("http://plex/proxy", VelaSettings(plexUrl = "http://plex/proxy").validated().plexUrl)
+    }
 }

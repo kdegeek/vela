@@ -50,14 +50,15 @@ class AgentSessionTest {
         assertFalse(session.running.value)
         assertNull(session.pending.value)
     }
-    @Test fun `stop clears busy state and approvals immediately`() = runTest {
+    @Test fun `stop retains busy until canceled work drains`() = runTest {
         val session = AgentSession(backgroundScope, { confirm -> Agent(object : Provider {
             override suspend fun complete(system: String, history: List<Msg>, tools: List<ToolSpec>): Turn = awaitCancellation()
         }, emptyList(), "s", confirm) })
         session.ask("work"); runCurrent(); session.stop()
-        assertFalse(session.running.value)
+        assertTrue(session.running.value)
         assertEquals("canceled", session.tasks.value.single().state)
         runCurrent()
+        assertFalse(session.running.value)
         assertEquals("canceled", session.tasks.value.single().state)
     }
     @Test fun `missing provider is a failed task with recovery instructions`() = runTest {

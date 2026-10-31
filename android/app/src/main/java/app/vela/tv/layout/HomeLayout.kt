@@ -36,6 +36,21 @@ sealed interface Source {
     @Serializable @SerialName("jellyfin_search")
     data class JellyfinSearch(val query: String) : Source
 
+    @Serializable @SerialName("plex_library")
+    data class PlexLibrary(val libraryId: String) : Source
+
+    @Serializable @SerialName("plex_recent")
+    data class PlexRecent(val libraryId: String) : Source
+
+    @Serializable @SerialName("plex_search")
+    data class PlexSearch(val libraryId: String, val query: String) : Source
+
+    @Serializable @SerialName("plex_resume")
+    data object PlexResume : Source
+
+    @Serializable @SerialName("plex_on_deck")
+    data object PlexOnDeck : Source
+
     /** Tiles the agent or the owner put there by hand. */
     @Serializable @SerialName("pinned")
     data class Pinned(val items: List<PinnedItem>) : Source
@@ -55,6 +70,10 @@ data class PinnedItem(val title: String, val action: TileAction, val subtitle: S
 sealed interface TileAction {
     @Serializable @SerialName("launch_app")
     data class LaunchApp(val packageName: String) : TileAction
+
+    /** Search handoff only: the existing guarded app_search tool owns dispatch and profile checks. */
+    @Serializable @SerialName("search_app")
+    data class SearchApp(val packageName: String, val query: String) : TileAction
 
     @Serializable @SerialName("open_uri")
     data class OpenUri(val uri: String, val packageName: String? = null) : TileAction
@@ -110,6 +129,10 @@ object Layouts {
                         when (val action = item.action) {
                             is TileAction.AskAgent -> require(action.prompt.isNotBlank() && action.prompt.length <= 8000) { "invalid tile prompt" }
                             is TileAction.LaunchApp -> require(action.packageName.isNotBlank()) { "missing package" }
+                            is TileAction.SearchApp -> {
+                                require(action.packageName.length <= 255 && action.packageName.matches(Regex("[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_]*)+"))) { "invalid search app package" }
+                                require(action.query.isNotBlank() && action.query.length <= 500 && action.query.none(Char::isISOControl)) { "invalid app search query" }
+                            }
                             is TileAction.PlayJellyfin -> require(action.itemId.isNotBlank()) { "missing item id" }
                             is TileAction.OpenUri -> require(action.uri.isNotBlank() && action.uri.length <= 8192) { "invalid tile link" }
                             is TileAction.HomeService -> require(action.domain.isNotBlank() && action.service.isNotBlank() && action.entityId.isNotBlank()) { "home tiles need a domain, service and entity" }
@@ -118,11 +141,19 @@ object Layouts {
                 }
                 is Source.HomeEntities -> require(source.entityIds.size <= 100 && source.entityIds.distinct().size == source.entityIds.size) { "entity ids must be unique; at most 100" }
                 is Source.JellyfinSearch -> require(source.query.isNotBlank() && source.query.length <= 500) { "search query needs 1–500 characters" }
+                is Source.PlexLibrary -> plexLibrary(source.libraryId)
+                is Source.PlexRecent -> plexLibrary(source.libraryId)
+                is Source.PlexSearch -> {
+                    plexLibrary(source.libraryId)
+                    require(source.query.isNotBlank() && source.query.length <= 500 && source.query.none(Char::isISOControl)) { "Plex search needs 1–500 characters without controls" }
+                }
                 else -> Unit
             }
         }
         layout
     }
+
+    private fun plexLibrary(id: String) = require(id.matches(Regex("[0-9]{1,18}"))) { "Plex needs a numeric library id" }
 
     /** The format, for the agent's tool description. */
     const val SCHEMA_HELP = """{"rows":[{"id":"unique","title":"Shown above the row","style":"wide|poster|app","source":SOURCE}]}
@@ -132,10 +163,16 @@ SOURCE is one of:
  {"type":"jellyfin_resume"}
  {"type":"jellyfin_latest","libraryName":"Movies" or omitted}
  {"type":"jellyfin_search","query":"..."}
+ {"type":"plex_library","libraryId":"1"}
+ {"type":"plex_recent","libraryId":"1"}
+ {"type":"plex_search","libraryId":"1","query":"..."}
+ {"type":"plex_resume"}
+ {"type":"plex_on_deck"}
  {"type":"home_entities","entityIds":["light.living_room",...]}
  {"type":"pinned","items":[{"title":"...","subtitle":"...","imageUrl":"https://...","action":ACTION}]}
 ACTION is one of:
  {"type":"launch_app","packageName":"..."}
+ {"type":"search_app","packageName":"com.plexapp.android","query":"..."} (search handoff, not playback)
  {"type":"open_uri","uri":"...","packageName":"..." or omitted}
  {"type":"play_jellyfin","itemId":"..."}
  {"type":"ask_agent","prompt":"..."}

@@ -11,7 +11,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -68,24 +69,34 @@ val LocalHighContrast = staticCompositionLocalOf { false }
 }
 
 /** Focus is a high-contrast border AND a fill change; selection is separate from focus. */
-@Composable fun VelaButton(label: String, modifier: Modifier = Modifier, selected: Boolean = false, onClick: () -> Unit) {
+@Composable fun VelaButton(label: String, modifier: Modifier = Modifier, selected: Boolean = false, enabled: Boolean = true, onClick: () -> Unit) {
     val source = remember { MutableInteractionSource() }
     val focused by source.collectIsFocusedAsState()
     val c = MaterialTheme.colorScheme
     Text(label, style = MaterialTheme.typography.labelLarge,
-        color = if (focused) c.onPrimary else c.onSurface,
+        color = (if (focused) c.onPrimary else c.onSurface).copy(alpha = if (enabled) 1f else 0.5f),
+        textAlign = TextAlign.Center,
         modifier = modifier.heightIn(min = VelaDesign.MinimumTarget).clip(VelaDesign.PillShape)
             .background(if (focused) c.primary else if (selected) c.surfaceVariant else c.surface)
             .border(if (focused) 2.dp else 1.dp, if (focused || selected) c.primary else c.outline.copy(alpha = 0.35f), VelaDesign.PillShape)
-            .clickable(interactionSource = source, indication = ripple(), role = Role.Button, onClickLabel = label, onClick = onClick)
+            .semantics { this.selected = selected }
+            .clickable(enabled = enabled, interactionSource = source, indication = ripple(), role = Role.Button, onClickLabel = label, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp))
 }
 
 @Composable fun EmptyState(title: String, message: String, action: String? = null, onAction: () -> Unit = {}) {
     Column(Modifier.fillMaxWidth().clip(VelaDesign.PanelShape).background(MaterialTheme.colorScheme.surface).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+        Text(title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
         Text(message, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (action != null) VelaButton(action, onClick = onAction)
+    }
+}
+
+
+@Composable fun LoadingState(message: String, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        LinearProgressIndicator(Modifier.fillMaxWidth())
     }
 }

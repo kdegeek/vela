@@ -1,6 +1,15 @@
 package app.vela.tv.home
 
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.ResponseBody
+import okio.ForwardingSource
+import okio.Buffer
+import okio.buffer
+import java.util.concurrent.Executors
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -81,5 +90,46 @@ class HomeAssistantTest {
         assertTrue(e.message!!.contains("500"))
         assertTrue(e.message!!.length < 400)
         assertFalse(e.message!!.contains("secret-token"))
+    }
+
+    @Test fun `a transient 503 cannot replay a home toggle`() = runBlocking {
+        server.start()
+        server.enqueue(MockResponse.Builder().code(503).addHeader("Retry-After", "0").body("busy").build())
+        server.enqueue(MockResponse.Builder().body("[]").build())
+        val c = HomeAssistant(server.url("/").toString(), "secret-token")
+        val result = runCatching { c.call("light", "toggle", buildJsonObject { put("entity_id", "light.lamp") }) }
+        assertTrue(result.exceptionOrNull() is IOException)
+        assertEquals(1, server.requestCount)
+    }
+    @Test fun `home error redaction precedes truncation`() {
+        val c = ha(500 to ("x".repeat(195) + "secret-token trailing"))
+        val error = assertThrows(IOException::class.java) { runBlocking { c.call("light", "toggle", JsonObject(emptyMap())) } }
+        assertFalse(error.message!!, error.message!!.contains("secre"))
+    }
+
+    @Test fun `response bodies are consumed away from the caller UI dispatcher`() = runBlocking {
+        server.start()
+        server.enqueue(MockResponse.Builder().body(statesJson).build())
+        val observed = CompletableDeferred<String>()
+        val http = OkHttpClient.Builder().addNetworkInterceptor { chain ->
+            val response = chain.proceed(chain.request())
+            val body = response.body
+            val source = object : ForwardingSource(body.source()) {
+                override fun read(sink: Buffer, byteCount: Long): Long {
+                    observed.complete(Thread.currentThread().name)
+                    return super.read(sink, byteCount)
+                }
+            }.buffer()
+            response.newBuilder().body(object : ResponseBody() {
+                override fun contentType() = body.contentType()
+                override fun contentLength() = body.contentLength()
+                override fun source() = source
+            }).build()
+        }.build()
+        Executors.newSingleThreadExecutor { r -> Thread(r, "vela-test-ui") }.asCoroutineDispatcher().use { ui ->
+            val result = withContext(ui) { HomeAssistant(server.url("/").toString(), "secret-token", http).states() }
+            assertEquals(3, result.size)
+            assertFalse(observed.await().contains("vela-test-ui"))
+        }
     }
 }

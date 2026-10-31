@@ -54,4 +54,18 @@ class HomeLayoutTest {
             """{"rows":[{"id":"r","title":"A","source":{"type":"jellyfin_search","query":""}}]}"""
         )) assertTrue(text, Layouts.decode(text).isFailure)
     }
+
+    @Test fun `Plex composable sources and guarded search handoffs round trip`() {
+        val sources = listOf(Source.PlexLibrary("1"), Source.PlexRecent("2"), Source.PlexSearch("1", "Arrival"), Source.PlexResume, Source.PlexOnDeck,
+            Source.Pinned(listOf(PinnedItem("Arrival", TileAction.SearchApp("com.plexapp.android", "Arrival")))))
+        val layout = HomeLayout(rows = sources.mapIndexed { index, source -> RowSpec("p$index", "Plex", source) })
+        assertEquals(layout, Layouts.decode(Layouts.encode(layout)).getOrThrow())
+    }
+    @Test fun `Plex layout cannot inject paths tokens or invalid search data`() {
+        val sources = listOf(Source.PlexLibrary("../1"), Source.PlexRecent("http://evil"), Source.PlexSearch("1?token=x", "x"), Source.PlexSearch("1", " "), Source.PlexSearch("1", "x".repeat(501)))
+        for (source in sources) assertTrue(Layouts.decode(Layouts.encode(HomeLayout(rows = listOf(RowSpec("p", "Plex", source))))).isFailure)
+        for (action in listOf(TileAction.SearchApp("bad", "x"), TileAction.SearchApp("com.plexapp.android", ""), TileAction.SearchApp("com.plexapp.android", "x\ny"))) {
+            assertTrue(Layouts.decode(Layouts.encode(HomeLayout(rows = listOf(RowSpec("p", "Plex", Source.Pinned(listOf(PinnedItem("Title", action)))))))).isFailure)
+        }
+    }
 }

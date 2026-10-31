@@ -10,6 +10,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class AgentTest {
@@ -59,7 +60,8 @@ class AgentTest {
         val results = msgs.filterIsInstance<Msg.ToolResult>()
         assertTrue(results.all { it.isError })
         assertTrue(results[0].content.contains("no tool called nope"))
-        assertTrue(results[1].content.contains("no screen"))
+        assertTrue(results[1].content.contains("failed"))
+        assertFalse(results[1].content.contains("no screen"))
     }
 
     @Test

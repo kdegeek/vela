@@ -1,7 +1,7 @@
 # Vela for Android TV
 
 The Android TV implementation from [the design](../docs/superpowers/specs/2026-10-30-vela-agentic-tv-design.md): an Android TV
-app with an agent that can do anything on the TV. Sideloaded; it is not a Play Store app.
+shell with provider-neutral agent tools, direct media/home integrations and a paired phone companion. Sideloaded; it is not a Play Store app. It is not yet a firmware distribution.
 
 ## Build
 
@@ -36,6 +36,8 @@ opens Vela. It also has a chat box.
 
 ## Testing on the emulator
 
+In T3 agent sessions, use `device_open` and its returned `agent-device` command for all launches, input, settings and screenshots. Do not substitute the standalone ADB/HID commands below for that session route. Follow device-tool retry/stop instructions on failures.
+
 A Google TV system image (`system-images;android-34;google-tv;arm64-v8a`, device `tv_4k`) runs headless with
 `emulator -avd <name> -no-window`. Two things to know:
 
@@ -46,17 +48,19 @@ A Google TV system image (`system-images;android-34;google-tv;arm64-v8a`, device
 
 ## TV surfaces and design
 
-Home, Search, Apps, My list, House, Activity and Settings are available from the navigation row.
+Home, Search, Apps, My list, House, Activity, Settings, Profiles, Routines and External control are available from the navigation row.
 Open a Jellyfin title to inspect details, choose an episode, resume, or save it to My list.
 Settings contains phone pairing, permission shortcuts, day/night theme, reduced motion and high contrast.
 The phone also provides a remote, connection checks, activity and layout editing.
 
 See the [design system and release inventory](../docs/design/vela-tv-system.md) for component contracts,
-backend limits, verification boundaries, and the 16 remaining release workstreams.
+backend limits and release boundaries. The [integrated acceptance record](../docs/design/acceptance-2026-10-31.md) distinguishes passing checks from pending device/service qualification.
 
 Jellyfin requires an address, API key **and user ID**. The player supports direct play on device-supported codecs;
-adaptive/transcoding negotiation and full track preference support remain open.
-Activity and agent conversations are session-local. Settings, layout and My list are persisted with atomic writes.
+playback negotiates a compatible direct-play source, supports authenticated subtitles and profile-scoped track intent. Transcoding/HLS and DRM remain unsupported.
+Activity and agent conversations are session-local. Settings, layout, My list, profiles, explicit memory and routine history persist in private atomic files. Saved routines retain profile ownership and require fresh guarded execution.
+
+Profile/memory/routine management is available on TV and phone. Profiles are personalization scopes without PIN authentication; opaque media routes fail closed under restrictive policies. External MCP control is disabled by default and binds only 127.0.0.1:8766 after explicit enable. Its dedicated credential can be revoked; it is separate from phone pairing. See [application API](../docs/design/application-api.md) for management routes and [MCP contract](../docs/design/external-control-contract.md) for protocol/transport limits.
 
 ## Paired API
 

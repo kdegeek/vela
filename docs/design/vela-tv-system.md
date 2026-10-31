@@ -99,8 +99,10 @@ Deep focus restoration, TalkBack ordering, overscan, and oversized-font behavior
 `Agent` owns provider/tool exchanges. `TvTools` owns capabilities, direct integrations and guard classification.
 `PhoneApi` owns HTTP authorization/validation; `PhoneServer` supplies the Android operations behind that boundary.
 
-A request replaces the active request, cancels its job and approval, and waits for its coroutine to finish before
-executing the new task. Generation checks protect state from stale callbacks. Follow-ups retain bounded context.
+An owner Ask replaces the active request, cancels its job and approval, and waits for cleanup before
+executing the new task. Routines, direct UI tools and MCP use non-replacing reservations and return Busy
+when another task owns or has reserved control. Stop retains ownership until cleanup drains.
+Generation checks protect state from stale callbacks. Follow-ups retain bounded context.
 Activity is deliberately memory-only; provider credentials, appearance, layout and My list survive process restarts.
 
 Execution limits:
@@ -120,7 +122,7 @@ Execution limits:
   on-screen text as instructions. Heuristic guards and a prompt are not a proof against prompt injection.
 
 Tools cover screen read/press/focus/type/scroll, D-pad, waiting, app discovery/open/search, links, media sessions,
-Home Assistant state/services, Jellyfin search/resume/latest/play, device capabilities, watchlist read, layout read/write.
+Home Assistant state/services, Jellyfin search/resume/latest/play, bounded explicit memory retrieval, device capabilities, watchlist read, layout read/write.
 Multiple select presses collapse to one guard-checked press. An explicit media target never falls back to another app.
 
 ## Storage and LAN boundary
@@ -140,29 +142,29 @@ HTTP on a trusted LAN remains the prototype transport. HTTPS pairing, revocation
 
 ## Release inventory
 
-There are **16 open release workstreams** below. None is marked complete by this implementation.
-This is a concrete inventory, not a claim that every possible defect has been enumerated.
+The **16 release workstreams** below distinguish implemented application foundations from
+remaining product qualification. They are not a claim that every possible defect has been enumerated.
+The current evidence and seven-item acceptance queue are in [integrated acceptance](acceptance-2026-10-31.md).
 
-Eight can advance from repository context once implementation capacity is available:
+Eight application workstreams can advance from repository context:
 
-1. Plex/native streaming adapters: authenticated libraries, artwork, deep-link mappings, provider availability and failure recovery.
-2. Full Jellyfin media experience: pagination beyond the current 100-episode bound, seasons, up-next, tracks/subtitle preferences,
-   transcoding negotiation and server/device codec compatibility.
-3. A persistent TV Now Playing surface for third-party sessions, with seek/queue/capability-aware controls.
-4. Household profiles, per-person provider/library preferences, child restrictions and migration between schemas.
-5. Durable explicit user memory with inspect/edit/delete/export behavior and bounded retrieval into agent context.
-6. Durable routines/schedules with cancel/edit/run history, restart recovery and guard checks at execution time.
-7. An authenticated MCP surface and provider-supported subscription integrations; do not scrape or reuse subscription credentials.
-8. Automated stress/property suites for layout, malformed providers, focus models, quotas, concurrency, credential redaction and migration.
+1. **Plex/native adapters — implemented Plex foundation.** Bounded authenticated rows, agent library discovery/search and honest native-app handoff are mounted. Other providers remain future adapters.
+2. **Jellyfin — implemented direct-play foundation, incomplete release support.** Seasons, pagination beyond 100 episodes, next-up, source/session-bound reports, native tracks and authenticated subtitles are implemented. Transcoding/HLS/DRM and real server/device codec qualification remain.
+3. **Persistent Now Playing — implemented foundation.** Lifecycle-aware session state, bounded native banner/details and capability-aware controls bind exact observed session references. Device acceptance remains.
+4. **Household profiles — implemented foundation.** Versioned persistence/migration, stable IDs, preferences, conservative policy enforcement and TV/phone management are mounted. Profiles have no owner PIN or OS-wide authentication; restrictive opaque media routes fail closed.
+5. **Explicit memory — implemented foundation.** Scoped inspect/edit/delete/clear/export, deliberate sharing, quotas, trusted owner provenance and bounded agent retrieval are mounted. Changes invalidate prior context.
+6. **Durable routines — implemented foundation.** CRUD, all schedule types, history, manual idempotency, cancellation/restart, native JobScheduler and trusted profile bindings are mounted. Interrupted effects do not automatically replay; real Android timing/soak acceptance remains.
+7. **Authenticated MCP — implemented loopback foundation.** Dedicated explicit provisioning/revocation and shared prepared execution are mounted; listener lifetime has a real socket regression. Assembled-app enable/revoke acceptance and any separately approved off-device connectivity remain. Subscription access must use supported clients rather than credential reuse.
+8. **Adversarial properties — targeted coverage implemented, expansion active.** Malformed calls, bounds, revisions, cancellation, approval identity, HTTP replay/redaction and migrations have regressions. Complementary seeded properties now pass, including the SSE delivery regression they exposed. Performance/soak and independent device injection testing remain.
 
 Eight require external input, device access, operational choices or measured evidence:
 
 9. Visual acceptance in both themes: all destinations, dialogs, long titles, fonts, missing art, loading/errors and D-pad traversal.
-   **Needs:** working device tooling; emulator first, no owner's TV without separate authorization.
+   **Needs:** resume the device-tool lifecycle path after its documented diagnostic retry failure; emulator first, no owner's TV without separate authorization.
 10. Real-model acceptance and cost/latency evaluation on the chosen Sol endpoint, Anthropic and a local model.
-    **Needs:** secure credential delivery and the requested delegation route.
+    **Needs:** approved app endpoint/secure credential delivery and representative tasks. The requested Sol delegation route works; it does not establish app model quality.
 11. Stock Google TV / Shield / older Android compatibility, Home interception, opaque app surfaces, mic and remote behavior.
-    **Needs:** explicit device authorization, exact model and firmware; previous TV restrictions remain.
+    **Needs:** physical-device acceptance through supported tooling. Shield discovery confirmed Android 11/API 30 and armeabi-v7a, but no APK was installed; previous TV restrictions remain.
 12. AOSP firmware, native 4K surface, privileged control, signed OTA, rollback, recovery and factory reset.
     **Needs:** selected hardware/vendor BSP and a safe flashing/recovery plan before destructive device work.
 13. Hardware OS integration: first boot, network/Bluetooth onboarding, CEC/power/volume, sleep/ambient, storage and thermal behavior.

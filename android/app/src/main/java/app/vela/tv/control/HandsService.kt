@@ -18,6 +18,13 @@ import app.vela.tv.BuildConfig
 import app.vela.tv.VelaApp
 import app.vela.tv.launcher.AskActivity
 import app.vela.tv.launcher.HomeActivity
+import app.vela.tv.agent.ActionInvalidatedException
+import app.vela.tv.agent.ToolCall
+import app.vela.tv.guard.Guard
+import app.vela.tv.guard.PromptKeyGate
+import kotlinx.coroutines.*
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /**
  * The agent's hands: reads any app's screen and acts on it the way the remote would. Also owns the Home button (when
@@ -29,8 +36,7 @@ class HandsService : AccessibilityService() {
     private var pkg: String? = null
     private val main = Handler(Looper.getMainLooper())
     private var homeHeld: Runnable? = null
-    /** The answer key pressed down, and which prompt (by its start time) it was pressed for. */
-    private var armed: Pair<Int, Long>? = null
+    private val promptKeys = PromptKeyGate()
     lateinit var overlay: Overlay
         private set
 
@@ -40,12 +46,29 @@ class HandsService : AccessibilityService() {
         override fun onReceive(context: Context, intent: Intent) {
             val result = when (val cmd = intent.getStringExtra("cmd")) {
                 "dump" -> snapshot()
-                "press" -> press(intent.getIntExtra("id", -1))
-                "dpad" -> dpad(intent.getStringExtra("dir") ?: "center")
+                "press" -> {
+                    val id = intent.getIntExtra("id", -1)
+                    submitProbe(ToolCall("probe", "screen_press", buildJsonObject { put("id", id) }))
+                    "submitted guarded press"
+                }
+                "dpad" -> {
+                    val dir = (intent.getStringExtra("dir") ?: "select").let { if (it == "center") "select" else it }
+                    submitProbe(ToolCall("probe", "remote", buildJsonObject { put("key", dir) }))
+                    "submitted guarded remote"
+                }
                 "ask" -> intent.getStringExtra("text")?.let { app.runner.ask(it); "asked" } ?: "no text"
                 else -> "unknown cmd $cmd"
             }
             Log.i(TAG, "probe -> \n$result") // debug builds only: the receiver isn't registered otherwise
+        }
+    }
+
+    private fun submitProbe(call: ToolCall) {
+        if (!BuildConfig.DEBUG) return
+        app.scope.launch {
+            try { Log.i(TAG, "probe action -> ${app.runner.executeTool(call).content}") }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { Log.i(TAG, "probe action rejected; controller is busy or unavailable") }
         }
     }
 
@@ -79,8 +102,9 @@ class HandsService : AccessibilityService() {
     override fun onKeyEvent(event: KeyEvent): Boolean {
         if (BuildConfig.DEBUG) Log.i(TAG, "key ${KeyEvent.keyCodeToString(event.keyCode)} action=${event.action} pending=${app.runner.pending.value != null}")
         val down = event.action == KeyEvent.ACTION_DOWN
-        val since = app.runner.pendingSince
-        if (since == null) armed = null
+        val prompt = app.runner.session.pending.value
+        val since = prompt?.since
+        if (since == null) promptKeys.clear()
         if (since != null) {
             val allow = when (event.keyCode) {
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_BUTTON_A -> true
@@ -90,11 +114,9 @@ class HandsService : AccessibilityService() {
             if (allow != null) {
                 // Only a press that started after the prompt had been on screen a moment counts, so an OK already
                 // on its way (or held) when the prompt appeared can't approve it.
-                if (down && event.repeatCount == 0) {
-                    armed = if (event.downTime >= since + PROMPT_GRACE_MS) event.keyCode to since else null
-                } else if (!down && armed == (event.keyCode to since) && event.downTime >= since + PROMPT_GRACE_MS) {
-                    armed = null
-                    app.runner.answer(allow)
+                if (promptKeys.accept(prompt.id, since, event.keyCode, down, event.action == KeyEvent.ACTION_UP,
+                        event.repeatCount, event.downTime)) {
+                    app.runner.answer(allow, prompt.id)
                 }
                 return true
             }
@@ -159,6 +181,10 @@ class HandsService : AccessibilityService() {
     /** The node a press on [id] actually acts on: the element, or its nearest focusable or clickable ancestor. */
     private fun pressTarget(id: Int): AccessibilityNodeInfo? {
         val target = nodes[id] ?: return null
+        return pressTarget(target)
+    }
+
+    private fun pressTarget(target: AccessibilityNodeInfo): AccessibilityNodeInfo {
         var n: AccessibilityNodeInfo? = target
         while (n != null && !n.isFocusable && !n.isClickable) n = n.parent
         return n ?: target
@@ -183,20 +209,64 @@ class HandsService : AccessibilityService() {
         return (own + kids).filter { it.isNotBlank() }.distinct().joinToString(" ")
     }
 
-    /**
-     * Presses a node from the last snapshot the way the remote would: focus it, then OK. Many TV screens (Leanback lists,
-     * guided steps) only act on the select key, and treat a plain click as "move focus here". Without the global D-pad
-     * actions (before Android 13), or for elements that can't take focus, it falls back to a click on the nearest
-     * clickable ancestor.
-     */
-    @Synchronized
-    fun press(id: Int): String {
-        val node = pressTarget(id) ?: return "No element [$id]; read the screen again."
-        if (Build.VERSION.SDK_INT >= 33 && node.isFocusable && node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)) {
-            Thread.sleep(150)
-            if (performGlobalAction(GLOBAL_ACTION_DPAD_CENTER)) return "Pressed [$id]."
+    /** The Accessibility node's equality includes its source identity, not just a label or list position. */
+    class PressBinding internal constructor(
+        internal val target: PressTarget<AccessibilityNodeInfo>,
+        internal val pkg: String?,
+        internal val window: Int,
+        internal val originalFocus: AccessibilityNodeInfo?,
+        internal val select: Boolean,
+    ) {
+        internal val node get() = target.dispatched
+        internal val label get() = target.riskLabel
+    }
+
+    fun bindPress(id: Int): PressBinding {
+        val selected = nodes[id] ?: throw ActionInvalidatedException()
+        return bind(selected, pressTarget(selected), false)
+    }
+    fun bindSelect(): PressBinding {
+        val focused = rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: throw ActionInvalidatedException()
+        return bind(focused, focused, true)
+    }
+
+    private fun bind(selected: AccessibilityNodeInfo, node: AccessibilityNodeInfo, select: Boolean): PressBinding =
+        PressBinding(PressTarget.capture(selected, node, ::labelOf), foreground, node.windowId,
+            rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT), select)
+
+    fun pressRisk(binding: PressBinding) = Guard.press(binding.label, binding.pkg)
+
+    fun valid(binding: PressBinding, originalFocus: Boolean = true): Boolean {
+        val root = rootInActiveWindow ?: return false
+        return root.windowId == binding.window && root.packageName?.toString() == binding.pkg &&
+            binding.node.refresh() && binding.node.windowId == binding.window &&
+            binding.target.selected.refresh() && binding.target.selected.windowId == binding.window &&
+            binding.target.valid(::labelOf) { selected -> if (binding.select) selected else pressTarget(selected) } &&
+            (!originalFocus || root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) == binding.originalFocus)
+    }
+
+    /** All focus/dispatch operations are serialized with Android input on Main; settle is cancellable. */
+    suspend fun press(binding: PressBinding, configurationValid: () -> Boolean = { true }): String = withContext(Dispatchers.Main.immediate) {
+        currentCoroutineContext().ensureActive()
+        if (!configurationValid() || !valid(binding)) throw ActionInvalidatedException()
+        val node = binding.node
+        if (binding.select) {
+            if (rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) != node) throw ActionInvalidatedException()
+            currentCoroutineContext().ensureActive()
+            return@withContext if (Build.VERSION.SDK_INT >= 33) {
+                if (performGlobalAction(GLOBAL_ACTION_DPAD_CENTER)) "Pressed select." else "Select did nothing."
+            } else if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) "Pressed select." else "Select did nothing."
         }
-        return if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) "Pressed [$id]." else "Pressing [$id] did nothing; try moving focus to it with the remote."
+        if (Build.VERSION.SDK_INT >= 33 && node.isFocusable && node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)) {
+            settleAndDispatch(
+                valid = { configurationValid() && valid(binding, originalFocus = false) && rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) == node },
+                dispatch = { performGlobalAction(GLOBAL_ACTION_DPAD_CENTER) },
+            ).let { if (it) return@withContext "Pressed the selected element." }
+        }
+        currentCoroutineContext().ensureActive()
+        if (!configurationValid() || !valid(binding, originalFocus = false)) throw ActionInvalidatedException()
+        if (node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) "Pressed the selected element."
+        else "Press did nothing; read the screen again."
     }
 
     @Synchronized
@@ -252,7 +322,6 @@ class HandsService : AccessibilityService() {
         const val TAG = "VelaHands"
         const val PROBE_ACTION = "app.vela.tv.PROBE"
         const val PROBE_PERMISSION = "android.permission.DUMP"
-        private const val PROMPT_GRACE_MS = 400L
 
         @Volatile
         var current: HandsService? = null
