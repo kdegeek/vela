@@ -85,7 +85,7 @@ enum class ButtonVariant { Primary, Secondary, Agent, Danger, Quiet }
             val inset = VelaSpace.M.toPx()
             drawLine(if (state.focused) c.onAccent else c.accent,
                 Offset(inset, size.height - 2.dp.toPx()), Offset(size.width - inset, size.height - 2.dp.toPx()), 3.dp.toPx())
-        } else Modifier).padding(horizontal = VelaSpace.M, vertical = VelaSpace.S),
+        } else Modifier).padding(horizontal = if (tab) VelaSpace.Xs else VelaSpace.M, vertical = VelaSpace.S),
         horizontalArrangement = Arrangement.spacedBy(VelaSpace.Xs, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
         CompositionLocalProvider(LocalContentColor provides actualInk) {
             if (glyph != null) Glyph(glyph, null)

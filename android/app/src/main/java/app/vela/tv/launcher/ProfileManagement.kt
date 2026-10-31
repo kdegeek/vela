@@ -18,6 +18,7 @@ import kotlinx.coroutines.CancellationException
 
 @Composable internal fun ProfilesPage(app: VelaApp) {
     val management = app.management
+    val owner by management.busy.collectAsState()
     val actions = rememberManagementActions()
     var profiles by remember { mutableStateOf<ProfileList?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }
@@ -58,7 +59,7 @@ import kotlinx.coroutines.CancellationException
             VelaButton("Recover household storage…", enabled = !actions.busy) { actions.confirm("Stop current work and reconcile saved household storage? No data is reset or deleted.") { profiles = management.reloadHousehold(); loadError = null } }
         } }
         item("profile-explanation") { ManagementText("Each profile has its own preferences and saved memories. Profiles have no PIN protection. Home rows and My list are shared.") }
-        item("profile-owner") { OwnerControlStatus(management) }
+        owner?.let { active -> item("profile-owner") { OwnerControlStatus(management, active) } }
         loadError?.let { item("profile-error") { ManagementError(it) } }
         if (profiles == null && loadError == null) item("profile-loading") { LoadingState("Loading household profiles…") }
         profiles?.let { displayed ->
@@ -66,7 +67,7 @@ import kotlinx.coroutines.CancellationException
             items(displayed.profiles, key = { it.id }) { profile ->
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
                     VelaListRow(profile.displayName, glyph = VelaGlyph.Profile,
-                        supporting = "${if (profile.id == displayed.activeProfileId) "Current profile · " else ""}${profile.kind.name.lowercase()} · ${profile.id.take(8)} · subtitles ${profile.preferences.subtitles.name.lowercase()} · autoplay ${if (profile.preferences.autoplayNext) "on" else "off"}")
+                        supporting = "${if (profile.id == displayed.activeProfileId) "Current profile · " else ""}${profile.kind.name.lowercase()} · subtitles ${profile.preferences.subtitles.name.lowercase()} · autoplay ${if (profile.preferences.autoplayNext) "on" else "off"}")
                     ManagementButtons {
                         VelaButton("Preferences", enabled = !actions.busy) { original = profile; editRevision = displayed.revision; editing = true }
                         VelaButton("Explicit memory", enabled = !actions.busy) { memoryProfile = profile }
@@ -112,6 +113,7 @@ import kotlinx.coroutines.CancellationException
 }
 
 @Composable private fun MemoryManagementPage(management: OwnerManagement, profile: HouseholdProfile, close: () -> Unit) {
+    val owner by management.busy.collectAsState()
     val actions = rememberManagementActions()
     var page by remember { mutableStateOf<MemoryPage?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -139,7 +141,7 @@ import kotlinx.coroutines.CancellationException
     }
     if (editing) {
         key(original?.id, editRevision) {
-            MemoryEditor("${profile.displayName} · ${profile.id.take(8)}", original, actions, { editing = false }) { draft ->
+            MemoryEditor(profile.displayName, original, actions, { editing = false }) { draft ->
                 actions.run { management.saveMemory(editRevision, profile.id, draft, original?.id, OwnerMemorySource.TV); editing = false; refresh() }
             }
         }
@@ -155,7 +157,7 @@ import kotlinx.coroutines.CancellationException
             VelaButton("Export profile…", enabled = !actions.busy) { actions.confirm("Show a private export of ${profile.displayName}, including entries not shared with the agent, on this screen?") { exported = management.exportProfile(profile.id) } }
         } }
         item("memory-explanation") { ManagementText("Only words you explicitly Save are remembered. Never enter credentials. Shared entries may be sent to your AI provider. Memory cannot grant permissions. Saving, editing or removing used memory invalidates prior agent context.", "Explicit memory") }
-        item("memory-owner") { OwnerControlStatus(management) }
+        owner?.let { active -> item("memory-owner") { OwnerControlStatus(management, active) } }
         error?.let { item("memory-error") { ManagementError(it) } }
         val displayed = page
         when {

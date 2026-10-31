@@ -73,7 +73,7 @@ private data class ManagementConfirmation(val text: String, val danger: Boolean,
     // A confirmation must remain composed even when the feedback row has scrolled off screen.
     actions.ConfirmationDialog()
     VelaPage(title, Modifier.fillMaxSize().imePadding(), breadcrumb = "Settings") {
-        item("management-feedback") { actions.StatusFeedback() }
+        if (actions.message.isNotEmpty()) item("management-feedback") { actions.StatusFeedback() }
         content()
     }
 }
@@ -128,22 +128,20 @@ private class ManagementEntryFocus {
     })
 }
 
-@Composable internal fun OwnerControlStatus(management: OwnerManagement) {
-    val owner by management.busy.collectAsState()
+@Composable internal fun OwnerControlStatus(management: OwnerManagement, owner: String) {
     val actions = rememberManagementActions()
-    if (owner != null) {
-        Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
-            InlineStatus("Control busy: $owner", tone = StatusTone.Caution)
-            VelaButton(if (actions.busy) "Stopping…" else "Stop current work", enabled = !actions.busy, busy = actions.busy, variant = ButtonVariant.Danger) {
-                actions.run { management.stopAndJoin() }
-            }
-            actions.Feedback()
+    Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+        InlineStatus("Control busy: $owner", tone = StatusTone.Caution)
+        VelaButton(if (actions.busy) "Stopping…" else "Stop current work", enabled = !actions.busy, busy = actions.busy, variant = ButtonVariant.Danger) {
+            actions.run { management.stopAndJoin() }
         }
+        actions.Feedback()
     }
 }
 
 @Composable internal fun ExternalControlPage(app: VelaApp) {
     val management = app.management
+    val owner by management.busy.collectAsState()
     val actions = rememberManagementActions()
     var state by remember { mutableStateOf<ExternalControlStatus?>(null) }
     var loadingError by remember { mutableStateOf<String?>(null) }
@@ -170,7 +168,7 @@ private class ManagementEntryFocus {
             }
         } }
         item("control-explanation") { ManagementText("Disabled by default. The MCP listener binds only TV loopback, 127.0.0.1:8766. A separately configured tunnel is required from another computer. Enabling does not create LAN or public access. External actions still require policy checks and approvals.", "External agent control") }
-        item("control-owner") { OwnerControlStatus(management) }
+        owner?.let { active -> item("control-owner") { OwnerControlStatus(management, active) } }
         item("control-status") {
             Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
                 VelaSectionHeader("Connection status")

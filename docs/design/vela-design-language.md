@@ -222,7 +222,7 @@ Focus must be visible from across a room with two independent signals (fill/size
 | Danger button | `surfaceRaised` fill, `danger` label | `danger` fill, `onDanger` label + ring |
 | Quiet button / tab | no fill, `inkMuted` label | `accent` fill, `onAccent` label + ring |
 | List row | transparent | `surfaceFocused` fill + 3 dp ring outset 2 dp |
-| Text field | 1 dp `lineStrong` border | 2 dp `accent` border + outset ring |
+| Text field | 1 dp `lineStrong` border | `surfaceFocused` fill + one outset ring; no second inner outline |
 
 The ring is drawn outside the element's bounds (outset) so it never covers artwork. HC: ring 4 dp.
 Reduced motion: no scale; ring and fill still change.

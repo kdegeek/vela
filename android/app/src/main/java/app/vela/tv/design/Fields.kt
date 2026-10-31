@@ -10,6 +10,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -37,12 +38,15 @@ import androidx.compose.ui.text.input.VisualTransformation
             keyboardOptions = keyboardOptions, keyboardActions = if (enabled && !readOnly) keyboardActions else KeyboardActions.Default, singleLine = singleLine,
             minLines = countMin, maxLines = countMax, interactionSource = source, shape = VelaShapes.Field,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = if (enabled) c.ink else c.inkSubtle, unfocusedTextColor = if (enabled) c.ink else c.inkSubtle,
-                focusedContainerColor = c.canvas, unfocusedContainerColor = c.canvas, errorContainerColor = c.canvas,
+                focusedTextColor = if (enabled) c.ink else c.inkMuted, unfocusedTextColor = if (enabled) c.ink else c.inkSubtle,
+                focusedContainerColor = c.surfaceFocused, unfocusedContainerColor = c.canvas,
+                errorContainerColor = if (focused) c.surfaceFocused else c.canvas,
                 cursorColor = c.accent, errorCursorColor = c.danger,
-                focusedBorderColor = c.accent, unfocusedBorderColor = c.lineStrong, errorBorderColor = c.danger,
+                // The shared outset ring is the sole focused outline; fill and cursor also change.
+                focusedBorderColor = Color.Transparent, unfocusedBorderColor = c.lineStrong,
+                errorBorderColor = if (focused) Color.Transparent else c.danger,
                 focusedLabelColor = c.ink, unfocusedLabelColor = c.inkMuted, errorLabelColor = c.danger,
-                focusedPlaceholderColor = c.inkSubtle, unfocusedPlaceholderColor = c.inkSubtle, errorTextColor = c.ink))
+                focusedPlaceholderColor = c.inkMuted, unfocusedPlaceholderColor = c.inkSubtle, errorTextColor = c.ink))
         if (error != null) InlineStatus(error, tone = StatusTone.Danger)
         else if (supporting != null) Text(supporting, style = Vela.type.body, color = c.inkMuted, modifier = Modifier.readingWidth())
     }

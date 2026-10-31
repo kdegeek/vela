@@ -29,6 +29,7 @@ internal fun routineManagementTone(state: RoutineRunState): StatusTone = when (s
 
 @Composable internal fun RoutinesPage(app: VelaApp) {
     val management = app.management
+    val owner by management.busy.collectAsState()
     val actions = rememberManagementActions()
     val requests = remember { RoutineRequestKeys() }
     var snapshot by remember { mutableStateOf<RoutineSnapshot?>(null) }
@@ -61,7 +62,7 @@ internal fun routineManagementTone(state: RoutineRunState): StatusTone = when (s
             VelaButton("New routine", enabled = !actions.busy && snapshot != null, variant = ButtonVariant.Primary) { original = null; editing = true }
         } }
         item("routine-explanation") { ManagementText("Routines submit normal tasks with the same approvals and restrictions. Each is bound to the profile and policy/preferences saved with it. If that binding changes or another profile is active, execution fails closed: deliberately edit and Save to rebind. Android background wakes are inexact.", "Routine behavior") }
-        item("routine-owner") { OwnerControlStatus(management) }
+        owner?.let { active -> item("routine-owner") { OwnerControlStatus(management, active) } }
         error?.let { item("routine-error") { ManagementError(it) } }
         if (snapshot == null && error == null) item("routine-loading") { LoadingState("Loading durable routines…") }
         snapshot?.let { displayed ->

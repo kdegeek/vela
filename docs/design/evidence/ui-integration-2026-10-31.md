@@ -71,8 +71,8 @@ Built artifacts at this verification point:
 
 | Artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `android/app/build/outputs/apk/debug/app-debug.apk` | 52,925,182 | `dbc51dd22c1f327335809b68b167c2d0885f1a920f523c30c8b3c40d609533a7` |
-| `android/app/build/outputs/apk/firmware/app-firmware-unsigned.apk` | 40,118,596 | `1607f23ee611f795a2ff2bf48d37649c83e5730233c59ef72f946437b2b2d660` |
+| `android/app/build/outputs/apk/debug/app-debug.apk` | 51,767,658 | `8d8014afd55030da4e26b3e237e4e13573c29727b12fb4bfb03e9b44593ceb27` |
+| `android/app/build/outputs/apk/firmware/app-firmware-unsigned.apk` | 40,118,596 | `ae3ba528c2096182ed928817bda3dd86150fb03ccbbd939db2707797311a3a63` |
 
 ## Observed browser behavior
 
@@ -109,10 +109,22 @@ Safari retained an empty test window; the existing user window was preserved.
 
 ## Remaining acceptance: six groups
 
+Later current-build native evidence is now available in the
+[2afc4ab visual review gallery](review-2afc4ab/index.html), with provenance and
+limits in its [README](review-2afc4ab/README.md). The local Android 14 emulator
+route worked: Home, Apps and appearance Settings were captured in both themes;
+Profiles, an unsaved editor and the composer were captured in Day. This revealed
+four visual issues. They are corrected and recaptured in the
+[before/after viewer](visual-corrections-20261031/index.html), with exact
+[provenance and checks](visual-corrections-20261031/README.md). That pass contains
+11 current native captures, including both themes and visible refresh feedback.
+It does not establish full native acceptance, and the physical Shield remains paused.
+
 1. PR CI on the corrected design commit. Both independent source reviews are
    complete and their two navigation findings are addressed; the owner's
    pivot-review merge gate remains.
-2. Native TV appearance/focus/IME/large-text/overlay acceptance. Physical Shield
+2. Remaining native TV appearance/focus/IME/large-text/overlay acceptance beyond
+   the corrected and recaptured baseline screens. Physical Shield
    interaction remains explicitly paused by the owner; do not reconnect, install,
    launch, navigate or capture it without an explicit resume.
 3. Remaining phone rendering: Day/HC/reduced motion/forced-colours/legacy fallback,

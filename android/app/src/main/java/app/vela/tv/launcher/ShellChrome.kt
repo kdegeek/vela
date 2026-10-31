@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.*
@@ -27,6 +28,10 @@ internal enum class Page(val label: String) {
 @Composable internal fun TopBar(selected: Page, identity: String?, indicator: AgentIndicator,
     navigation: LazyListState, requesters: Map<Page, FocusRequester>, onPage: (Page) -> Unit,
     onProfiles: () -> Unit, onAsk: () -> Unit, onFocused: () -> Unit, onHomeTabFocus: (Boolean) -> Unit) {
+    LaunchedEffect(selected.tab) {
+        // Selection can also come from the profile chip or another page, without tab focus.
+        navigation.scrollToItem(Page.tabs.indexOf(selected.tab))
+    }
     Row(Modifier.fillMaxWidth().background(Vela.colors.canvas).safeHorizontal()
         .heightIn(min = VelaSize.TopBar).onFocusChanged { if (it.hasFocus) onFocused() },
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
