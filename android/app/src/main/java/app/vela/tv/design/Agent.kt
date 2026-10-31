@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 }
 @Composable fun ApprovalNotice(question: String, remoteAnswers: Boolean, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth().velaPanel(Vela.colors, agentic = true)
-        .border(2.dp, if (Vela.highContrast) Vela.colors.lineStrong else Vela.colors.agent, VelaShapes.Panel)
+
         .padding(VelaSpace.M).semantics { liveRegion = LiveRegionMode.Assertive },
         verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
         Row(horizontalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {

@@ -52,6 +52,7 @@ enum class FocusTreatment { Control, Card, Row }
     val ringOffset = if (treatment == FocusTreatment.Card) VelaSize.CardRingOffset else VelaSize.ControlRingOffset
     Box(modifier.graphicsLayer { scaleX = scale; scaleY = scale; clip = false }
         .velaFocusRing(focused, shape, Vela.colors.focusRing, ringWidth, ringOffset)
+        .velaFocusRing(focused, shape, Vela.colors.canvas, ringWidth + ringOffset, ringOffset / 2)
         .onFocusChanged { onFocusChanged(it.isFocused) }
         .guardActivation(activation)
         .semantics {

@@ -40,35 +40,23 @@ enum class ButtonVariant { Primary, Secondary, Agent, Danger, Quiet }
     val c = Vela.colors
     val active = state.enabled || busy
     val lit = state.focused && active
+    // The approved primary is ink on pearl / pearl on smoke. Champagne is edge light.
+    val primary = variant == ButtonVariant.Primary && active
     val fill = when {
-        !active -> if (c.highContrast) c.canvas else Color.Transparent
-        state.pressed -> when (variant) {
-            ButtonVariant.Agent -> c.agent
-            ButtonVariant.Danger -> c.danger
-            else -> c.accentStrong
-        }
-        lit -> when (variant) {
-            ButtonVariant.Primary -> c.accentStrong
-            ButtonVariant.Agent -> c.agent
-            ButtonVariant.Danger -> c.danger
-            else -> c.accent
-        }
-        variant == ButtonVariant.Primary -> c.accent
-        variant == ButtonVariant.Agent -> c.agentContainer
+        !active -> if (c.highContrast) c.canvas else c.surfaceRaised.copy(alpha = 0.50f)
+        primary -> if (state.pressed) c.inkMuted else c.ink
+        state.pressed -> c.surfaceFocused
+        lit -> c.surfaceFocused
         variant == ButtonVariant.Quiet -> if (c.highContrast) c.canvas else Color.Transparent
+        variant == ButtonVariant.Agent -> if (c.highContrast) c.surfaceRaised else Color.Transparent
         else -> c.surfaceRaised
     }
     val ink = when {
         !active -> c.inkSubtle
-        lit || state.pressed -> when (variant) {
-            ButtonVariant.Agent -> c.onAgent
-            ButtonVariant.Danger -> c.onDanger
-            else -> c.onAccent
-        }
-        variant == ButtonVariant.Primary -> c.onAccent
+        primary -> c.canvas
         variant == ButtonVariant.Agent -> c.agent
         variant == ButtonVariant.Danger -> c.danger
-        variant == ButtonVariant.Quiet && !selected -> c.inkMuted
+        variant == ButtonVariant.Quiet && !selected && !lit -> c.inkMuted
         else -> c.ink
     }
     val fillAnimation by animateColorAsState(fill, velaTween(if (state.pressed) VelaMotion.PressMs else VelaMotion.FocusMs), label = "control fill")
@@ -78,12 +66,13 @@ enum class ButtonVariant { Primary, Secondary, Agent, Danger, Quiet }
     val border = when {
         c.highContrast -> Modifier.border(1.dp, c.lineStrong, VelaShapes.Control)
         selected && !tab -> Modifier.border(2.dp, c.accent, VelaShapes.Control)
+        variant == ButtonVariant.Secondary || variant == ButtonVariant.Danger -> Modifier.border(1.dp, c.line, VelaShapes.Control)
         else -> Modifier
     }
     Row(Modifier.heightIn(min = VelaSize.MinTarget).background(actualFill, VelaShapes.Control).then(border)
         .then(if (tab && selected) Modifier.drawBehind {
             val inset = VelaSpace.M.toPx()
-            drawLine(if (state.focused) c.onAccent else c.accent,
+            drawLine(c.accent,
                 Offset(inset, size.height - 2.dp.toPx()), Offset(size.width - inset, size.height - 2.dp.toPx()), 3.dp.toPx())
         } else Modifier).padding(horizontal = if (tab) VelaSpace.Xs else VelaSpace.M, vertical = VelaSpace.S),
         horizontalArrangement = Arrangement.spacedBy(VelaSpace.Xs, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {

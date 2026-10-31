@@ -6,9 +6,11 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -55,6 +57,26 @@ private data class ManagementConfirmation(val text: String, val danger: Boolean,
             else InlineStatus(message, tone = messageTone)
         }
     }
+    /** Keep the active form/list in place when a request changes state. Full backend wording stays
+     * available in a reading dialog, including typed conflict/error guidance. */
+    @Composable fun CompactFeedback() {
+        var reading by remember { mutableStateOf(false) }
+        Row(Modifier.fillMaxWidth().heightIn(min = VelaSize.MinTarget * LocalDensity.current.fontScale.coerceAtLeast(1f))
+            .semantics { liveRegion = LiveRegionMode.Polite },
+            horizontalArrangement = Arrangement.spacedBy(VelaSpace.Xs), verticalAlignment = Alignment.CenterVertically) {
+            Text(message, Modifier.weight(1f), style = Vela.type.meta,
+                color = if (messageTone == StatusTone.Danger) Vela.colors.danger else Vela.colors.inkMuted,
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (message.isNotEmpty() && !busy) VelaButton("Details", variant = ButtonVariant.Quiet) { reading = true }
+        }
+        if (reading) {
+            val back = remember { FocusRequester() }
+            VelaDialog(if (messageTone == StatusTone.Danger) "Needs attention" else "Request status", { reading = false }, back,
+                actions = { VelaButton("Back", Modifier.focusRequester(back)) { reading = false } }) {
+                Text(message, style = Vela.type.body, color = Vela.colors.ink, modifier = Modifier.readingWidth())
+            }
+        }
+    }
     @Composable fun ConfirmationDialog() {
         confirmation?.let { pending ->
             ConfirmDialog("Confirm owner action", pending.text, "Confirm",
@@ -72,10 +94,8 @@ private data class ManagementConfirmation(val text: String, val danger: Boolean,
 @Composable internal fun ManagementList(title: String, actions: ManagementActions, content: LazyListScope.() -> Unit) {
     // A confirmation must remain composed even when the feedback row has scrolled off screen.
     actions.ConfirmationDialog()
-    VelaPage(title, Modifier.fillMaxSize().imePadding(), breadcrumb = "Settings") {
-        if (actions.message.isNotEmpty()) item("management-feedback") { actions.StatusFeedback() }
-        content()
-    }
+    GlassDestinationPage(title, Modifier.fillMaxSize().imePadding(), breadcrumb = "Settings",
+        footer = { actions.CompactFeedback() }, content = content)
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -152,7 +172,7 @@ private class ManagementEntryFocus {
     LaunchedEffect(Unit) { try { refresh() } catch (e: CancellationException) { throw e } catch (e: Exception) { loadingError = e.message ?: "Could not read control status." } }
     BackHandler(token != null) { token = null; visible = false }
     ManagementList("External agent control", actions) {
-        item("control-actions") { ManagementButtons {
+        item("control-actions") { GlassManagementGroup { ManagementButtons {
             VelaButton("Refresh status", enabled = !actions.busy, glyph = VelaGlyph.Refresh) { actions.run { refresh() } }
             VelaButton("Enable external control…", enabled = !actions.busy && state?.credentialPresent == false) {
                 actions.confirm("Enable external control and issue a dedicated credential? Share only with a trusted controller.") {
@@ -166,11 +186,11 @@ private class ManagementEntryFocus {
                     state = management.revokeExternalControl(); token = null; visible = false
                 }
             }
-        } }
+        } } }
         item("control-explanation") { ManagementText("Disabled by default. The MCP listener binds only TV loopback, 127.0.0.1:8766. A separately configured tunnel is required from another computer. Enabling does not create LAN or public access. External actions still require policy checks and approvals.", "External agent control") }
         owner?.let { active -> item("control-owner") { OwnerControlStatus(management, active) } }
         item("control-status") {
-            Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+            GlassManagementGroup {
                 VelaSectionHeader("Connection status")
                 loadingError?.let { ManagementError(it) }
                 val displayed = state
@@ -185,7 +205,7 @@ private class ManagementEntryFocus {
             }
         }
         token?.let { secret -> item("control-one-time-credential") {
-            Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+            GlassManagementGroup {
                 VelaSectionHeader("Dedicated credential")
                 ManagementText("Shown only once. To issue a new credential, revoke this one, then enable external control again from the TV or paired phone.")
                 VelaTextField(secret, {}, "Dedicated credential", Modifier.fillMaxWidth(), readOnly = true,

@@ -13,8 +13,8 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 
 internal fun Modifier.velaPanel(colors: VelaColors, agentic: Boolean = false): Modifier =
-    background(if (agentic) colors.agentContainer else colors.surface, VelaShapes.Panel)
-        .then(if (colors.highContrast) Modifier.border(1.dp, colors.lineStrong, VelaShapes.Panel) else Modifier)
+    // Agent state belongs in the glyph and words, rather than a second coloured pane.
+    velaGlassMaterial(colors, dense = true)
 
 @Composable fun StatusPanel(title: String, message: String, modifier: Modifier = Modifier,
     kind: StatusKind = StatusKind.Info, action: String? = null, onAction: () -> Unit = {},

@@ -1,5 +1,11 @@
 # Vela design language
 
+**Superseded visual baseline:** the owner approved the liquid-glass concept after
+this flat direction was implemented. The [approved glass implementation contract](vela-glass-implementation-contract.md)
+now governs materials, typography and composition. Retain this document as the
+previous implementation/evidence reference; its no-glass/system-font restrictions
+do not override the approved design. Product and execution invariants still apply.
+
 Status: governing direction, 2026-10-31. Baseline source: `0809edfb31d2fac467dc55e2b67fd93d9cf777df`.
 Companion contract: [vela-component-contract.md](vela-component-contract.md) defines the Kotlin/CSS APIs,
 file ownership, work packages and acceptance. This document defines what those components must look and

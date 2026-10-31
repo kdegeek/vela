@@ -5,7 +5,6 @@ import androidx.compose.ui.Modifier
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -56,7 +55,7 @@ internal fun routineManagementTone(state: RoutineRunState): StatusTone = when (s
         }
         return
     }
-    ManagementList("Durable routines", actions) {
+    ManagementList("Routines", actions) {
         item("routine-actions") { ManagementButtons {
             VelaButton("Refresh routines & history", enabled = !actions.busy, glyph = VelaGlyph.Refresh) { actions.run { refresh() } }
             VelaButton("New routine", enabled = !actions.busy && snapshot != null, variant = ButtonVariant.Primary) { original = null; editing = true }
@@ -69,7 +68,7 @@ internal fun routineManagementTone(state: RoutineRunState): StatusTone = when (s
             item("routine-heading") { VelaSectionHeader("Saved routines") }
             if (displayed.routines.isEmpty()) item("routine-empty") { EmptyState("No routines saved", "Create a normal task and choose when it should run.") }
             items(displayed.routines, key = { "routine:${it.id}" }) { routine ->
-                Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                GlassManagementGroup {
                     VelaListRow(routine.spec.name, supporting = if (routine.spec.enabled) "Enabled" else "Disabled", glyph = VelaGlyph.Activity)
                     ManagementText(routine.spec.task, routine.spec.name)
                     ManagementText("Schedule: ${routine.spec.schedule}", "Routine schedule")
@@ -83,7 +82,6 @@ internal fun routineManagementTone(state: RoutineRunState): StatusTone = when (s
                         }
                         VelaButton("Delete…", enabled = !actions.busy, variant = ButtonVariant.Danger) { actions.confirm("Delete ${routine.spec.name} and cancel its pending work? Durable run history stays.", danger = true) { management.deleteRoutine(routine.id, routine.revision); refresh() } }
                     }
-                    HorizontalDivider(color = Vela.colors.line)
                 }
             }
             item("routine-history-heading") {
@@ -95,7 +93,7 @@ internal fun routineManagementTone(state: RoutineRunState): StatusTone = when (s
             if (displayed.history.isEmpty()) item("routine-history-empty") { EmptyState("No run history", "No durable run history yet.") }
             items(displayed.history.asReversed(), key = { "run:${it.id}" }) { run ->
                 val tone = routineManagementTone(run.state)
-                Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                GlassManagementGroup {
                     VelaListRow(run.name, supporting = run.state.name.lowercase().replaceFirstChar { it.titlecase() },
                         glyph = statusGlyph(tone) ?: VelaGlyph.Stop, tone = tone)
                     Text("Queued ${instantLabel(run.queuedAt)}\nStarted ${instantLabel(run.startedAt)}\nFinished ${instantLabel(run.finishedAt)}",
@@ -113,7 +111,6 @@ internal fun routineManagementTone(state: RoutineRunState): StatusTone = when (s
                             }
                         }
                     }
-                    HorizontalDivider(color = Vela.colors.line)
                 }
             }
         }
@@ -136,7 +133,6 @@ internal fun routineManagementTone(state: RoutineRunState): StatusTone = when (s
     var late by rememberSaveable { mutableStateOf(((spec?.maxLatenessMillis ?: 86_400_000L) / 60_000L).toString()) }
     var enabled by rememberSaveable { mutableStateOf(spec?.enabled ?: true) }
     var validation by remember { mutableStateOf<String?>(null) }
-    val backFocus = Modifier.rememberManagementEntryFocus()
     fun submit() {
         try {
             val parsed = ManagementForms.schedule(kind, instant, interval, zone, time, days, day)
@@ -145,8 +141,7 @@ internal fun routineManagementTone(state: RoutineRunState): StatusTone = when (s
         } catch (e: Exception) { validation = e.message ?: "Review the schedule fields." }
     }
     BackHandler(!actions.busy, close)
-    ManagementList(if (original == null) "New routine" else "Edit / rebind routine", actions) {
-        item("routine-editor-back") { VelaButton("Back", backFocus, enabled = !actions.busy, onClick = close) }
+    GlassManagementEditor(if (original == null) "New routine" else "Edit / rebind routine", actions, close, "Save routine", save = { submit() }) {
         validation?.let { item("routine-editor-validation") { ManagementError(it) } }
         item("routine-editor-name") { ManagementField("Name", name, !actions.busy, 120) { name = it } }
         item("routine-editor-task") { ManagementField("Normal task · approvals still apply", task, !actions.busy, 8000, true) { task = it } }
@@ -179,9 +174,5 @@ internal fun routineManagementTone(state: RoutineRunState): StatusTone = when (s
         item("routine-editor-lateness") { ManagementField("Deadline / maximum lateness · minutes 1–43200", late, !actions.busy, 6) { late = it } }
         item("routine-editor-enabled") { VelaToggleRow("Routine enabled", enabled, { enabled = it }, enabled = !actions.busy) }
         item("routine-editor-explanation") { ManagementText("Save binds this definition to the current profile and its exact policy/preferences. Later profile changes fail closed until you edit and Save again. A stale edit retains its original revision: return, refresh and reopen before reapplying it.", "Saving a routine") }
-        item("routine-editor-save") { ManagementButtons {
-            VelaButton("Back", enabled = !actions.busy, onClick = close)
-            VelaButton(if (actions.busy) "Saving…" else "Save routine", enabled = !actions.busy, busy = actions.busy, variant = ButtonVariant.Primary) { submit() }
-        } }
     }
 }

@@ -7,6 +7,7 @@ import app.vela.tv.design.VelaPalettes
 import app.vela.tv.design.VelaPaletteValues
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
+import app.vela.tv.R
 import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
@@ -23,6 +24,7 @@ class Overlay(private val service: AccessibilityService) {
     private val wm = service.getSystemService(WindowManager::class.java)
     private val main = Handler(Looper.getMainLooper())
     private var panel: LinearLayout? = null
+    private val manrope by lazy { service.resources.getFont(R.font.manrope) }
     private val hideLater = Runnable { hide() }
 
     private fun dp(v: Int) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), service.resources.displayMetrics).toInt()
@@ -43,7 +45,7 @@ class Overlay(private val service: AccessibilityService) {
             }, LinearLayout.LayoutParams(dp(8), dp(8)).apply { marginEnd = dp(8) })
             addView(text(if (prompt == null) "Vela" else "Vela needs your OK", colors.ink.toInt(),
                 if (prompt == null) 16f else 18f).apply {
-                typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                typeface = Typeface.create(manrope, 600, false)
                 isAccessibilityHeading = true
             })
         }
@@ -65,6 +67,7 @@ class Overlay(private val service: AccessibilityService) {
     private fun create(): LinearLayout {
         val p = LinearLayout(service).apply {
             orientation = LinearLayout.VERTICAL
+            elevation = dp(14).toFloat()
             setPadding(dp(24), dp(16), dp(24), dp(16))
         }
         val lp = WindowManager.LayoutParams(
@@ -84,12 +87,19 @@ class Overlay(private val service: AccessibilityService) {
 
     private fun background(colors: VelaPaletteValues, prompt: Boolean) = GradientDrawable().apply {
         cornerRadius = dp(20).toFloat()
-        setColor(if (colors.highContrast) colors.surface.toInt() else ((colors.surface and 0x00FFFFFF) or 0xF2000000).toInt())
-        setStroke(dp(if (prompt) 2 else 1), (if (prompt) colors.agent else if (colors.highContrast) colors.lineStrong else colors.line).toInt())
+        if (colors.highContrast) {
+            setColor(colors.surface.toInt())
+        } else {
+            orientation = GradientDrawable.Orientation.TL_BR
+            // Still smoked material; native overlays never sample or blur another app's pixels.
+            setColors(intArrayOf(0xF237414A.toInt(), 0xF2131D27.toInt(), 0xF21C2430.toInt()))
+        }
+        setStroke(dp(1), (if (colors.highContrast) colors.lineStrong else if (prompt) colors.agent else 0xFF817C73).toInt())
     }
 
     private fun text(s: String, color: Int, size: Float) = TextView(service).apply {
         text = s
+        typeface = Typeface.create(manrope, 500, false)
         setTextColor(color)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
         setPadding(0, dp(4), 0, dp(4))

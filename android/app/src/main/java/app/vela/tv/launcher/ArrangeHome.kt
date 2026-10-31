@@ -88,15 +88,19 @@ internal suspend fun undoOwnerLayout(app: VelaApp, receipt: LayoutUndo) = withCo
             else message?.let { InlineStatus(it, tone = if (failed) StatusTone.Danger else if (busy) StatusTone.Neutral else StatusTone.Success) }
         }
         itemsIndexed(layout.rows, key = { _, row -> ownerRowKey(row.id) }) { index, row ->
-            Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
-                VelaListRow(row.title, supporting = listOfNotNull(row.style.cardFormat().name, sourceLabel(row.source)).joinToString(" · "))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(VelaSpace.S), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
-                    val focus = requests.getValue(row.id)
-                    VelaButton("Move up", Modifier.focusRequester(focus[0]), enabled = !unavailable && index > 0, busy = busy) { edit(row.id, 0) { LayoutEdits.move(it, row.id, -1) } }
-                    VelaButton("Move down", Modifier.focusRequester(focus[1]), enabled = !unavailable && index < layout.rows.lastIndex, busy = busy) { edit(row.id, 1) { LayoutEdits.move(it, row.id, 1) } }
-                    VelaButton("Remove…", Modifier.focusRequester(focus[2]), enabled = !unavailable && layout.rows.size > 1, variant = ButtonVariant.Danger) { removeId = row.id }
+            VelaGlassSurface(Modifier.fillMaxWidth(), dense = true) {
+                Column(Modifier.padding(VelaSpace.M), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                    Text(row.title, style = Vela.type.section, color = Vela.colors.ink)
+                    Text(listOfNotNull(row.style.cardFormat().name, sourceLabel(row.source)).joinToString(" · "),
+                        style = Vela.type.meta, color = Vela.colors.inkMuted)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(VelaSpace.S), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                        val focus = requests.getValue(row.id)
+                        VelaButton("Move up", Modifier.focusRequester(focus[0]), enabled = !unavailable && index > 0, busy = busy) { edit(row.id, 0) { LayoutEdits.move(it, row.id, -1) } }
+                        VelaButton("Move down", Modifier.focusRequester(focus[1]), enabled = !unavailable && index < layout.rows.lastIndex, busy = busy) { edit(row.id, 1) { LayoutEdits.move(it, row.id, 1) } }
+                        VelaButton("Remove…", Modifier.focusRequester(focus[2]), enabled = !unavailable && layout.rows.size > 1, variant = ButtonVariant.Danger) { removeId = row.id }
+                    }
+                    if (layout.rows.size == 1) Text("Keep at least one row on your home.", style = Vela.type.meta, color = Vela.colors.inkSubtle)
                 }
-                if (layout.rows.size == 1) Text("Keep at least one row on your home.", style = Vela.type.meta, color = Vela.colors.inkSubtle)
             }
         }
         item("defaults") { VelaButton("Restore default layout…", Modifier.focusRequester(defaultsFocus), enabled = !unavailable) { defaults = true } }

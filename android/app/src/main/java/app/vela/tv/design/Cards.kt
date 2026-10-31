@@ -13,14 +13,14 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 enum class CardFormat(val width: Dp, val height: Dp, val artScale: ContentScale) {
-    Wide(224.dp, 126.dp, ContentScale.Crop), Poster(112.dp, 168.dp, ContentScale.Crop), App(160.dp, 90.dp, ContentScale.Fit);
+    Wide(200.dp, 112.5.dp, ContentScale.Crop), Poster(112.dp, 168.dp, ContentScale.Crop), App(144.dp, 81.dp, ContentScale.Fit);
     val rowHeight: Dp get() = 24.dp + VelaSpace.HeaderToArt + height + VelaSpace.ArtToLabel + VelaSize.CardLabel + 12.dp
 }
 
 @Composable private fun CardLabel(title: String, focused: Boolean, enabled: Boolean) {
     Column(Modifier.padding(top = VelaSpace.ArtToLabel).clearAndSetSemantics {}) {
         Text(title, color = if (!enabled) Vela.colors.inkSubtle else if (focused) Vela.colors.ink else Vela.colors.inkMuted, style = Vela.type.meta,
-            minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.heightIn(min = VelaSize.CardLabel))
+            minLines = 2, modifier = Modifier.heightIn(min = VelaSize.CardLabel))
     }
 }
 
@@ -37,7 +37,10 @@ enum class CardFormat(val width: Dp, val height: Dp, val artScale: ContentScale)
         VelaArtwork(image, Modifier.fillMaxWidth().height(format.height)
             .graphicsLayer { scaleX = scale; scaleY = scale; clip = false }
             .velaFocusRing(state.focused, VelaShapes.Card, Vela.colors.focusRing,
-                if (Vela.highContrast) VelaSize.HighContrastRing else VelaSize.CardRing, VelaSize.CardRingOffset),
+                if (Vela.highContrast) VelaSize.HighContrastRing else VelaSize.CardRing, VelaSize.CardRingOffset)
+            .velaFocusRing(state.focused, VelaShapes.Card, Vela.colors.canvas,
+                (if (Vela.highContrast) VelaSize.HighContrastRing else VelaSize.CardRing) + VelaSize.CardRingOffset,
+                VelaSize.CardRingOffset / 2),
             listOfNotNull(kicker, title).joinToString("\n"), glyph, format.artScale, agentic = agentic, progress = progress)
         CardLabel(title, state.focused, state.enabled)
     }

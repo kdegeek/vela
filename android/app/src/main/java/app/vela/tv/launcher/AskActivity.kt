@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -47,27 +48,32 @@ class AskActivity : ComponentActivity() {
             val field = remember { FocusRequester() }
             LaunchedEffect(Unit) { field.requestFocus() }
             VelaTheme(settings) {
-                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding().padding(VelaSpace.L), contentAlignment = Alignment.Center) {
-                    Surface(Modifier.widthIn(max = VelaSize.DialogWidth).fillMaxWidth(), shape = VelaShapes.Panel, color = Vela.colors.agentContainer,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, if (Vela.highContrast) Vela.colors.lineStrong else Vela.colors.agent)) {
+                // This activity's platform theme is translucent: preserve the invoking surface.
+                Box(Modifier.fillMaxSize().background(if (Vela.highContrast) Vela.colors.canvas else Color.Black.copy(alpha = .24f))
+                    .imePadding().padding(VelaSpace.L), contentAlignment = Alignment.Center) {
+                    VelaGlassSurface(Modifier.widthIn(max = 608.dp).fillMaxWidth(), dense = true) {
                         Column(Modifier.verticalScroll(rememberScrollState()).padding(VelaSpace.L), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
-                            Text(if (listening.value) "I'm listening…" else "What would you like?", style = MaterialTheme.typography.headlineMedium,
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
+                                Glyph(VelaGlyph.Sail, null, tint = Vela.colors.accent)
+                                Text("Ask Vela", style = Vela.type.label, color = Vela.colors.agent)
+                            }
+                            Text(if (listening.value) "I'm listening…" else "What would you like?", style = Vela.type.headline, color = Vela.colors.ink,
                                 modifier = Modifier.semantics { heading(); liveRegion = LiveRegionMode.Polite })
-                            Text("Find something to watch, set the mood, or make Vela yours.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            if (!settings.agentReady) Text("Connect AI from your paired phone in Settings. You can browse apps while AI is disconnected.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Find something to watch, set the mood, or make Vela yours.", color = Vela.colors.inkMuted)
+                            if (!settings.agentReady) Text("Connect AI from your paired phone in Settings. You can browse apps while AI is disconnected.", color = Vela.colors.inkMuted)
                             VelaTextField(text, { text = it; error.value = null }, "Your request", modifier = Modifier.fillMaxWidth().focusRequester(field),
-                                placeholder = "Put on the next episode", singleLine = true,
+                                placeholder = "Type a request…", singleLine = true,
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send), keyboardActions = KeyboardActions(onSend = { send(text) }))
                             error.value?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(VelaSpace.S), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
                                 VelaButton("Ask", enabled = settings.agentReady && text.isNotBlank() && !listening.value, variant = ButtonVariant.Primary, glyph = VelaGlyph.Sail) { send(text) }
-                                if (SpeechRecognizer.isRecognitionAvailable(this@AskActivity)) VelaButton(if (listening.value) "Stop listening" else "Speak", variant = ButtonVariant.Agent, glyph = VelaGlyph.Mic) {
+                                if (SpeechRecognizer.isRecognitionAvailable(this@AskActivity)) VelaButton(if (listening.value) "Stop listening" else "Speak", variant = ButtonVariant.Secondary, glyph = VelaGlyph.Mic) {
                                     if (listening.value) stopListening() else listen()
                                 }
-                                VelaButton("Back") { finish() }
+                                VelaButton("Back", variant = ButtonVariant.Quiet) { finish() }
                             }
-                            Text(if (listening.value) "Speak your request. Review the text, then choose Ask." else "You can type, speak, or ask from your paired phone.",
-                                style = Vela.type.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(if (listening.value) "Speak your request. Review the text, then choose Ask." else "Type, speak, or ask from your paired phone. Back closes this sheet; it doesn't stop a running task.",
+                                style = Vela.type.caption, color = Vela.colors.inkMuted)
                         }
                     }
                 }

@@ -19,6 +19,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.ImageLoader
+import coil3.SingletonImageLoader
+import coil3.memory.MemoryCache
+import coil3.request.allowHardware
+import coil3.request.transformations
+import android.content.Context
+import kotlinx.coroutines.Dispatchers
 import coil3.request.ImageRequest
 import coil3.size.Scale
 import coil3.size.Precision
@@ -67,29 +74,58 @@ import kotlinx.coroutines.delay
     }
 }
 
+/** A small independent LRU shares the installed loader's fetchers/disk cache, not foreground pixels. */
+private object AmbientArtworkLoader {
+    @Volatile private var loader: ImageLoader? = null
+    fun get(context: Context): ImageLoader = loader ?: synchronized(this) {
+        loader ?: SingletonImageLoader.get(context.applicationContext).newBuilder()
+            .memoryCache(MemoryCache.Builder().maxSizeBytes(SoftArtwork.CACHE_BYTES)
+                .weakReferencesEnabled(false).build())
+            .build().also { loader = it }
+    }
+}
+
 @Composable fun VelaBackdrop(model: Any?, modifier: Modifier = Modifier) {
-    // Return before creating request/animation state: HC must not load hidden ambient artwork.
-    if (Vela.highContrast) return
-    var settled by remember { mutableStateOf<Any?>(null) }
-    LaunchedEffect(model) { delay(VelaMotion.BackdropSettleMs); settled = model }
     val c = Vela.colors
+    // No loader/request/animation exists in this branch; switching HC cancels old composition work.
+    if (Vela.highContrast || c.highContrast) {
+        Box(modifier.background(c.canvas))
+        return
+    }
+    var settled by remember { mutableStateOf<Any?>(null) }
+    LaunchedEffect(model) {
+        if (model != null) delay(VelaMotion.BackdropSettleMs)
+        settled = model
+    }
     val reduced = Vela.reducedMotion
     val context = LocalPlatformContext.current
-    // Ambient art is intentionally bounded to one 1080p decode per transition side, even on 4K
-    // output. Foreground cards use AsyncImage's measured constraints instead of source dimensions.
+    val loader = remember(context) { AmbientArtworkLoader.get(context) }
     val request = remember(settled, context) {
-        settled?.let { ImageRequest.Builder(context).data(it).size(1920, 1080).scale(Scale.FIT).precision(Precision.EXACT).build() }
+        settled?.let {
+            ImageRequest.Builder(context).data(it)
+                .size(SoftArtwork.MAX_WIDTH, SoftArtwork.MAX_HEIGHT)
+                .scale(Scale.FIT).precision(Precision.EXACT).allowHardware(false)
+                .decoderCoroutineContext(Dispatchers.Default)
+                .transformations(SoftArtworkTransformation()).build()
+        }
     }
-    Box(modifier.clip(androidx.compose.ui.graphics.RectangleShape)) {
+    val day = c.canvas.red > 0.5f
+    Box(modifier.clip(androidx.compose.ui.graphics.RectangleShape).background(c.canvas)) {
         if (reduced) {
-            request?.let { AsyncImage(it, null, Modifier.matchParentSize(), contentScale = ContentScale.Crop) }
+            request?.let { AsyncImage(it, null, modifier = Modifier.matchParentSize(), imageLoader = loader, contentScale = ContentScale.Crop) }
         } else Crossfade(request, animationSpec = tween(VelaMotion.BackdropFadeMs, easing = LinearEasing),
             modifier = Modifier.matchParentSize(), label = "backdrop") { image ->
-            image?.let { AsyncImage(it, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+            image?.let { AsyncImage(it, null, modifier = Modifier.fillMaxSize(), imageLoader = loader, contentScale = ContentScale.Crop) }
         }
+        // Theme-specific left/foot reading zones; art remains most visible at upper trailing edge.
         Box(Modifier.matchParentSize().background(Brush.horizontalGradient(
-            0f to c.canvas, 0.45f to c.canvas.copy(alpha = 0.92f), 1f to c.canvas.copy(alpha = 0.35f))))
+            0f to c.canvas,
+            0.22f to c.canvas.copy(alpha = if (day) 0.93f else 0.95f),
+            0.52f to c.canvas.copy(alpha = if (day) 0.40f else 0.76f),
+            1f to c.canvas.copy(alpha = if (day) 0.05f else 0.28f))))
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(
-            0.55f to c.canvas.copy(alpha = 0f), 1f to c.canvas)))
+            0f to c.canvas.copy(alpha = 0.05f),
+            0.48f to c.canvas.copy(alpha = 0.20f),
+            0.78f to c.canvas.copy(alpha = 0.95f), 1f to c.canvas)))
     }
 }

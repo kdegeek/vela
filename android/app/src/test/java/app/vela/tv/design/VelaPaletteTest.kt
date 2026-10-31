@@ -42,6 +42,8 @@ class VelaPaletteTest {
             for (status in listOf(p.agent, p.success, p.caution, p.danger)) {
                 for (bg in listOf(p.canvas, p.surface, p.surfaceRaised)) checkPair("status", status, bg, floor)
             }
+            // Flat Agent / Danger buttons retain their identifying text colour on focused fills.
+            for (status in listOf(p.agent, p.danger)) checkPair("focused status button", status, p.surfaceFocused, floor)
         }
     }
 

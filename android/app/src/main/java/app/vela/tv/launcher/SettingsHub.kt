@@ -14,6 +14,7 @@ import app.vela.tv.DeviceStatus
 import app.vela.tv.VelaApp
 import app.vela.tv.control.NowPlayingAccess
 import app.vela.tv.design.*
+import app.vela.tv.profile.HouseholdState
 
 @Composable internal fun SettingsHub(app: VelaApp, resume: Int, mediaAccess: NowPlayingAccess,
     restoreOrigin: String?, restored: (String) -> Unit, reportError: (String) -> Unit, openPage: (Page, String) -> Unit,
@@ -22,12 +23,12 @@ import app.vela.tv.design.*
     val status = remember(resume, settings) { DeviceStatus.read(app) }
     val list = rememberLazyListState()
     val origins = remember { listOf("profiles", "routines", "external", "arrange").associateWith { FocusRequester() } }
-    // These are the keyed lazy items below, including VelaPage's header.
-    val originIndexes = mapOf("profiles" to 4, "routines" to 5, "external" to 7, "arrange" to 24)
+    // This is also the composition order below: restoration addresses the real section key.
+    val sections = listOf("profiles", "appearance", "arrange", "phone", "routines", "connections", "external", "device")
     LaunchedEffect(restoreOrigin) {
         if (restoreOrigin in origins) {
             val origin = restoreOrigin!!
-            list.scrollToItem(originIndexes.getValue(origin))
+            list.scrollToItem(sections.indexOf(origin) + 1)
             withFrameNanos { }
             if (origins.getValue(origin).requestFocus()) restored(origin)
         }
@@ -38,59 +39,66 @@ import app.vela.tv.design.*
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
         val measured = "${maxWidth.value.toInt()} × ${maxHeight.value.toInt()} dp · text scale ${density.fontScale}"
-        VelaPage("Make yourself at home", Modifier.fillMaxSize(), state = list) {
-            item("phone-heading") { VelaSectionHeader("Phone") }
-            item("phone") { PairCard(app, Modifier.fillMaxWidth()) }
-            item("household-heading") { VelaSectionHeader("Household") }
-            item("profiles") { VelaListRow("Profiles & memory", Modifier.focusRequester(origins.getValue("profiles")), glyph = VelaGlyph.Profile, onClick = { openPage(Page.PROFILES, "profiles") }) }
-            item("routines") { VelaListRow("Routines", Modifier.focusRequester(origins.getValue("routines")), glyph = VelaGlyph.Activity, onClick = { openPage(Page.ROUTINES, "routines") }) }
-            item("agent-heading") { VelaSectionHeader("Agent control") }
-            item("external") { VelaListRow("External agent control", Modifier.focusRequester(origins.getValue("external")), glyph = VelaGlyph.Link, onClick = { openPage(Page.CONTROL, "external") }) }
-            item("now-playing") { VelaListRow("Now Playing", supporting = "Playback apps, queue and controls", glyph = VelaGlyph.Play, onClick = nowPlaying) }
-            item("connections-heading") { VelaSectionHeader("Connections & permissions") }
-            item("ai") { ConnectionRow("AI", status.agentConfigured, "Set up from your paired phone") }
-            item("library") { ConnectionRow("Jellyfin", status.jellyfinConfigured, "Set up from your paired phone") }
-            item("plex") { ConnectionRow("Plex", status.plexConfigured, "Set up from your paired phone") }
-            item("house") { ConnectionRow("Home Assistant", status.homeConfigured, "Set up from your paired phone") }
-            item("tv-control") { VelaListRow(if (status.accessibility) "TV control enabled" else "Enable TV control",
-                supporting = if (status.accessibility) "Remote approval keys available" else "Answer approvals on your paired phone",
-                glyph = if (status.accessibility) VelaGlyph.Check else VelaGlyph.Caution,
-                tone = if (status.accessibility) StatusTone.Success else StatusTone.Caution, onClick = { open(Settings.ACTION_ACCESSIBILITY_SETTINGS) }) }
-            item("media-access") {
-                val attention = !status.mediaAccess || mediaAccess in setOf(NowPlayingAccess.PERMISSION, NowPlayingAccess.UNAVAILABLE)
-                VelaListRow(if (attention) "Now Playing needs attention" else "Media access enabled",
-                    supporting = if (attention) "Open details for access settings or to retry." else "Apps that publish media sessions can appear in Now Playing.",
-                    glyph = if (attention) VelaGlyph.Caution else VelaGlyph.Check,
-                    tone = if (attention) StatusTone.Caution else StatusTone.Success, onClick = nowPlaying)
-            }
-            item("android-settings") { VelaListRow("Android settings", glyph = VelaGlyph.Settings, onClick = { open(Settings.ACTION_SETTINGS) }) }
-            item("appearance-heading") { VelaSectionHeader("Appearance & accessibility") }
-            item("theme") { VelaChoiceGroup("Theme", listOf("night", "day"), settings.appearance, { it.replaceFirstChar(Char::uppercase) }, { update(settings.copy(appearance = it)) }) }
-            item("motion") { VelaChoiceGroup("Motion", listOf(false, true), settings.reduceMotion, { if (it) "Reduced" else "Standard" }, { update(settings.copy(reduceMotion = it)) }) }
-            item("contrast") { VelaChoiceGroup("Contrast", listOf(false, true), settings.highContrast, { if (it) "High" else "Standard" }, { update(settings.copy(highContrast = it)) }) }
-            item("home-button") { VelaChoiceGroup("Home button", listOf(true, false), settings.ownHome, { if (it) "Vela" else "System" }, { update(settings.copy(ownHome = it)) }) }
-            item("showcase") { AppearanceShowcase() }
-            item("home-heading") { VelaSectionHeader("Home screen") }
-            item("arrange") { VelaListRow("Arrange home", Modifier.focusRequester(origins.getValue("arrange")), supporting = "Move or remove existing rows", onClick = { openPage(Page.ARRANGE, "arrange") }) }
-            item("refresh") { VelaListRow("Refresh home", glyph = VelaGlyph.Refresh, onClick = changed) }
-            item("device-heading") { VelaSectionHeader("This device") }
-            item("device") { Text("${status.model} · Android API ${status.androidApi} · Vela ${status.version}\nSettings content area: $measured\nApp display metrics: ${status.surfaceWidth} × ${status.surfaceHeight} px. These measurements do not describe the panel.", style = Vela.type.body, color = Vela.colors.inkMuted, modifier = Modifier.readingWidth()) }
+        GlassDestinationPage("Make yourself at home", Modifier.fillMaxSize(), state = list) {
+            sections.forEach { section -> item(section) {
+                when (section) {
+                    "profiles" -> GlassManagementGroup {
+                        val householdStore by app.householdReady.collectAsState()
+                        val household = householdStore?.state?.collectAsState()?.value
+                        VelaSectionHeader("People at home")
+                        VelaListRow((household as? HouseholdState.Ready)?.document?.activeProfile?.displayName ?: "Profiles & memory",
+                            Modifier.focusRequester(origins.getValue("profiles")),
+                            supporting = "Preferences and what Vela remembers · Home and My list are shared",
+                            glyph = VelaGlyph.Profile, onClick = { openPage(Page.PROFILES, "profiles") })
+                    }
+                    "appearance" -> GlassManagementGroup {
+                        VelaSectionHeader("Appearance & accessibility")
+                        VelaChoiceGroup("Theme", listOf("night", "day"), settings.appearance, { it.replaceFirstChar(Char::uppercase) }, { update(settings.copy(appearance = it)) })
+                        VelaChoiceGroup("Motion", listOf(false, true), settings.reduceMotion, { if (it) "Reduced" else "Standard" }, { update(settings.copy(reduceMotion = it)) })
+                        VelaChoiceGroup("Contrast", listOf(false, true), settings.highContrast, { if (it) "High" else "Standard" }, { update(settings.copy(highContrast = it)) })
+                        VelaChoiceGroup("Home button", listOf(true, false), settings.ownHome, { if (it) "Vela" else "System" }, { update(settings.copy(ownHome = it)) })
+                    }
+                    "arrange" -> GlassManagementGroup {
+                        VelaSectionHeader("Home screen")
+                        VelaListRow("Arrange home", Modifier.focusRequester(origins.getValue("arrange")), supporting = "Move or remove existing rows", onClick = { openPage(Page.ARRANGE, "arrange") })
+                        VelaListRow("Refresh home", glyph = VelaGlyph.Refresh, onClick = changed)
+                    }
+                    "phone" -> PairCard(app, Modifier.fillMaxWidth())
+                    "routines" -> GlassManagementGroup {
+                        VelaListRow("Routines", Modifier.focusRequester(origins.getValue("routines")), supporting = "Saved tasks and schedules", glyph = VelaGlyph.Activity, onClick = { openPage(Page.ROUTINES, "routines") })
+                    }
+                    "connections" -> GlassManagementGroup {
+                        VelaSectionHeader("Connections & permissions")
+                        VelaListRow("Now Playing", supporting = "Playback apps, queue and controls", glyph = VelaGlyph.Play, onClick = nowPlaying)
+                        ConnectionRow("AI", status.agentConfigured, "Set up from your paired phone")
+                        ConnectionRow("Jellyfin", status.jellyfinConfigured, "Set up from your paired phone")
+                        ConnectionRow("Plex", status.plexConfigured, "Set up from your paired phone")
+                        ConnectionRow("Home Assistant", status.homeConfigured, "Set up from your paired phone")
+                        VelaListRow(if (status.accessibility) "TV control enabled" else "Enable TV control",
+                            supporting = if (status.accessibility) "Remote approval keys available" else "Answer approvals on your paired phone",
+                            glyph = if (status.accessibility) VelaGlyph.Check else VelaGlyph.Caution,
+                            tone = if (status.accessibility) StatusTone.Success else StatusTone.Caution, onClick = { open(Settings.ACTION_ACCESSIBILITY_SETTINGS) })
+                        val attention = !status.mediaAccess || mediaAccess in setOf(NowPlayingAccess.PERMISSION, NowPlayingAccess.UNAVAILABLE)
+                        VelaListRow(if (attention) "Now Playing needs attention" else "Media access enabled",
+                            supporting = if (attention) "Open details for access settings or to retry." else "Apps that publish media sessions can appear in Now Playing.",
+                            glyph = if (attention) VelaGlyph.Caution else VelaGlyph.Check,
+                            tone = if (attention) StatusTone.Caution else StatusTone.Success, onClick = nowPlaying)
+                    }
+                    "external" -> GlassManagementGroup {
+                        VelaSectionHeader("Advanced control")
+                        VelaListRow("External agent control", Modifier.focusRequester(origins.getValue("external")), supporting = "Dedicated credential and loopback listener", glyph = VelaGlyph.Link, onClick = { openPage(Page.CONTROL, "external") })
+                    }
+                    "device" -> GlassManagementGroup {
+                        VelaSectionHeader("This device")
+                        VelaListRow("Android settings", glyph = VelaGlyph.Settings, onClick = { open(Settings.ACTION_SETTINGS) })
+                        Text("${status.model} · Android API ${status.androidApi} · Vela ${status.version}\nSettings content area: $measured\nApp display metrics: ${status.surfaceWidth} × ${status.surfaceHeight} px. These measurements do not describe the panel.", style = Vela.type.meta, color = Vela.colors.inkMuted, modifier = Modifier.readingWidth())
+                    }
+                }
+            } }
         }
     }
 }
 @Composable private fun ConnectionRow(name: String, configured: Boolean, setup: String) {
     VelaListRow(name, supporting = if (configured) "Configured" else setup,
         glyph = if (configured) VelaGlyph.Check else VelaGlyph.Caution, tone = if (configured) StatusTone.Success else StatusTone.Caution)
-}
-@Composable private fun AppearanceShowcase() {
-    Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.L)) {
-        Text("Card appearance", style = Vela.type.section)
-        // Visual-only examples: no duplicate focus targets or click handlers.
-        CardFormat.entries.forEach { format ->
-            FlowRow(Modifier.padding(VelaSpace.S), horizontalArrangement = Arrangement.spacedBy(VelaSpace.L), verticalArrangement = Arrangement.spacedBy(VelaSpace.L)) {
-                MediaCardVisual("${format.name} · At rest", format, VelaInteractionState(false, false, false, true))
-                MediaCardVisual("${format.name} · Focused", format, VelaInteractionState(true, false, false, true))
-            }
-        }
-    }
 }

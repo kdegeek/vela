@@ -1,5 +1,10 @@
 # Vela component contract
 
+**Previous work-package contract:** new implementation follows the owner-approved
+[glass contract](vela-glass-implementation-contract.md). Its current ownership,
+material/font additions and composition rules supersede the visual and package
+restrictions below. Existing execution, approval and compatibility invariants remain.
+
 Status: governing implementation contract, 2026-10-31. Baseline `0809edfb31d2fac467dc55e2b67fd93d9cf777df`
 on `t3/explore-agentic-tv-pivot`. Visual rules: [vela-design-language.md](vela-design-language.md).
 This document fixes the APIs, file ownership, order and acceptance for the native and phone work packages.

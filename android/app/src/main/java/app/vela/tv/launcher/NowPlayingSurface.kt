@@ -3,7 +3,6 @@ package app.vela.tv.launcher
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -109,9 +108,8 @@ import java.util.UUID
     val reportStatus by rememberUpdatedState(onStatus)
     LaunchedEffect(session != null, snapshot.access) { reportStatus(session != null, snapshot.access) }
     if (session != null) {
-        Surface(Modifier.fillMaxWidth().safeHorizontal().padding(top = VelaSpace.Xs),
-            shape = VelaShapes.Card, color = Vela.colors.surface,
-            border = if (Vela.highContrast) androidx.compose.foundation.BorderStroke(1.dp, Vela.colors.lineStrong) else null) {
+        VelaGlassSurface(Modifier.fillMaxWidth().safeHorizontal().padding(top = VelaSpace.Xs),
+            shape = VelaShapes.Panel, dense = true) {
             Column {
                 FlowRow(Modifier.heightIn(min = VelaSize.NowPlayingBar).focusRestorer().padding(VelaSpace.Xs),
                     horizontalArrangement = Arrangement.spacedBy(VelaSpace.S), verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
@@ -128,7 +126,7 @@ import java.util.UUID
                     if (session.target.capabilities.supports(action, session.target.phase))
                         VelaButton(action.label, enabled = NowPlayingCommands.arguments(session.target, action, busy) != null,
                             busy = sending, variant = ButtonVariant.Primary) { act(session, action) }
-                    VelaButton("Now Playing", onClick = openDetails)
+                    VelaButton("Now Playing", variant = ButtonVariant.Quiet, onClick = openDetails)
                 }
                 feedback?.let { InlineStatus(it, Modifier.padding(VelaSpace.S), tone = if (failed) StatusTone.Caution else StatusTone.Neutral) }
             }

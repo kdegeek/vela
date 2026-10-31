@@ -31,3 +31,10 @@ private fun isHomeMedia(tile: Tile, source: Source): Boolean = when (tile.action
         else -> tile.image != null || !tile.backdrop.isNullOrBlank()
     }
 }
+
+/** Only claim providers identified by the actual effect, never a row's arbitrary title. */
+internal fun homeMediaProvider(tile: Tile): String? = when (tile.action) {
+    is TileAction.PlayJellyfin -> "Jellyfin"
+    is TileAction.SearchApp -> if (tile.key.startsWith("plex:")) "Plex" else null
+    else -> null
+}

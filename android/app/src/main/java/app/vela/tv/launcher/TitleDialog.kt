@@ -1,11 +1,17 @@
 package app.vela.tv.launcher
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
@@ -16,6 +22,8 @@ import app.vela.tv.design.*
 import app.vela.tv.layout.PinnedItem
 import app.vela.tv.layout.TileAction
 import app.vela.tv.media.JellyfinItem
+import app.vela.tv.media.JellyfinClient.ImageType
+import app.vela.tv.control.nowPlayingTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -90,9 +98,14 @@ import kotlinx.coroutines.launch
         }
     }
     val content = titleContent(loading, error != null, item?.type, item?.missing == true)
-    VelaSheet(item?.name ?: tile.title, dismiss, back, headerActions = {
-        VelaButton("Back", Modifier.focusRequester(back), onClick = dismiss)
-        VelaButton(if (isSaved) "Remove from my list" else "Save to my list", enabled = !opening) {
+    val title = item?.name ?: tile.title
+    val artwork = item?.takeIf { it.hasPrimary }?.let {
+        settings.jellyfin(app.settings.deviceId)?.imageUrl(it.id, ImageType.Primary, 704)
+    } ?: tile.image
+    TitleGlassSheet(dismiss, back, headerActions = {
+        VelaButton("Back", Modifier.focusRequester(back), variant = ButtonVariant.Quiet, onClick = dismiss)
+        Spacer(Modifier.weight(1f))
+        VelaButton(if (isSaved) "Remove from my list" else "Save to my list", enabled = !opening, variant = ButtonVariant.Quiet) {
             runCatching {
                 val pin = PinnedItem(tile.title, tile.action, tile.subtitle, tile.image as? String)
                 if (isSaved) app.settings.removeTitle(pin) else app.settings.saveTitle(pin)
@@ -100,11 +113,48 @@ import kotlinx.coroutines.launch
             }.onFailure { saveError = it.message ?: "Couldn't save your list. Try again." }
         }
     }) {
-        tile.subtitle?.takeIf { it.isNotBlank() }?.let { subtitle -> item("subtitle") { Text(subtitle, color = Vela.colors.accent, maxLines = 2, overflow = TextOverflow.Ellipsis) } }
-        item("overview") { Text(item?.overview?.takeIf { it.isNotBlank() } ?: tile.overview ?: if (action is TileAction.OpenUri) "Open this title in its app." else "Details from your library.", maxLines = 4, overflow = TextOverflow.Ellipsis) }
+        item("identity") {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                val stacked = maxWidth < 500.dp || LocalDensity.current.fontScale > 1.3f
+                val information: @Composable () -> Unit = {
+                    Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                        Text(listOfNotNull(item?.type, homeMediaProvider(tile) ?: if (action is TileAction.OpenUri) "App link" else null)
+                            .joinToString(" · "), style = Vela.type.caption, color = Vela.colors.inkMuted)
+                        Text(title, style = Vela.type.headline, color = Vela.colors.ink,
+                            modifier = Modifier.semantics { heading() })
+                        val metadata = item?.let { loaded -> listOfNotNull(loaded.year?.toString(),
+                            loaded.runtimeMinutes?.let { "$it min" }, loaded.genres.take(2).joinToString(" · ").ifBlank { null })
+                            .joinToString(" · ") }?.takeIf { it.isNotBlank() } ?: tile.subtitle
+                        metadata?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, style = Vela.type.meta, color = Vela.colors.inkMuted)
+                        }
+                        Text(item?.overview?.takeIf { it.isNotBlank() } ?: tile.overview
+                            ?: if (action is TileAction.OpenUri) "Open this title in its app." else "Details from your library.",
+                            style = Vela.type.body, maxLines = 4, overflow = TextOverflow.Ellipsis)
+                        if (action is TileAction.PlayJellyfin && content == TitleContent.PLAYABLE) {
+                            HorizontalDivider(color = Vela.colors.line)
+                            item?.takeIf { it.resumePositionMs > 0 }?.let { loaded ->
+                                Text(listOfNotNull("Resume at ${nowPlayingTime(loaded.resumePositionMs)}",
+                                    loaded.remainingMinutes?.let { "$it min remaining" }).joinToString(" · "),
+                                    style = Vela.type.meta, color = Vela.colors.inkMuted)
+                            }
+                            VelaButton("${if ((item?.resumePositionMs ?: 0L) > 0L) "Resume" else "Play"} $title",
+                                enabled = !opening, busy = opening, variant = ButtonVariant.Primary, glyph = VelaGlyph.Play) { play(action) }
+                        }
+                    }
+                }
+                if (stacked) Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.M)) {
+                    VelaArtwork(artwork, Modifier.width(144.dp).height(192.dp), tile.title)
+                    information()
+                } else Row(horizontalArrangement = Arrangement.spacedBy(VelaSpace.L)) {
+                    VelaArtwork(artwork, Modifier.width(168.dp).height(224.dp), tile.title)
+                    Box(Modifier.weight(1f)) { information() }
+                }
+            }
+        }
         saveError?.let { message -> item("save-error") { Text(message, color = Vela.colors.danger, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) } }
         if (opening) item("opening") { LoadingState("Opening your selection…") }
-        if (action is TileAction.OpenUri) item("open") { VelaButton("Open in app", enabled = !opening, busy = opening, variant = ButtonVariant.Primary) { play(action) } }
+        if (action is TileAction.OpenUri) item("open") { VelaButton("Open $title in app", enabled = !opening, busy = opening, variant = ButtonVariant.Primary) { play(action) } }
         if (action is TileAction.PlayJellyfin) when (content) {
             TitleContent.LOADING -> item("loading") { LoadingState("Loading title details…") }
             TitleContent.ERROR -> item("error") { EmptyState("Couldn't load this title", error.orEmpty(), "Retry") { retry++ } }
@@ -131,8 +181,25 @@ import kotlinx.coroutines.launch
                     VelaButton(if (moreLoading) "Loading more episodes…" else if (episodesError != null) "Retry more episodes" else "More episodes", enabled = !opening, busy = moreLoading) { loadMore() }
                 }
             }
-            TitleContent.PLAYABLE -> item("play") { VelaButton(if ((item?.resumePositionMs ?: 0L) > 0L) "Resume" else "Play", enabled = !opening, busy = opening, variant = ButtonVariant.Primary) { play(action) } }
+            TitleContent.PLAYABLE -> Unit // Named Play/Resume sits with the exact loaded identity above.
             TitleContent.UNSUPPORTED -> item("unsupported") { EmptyState("This title can't play here", "Choose a movie or episode from your library. You can still save this title for later.") }
         }
+    }
+}
+
+/** Back stays outside episode paging. The sheet adds material, never a controller or action path. */
+@Composable private fun TitleGlassSheet(dismiss: () -> Unit, initialFocus: FocusRequester,
+    headerActions: @Composable FlowRowScope.() -> Unit, content: LazyListScope.() -> Unit) {
+    Dialog(dismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        VelaGlassSurface(Modifier.padding(VelaSpace.L).widthIn(max = 704.dp).fillMaxWidth()
+            .heightIn(max = VelaSize.SheetHeight), dense = true) {
+            Column(Modifier.padding(VelaSpace.L), verticalArrangement = Arrangement.spacedBy(VelaSpace.M)) {
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(VelaSpace.S),
+                    verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs), content = headerActions)
+                LazyColumn(Modifier.weight(1f, fill = false).focusRestorer(), contentPadding = PaddingValues(VelaSpace.Xs),
+                    verticalArrangement = Arrangement.spacedBy(VelaSpace.M), content = content)
+            }
+        }
+        LaunchedEffect(initialFocus) { withFrameNanos { }; initialFocus.requestFocus() }
     }
 }

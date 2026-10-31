@@ -24,15 +24,18 @@ import kotlinx.coroutines.*
     var row by remember(spec) { mutableStateOf<LoadedRow?>(null) }
     var retry by remember { mutableIntStateOf(0) }
     LaunchedEffect(spec, settings, saved, refresh, retry) { row = data.load(spec) }
-    CardGrid(spec.style.cardFormat(), Modifier.fillMaxSize()) {
-        fullSpanItem("heading") { Text(spec.title, style = Vela.type.headline, modifier = Modifier.semantics { heading() }) }
-        val loaded = row
-        when {
-            loaded == null -> fullSpanItem("loading") { LoadingState("Loading ${spec.title.lowercase()}…") }
-            loaded.error != null -> fullSpanItem("error") { StatusPanel("Connection needs attention", loaded.error, kind = StatusKind.Error, action = "Retry", onAction = { retry++ }) }
-            loaded.tiles.isEmpty() -> fullSpanItem("empty") { EmptyState(if (spec.source == Source.Watchlist) "Save something for later" else "No apps found",
-                if (spec.source == Source.Watchlist) "Open a title in Home or Search and choose Save to my list." else "Installed TV apps will appear here.") }
-            else -> items(loaded.tiles, key = { it.key }) { tile -> TileCard(tile, spec.style, {}, onSelect) }
+    Box(Modifier.fillMaxSize()) {
+        VelaAmbientBackground(Modifier.matchParentSize())
+        CardGrid(spec.style.cardFormat(), Modifier.fillMaxSize()) {
+            fullSpanItem("heading") { Text(spec.title, style = Vela.type.title, color = Vela.colors.ink, modifier = Modifier.semantics { heading() }) }
+            val loaded = row
+            when {
+                loaded == null -> fullSpanItem("loading") { LoadingState("Loading ${spec.title.lowercase()}…") }
+                loaded.error != null -> fullSpanItem("error") { StatusPanel("Connection needs attention", loaded.error, kind = StatusKind.Error, action = "Retry", onAction = { retry++ }) }
+                loaded.tiles.isEmpty() -> fullSpanItem("empty") { EmptyState(if (spec.source == Source.Watchlist) "Save something for later" else "No apps found",
+                    if (spec.source == Source.Watchlist) "Open a title in Home or Search and choose Save to my list." else "Installed TV apps will appear here.") }
+                else -> items(loaded.tiles, key = { it.key }) { tile -> TileCard(tile, spec.style, {}, onSelect) }
+            }
         }
     }
 }
@@ -55,14 +58,14 @@ import kotlinx.coroutines.*
             apps = appResult.await(); library = libraryResult.await()
         } } finally { loading = false }
     }
-    VelaPage("Search", Modifier.fillMaxSize().imePadding(), inset = false) {
-        insetItem("query") {
+    GlassDestinationPage("Search", Modifier.fillMaxSize().imePadding(), inset = false) {
+        insetItem("query") { GlassManagementGroup {
             Row(horizontalArrangement = Arrangement.spacedBy(VelaSpace.S), verticalAlignment = Alignment.CenterVertically) {
                 VelaTextField(query, { query = it }, "Search titles and apps", Modifier.weight(1f), maxLength = 500,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search), keyboardActions = KeyboardActions(onSearch = { submitted = query.trim(); retry++ }))
                 VelaButton("Search", enabled = query.isNotBlank(), variant = ButtonVariant.Primary) { submitted = query.trim(); retry++ }
             }
-        }
+        } }
         if (submitted.isBlank()) insetItem("empty") { EmptyState("What are you in the mood for?", "Search your Jellyfin library and installed apps, or ask Vela to find something across your streaming apps.") }
         else {
             insetItem("status") { if (loading) InlineStatus("Searching for “$submitted”…") }
@@ -91,7 +94,7 @@ import kotlinx.coroutines.*
         try { entities = settings.homeAssistant()?.states()?.sortedBy { it.friendlyName ?: it.entityId }.orEmpty() }
         catch (e: CancellationException) { throw e } catch (e: Exception) { error = e.message ?: "Couldn't reach Home Assistant." }
     }
-    VelaPage("A home that listens", Modifier.fillMaxSize(), actions = { VelaButton("Refresh", onClick = reload) }) {
+    GlassDestinationPage("House", Modifier.fillMaxSize(), actions = { VelaButton("Refresh", onClick = reload) }) {
         when {
             settings.homeAssistant() == null -> item("setup") { EmptyState("Connect your home", "Add Home Assistant from your paired phone in Settings to see devices and run scenes.", "Settings", onSettings) }
             error != null -> item("error") { StatusPanel("Home Assistant is unavailable", error.orEmpty(), kind = StatusKind.Error, action = "Retry", onAction = reload) }
@@ -100,12 +103,12 @@ import kotlinx.coroutines.*
             else -> items(entities!!.take(150), key = { it.entityId }) { entity ->
                 val domain = entity.entityId.substringBefore('.')
                 val direct = domain in setOf("light", "switch", "fan", "input_boolean") && entity.state !in setOf("unknown", "unavailable")
-                VelaListRow(entity.friendlyName ?: entity.entityId, supporting = "$domain · ${entity.state}", glyph = VelaGlyph.House) {
+                GlassManagementGroup { VelaListRow(entity.friendlyName ?: entity.entityId, supporting = "$domain · ${entity.state}", glyph = VelaGlyph.House) {
                     VelaButton(if (direct) "Toggle" else "Ask Vela", variant = if (direct) ButtonVariant.Secondary else ButtonVariant.Agent) {
                         onSelect(Tile("ha:${entity.entityId}", entity.friendlyName ?: entity.entityId,
                             if (direct) TileAction.HomeService(domain, "toggle", entity.entityId) else TileAction.AskAgent("Help me control ${entity.entityId}. Current state is ${entity.state}.")))
                     }
-                }
+                } }
             }
         }
     }

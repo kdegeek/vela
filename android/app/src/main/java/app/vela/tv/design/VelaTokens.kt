@@ -7,6 +7,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontVariation
+import app.vela.tv.R
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -61,11 +64,11 @@ val LocalVelaColors = staticCompositionLocalOf { VelaPalettes.Night.toColors() }
 object VelaSpace {
     val Xxs = 4.dp; val Xs = 8.dp; val S = 12.dp; val M = 16.dp; val L = 24.dp; val Xl = 32.dp; val Xxl = 48.dp
     val SafeHorizontal = 48.dp; val SafeVertical = 27.dp
-    val CardGap = 16.dp; val RowGap = 24.dp; val HeaderToArt = 12.dp; val ArtToLabel = 12.dp
+    val CardGap = 16.dp; val RowGap = 24.dp; val HeaderToArt = 12.dp; val ArtToLabel = 8.dp
 }
 object VelaSize {
     val MinTarget = 44.dp; val ListRow = 56.dp; val TopBar = 52.dp
-    val Hero = 96.dp; val HeroCompact = 52.dp; val NowPlayingBar = 64.dp; val NowPlayingArt = 48.dp
+    val Hero = 60.dp; val HeroCompact = 56.dp; val NowPlayingBar = 60.dp; val NowPlayingArt = 48.dp
     val CardLabel = 40.dp; val Progress = 4.dp
     val DialogWidth = 640.dp; val DialogHeight = 460.dp; val SheetWidth = 720.dp; val SheetHeight = 480.dp
     val ReadingWidth = 560.dp
@@ -75,7 +78,7 @@ object VelaSize {
 }
 object VelaShapes {
     val Card = RoundedCornerShape(12.dp); val Panel = RoundedCornerShape(20.dp)
-    val Control = RoundedCornerShape(50); val Field = RoundedCornerShape(10.dp); val Thumb = RoundedCornerShape(8.dp)
+    val Control = RoundedCornerShape(10.dp); val Field = RoundedCornerShape(10.dp); val Thumb = RoundedCornerShape(8.dp)
 }
 object VelaMotion {
     const val FocusMs = 150; const val PressMs = 100; const val BackdropSettleMs = 300L; const val BackdropFadeMs = 400
@@ -84,14 +87,19 @@ object VelaMotion {
 @Immutable class VelaTypography(val display: TextStyle, val headline: TextStyle, val title: TextStyle,
     val section: TextStyle, val body: TextStyle, val meta: TextStyle, val label: TextStyle,
     val caption: TextStyle, val numeric: TextStyle)
-private fun textStyle(size: Int, line: Int, weight: FontWeight = FontWeight.Normal, serif: Boolean = false) = TextStyle(
-    fontFamily = if (serif) FontFamily.Serif else FontFamily.SansSerif,
-    fontSize = size.sp, lineHeight = line.sp, fontWeight = weight,
+private val Manrope = FontFamily(
+    *listOf(FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold, FontWeight.Bold).map { weight ->
+        Font(R.font.manrope, weight = weight, variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)))
+    }.toTypedArray(),
+)
+private fun textStyle(size: Int, line: Int, weight: FontWeight = FontWeight.Medium) = TextStyle(
+    fontFamily = Manrope, fontSize = size.sp, lineHeight = line.sp, fontWeight = weight,
 )
 val VelaType = VelaTypography(
-    display = textStyle(34, 40, serif = true), headline = textStyle(28, 34, serif = true),
-    title = textStyle(22, 28, FontWeight.SemiBold), section = textStyle(18, 24, FontWeight.SemiBold),
-    body = textStyle(16, 24), meta = textStyle(14, 20), label = textStyle(15, 20, FontWeight.SemiBold),
+    display = textStyle(32, 40, FontWeight.SemiBold).copy(letterSpacing = (-0.8).sp),
+    headline = textStyle(28, 36, FontWeight.SemiBold).copy(letterSpacing = (-0.6).sp),
+    title = textStyle(22, 28, FontWeight.SemiBold), section = textStyle(18, 24, FontWeight.Bold),
+    body = textStyle(16, 24), meta = textStyle(14, 20), label = textStyle(15, 20, FontWeight.Bold),
     caption = textStyle(12, 16, FontWeight.Medium), numeric = textStyle(14, 20).copy(fontFeatureSettings = "tnum"),
 )
 object Vela {

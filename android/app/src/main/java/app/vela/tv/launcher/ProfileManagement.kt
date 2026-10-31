@@ -3,7 +3,12 @@ package app.vela.tv.launcher
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Text
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -41,7 +46,7 @@ import kotlinx.coroutines.CancellationException
     }
     if (editing) {
         key(original?.id, editRevision) {
-            ProfileEditor(original, actions, { editing = false }) { name, audio, subtitles, intent, autoplay ->
+            ProfileEditor(original, original?.id == profiles?.activeProfileId, actions, { editing = false }) { name, audio, subtitles, intent, autoplay ->
                 val draft = ManagementForms.profile(original, name, audio, subtitles, intent, autoplay)
                 actions.run {
                     if (original == null) management.createProfile(editRevision, draft)
@@ -52,11 +57,10 @@ import kotlinx.coroutines.CancellationException
         }
         return
     }
-    ManagementList("Household profiles & memory", actions) {
+    ManagementList("People at home", actions) {
         item("profile-actions") { ManagementButtons {
-            VelaButton("Refresh profiles", enabled = !actions.busy, glyph = VelaGlyph.Refresh) { actions.run { refresh() } }
-            VelaButton("New adult profile", enabled = !actions.busy && profiles != null, variant = ButtonVariant.Primary) { original = null; editRevision = profiles!!.revision; editing = true }
-            VelaButton("Recover household storage…", enabled = !actions.busy) { actions.confirm("Stop current work and reconcile saved household storage? No data is reset or deleted.") { profiles = management.reloadHousehold(); loadError = null } }
+            VelaButton("Add a person", enabled = !actions.busy && profiles != null, variant = ButtonVariant.Primary) { original = null; editRevision = profiles!!.revision; editing = true }
+            VelaButton("Refresh profiles", enabled = !actions.busy, glyph = VelaGlyph.Refresh, variant = ButtonVariant.Quiet) { actions.run { refresh() } }
         } }
         item("profile-explanation") { ManagementText("Each profile has its own preferences and saved memories. Profiles have no PIN protection. Home rows and My list are shared.") }
         owner?.let { active -> item("profile-owner") { OwnerControlStatus(management, active) } }
@@ -65,12 +69,12 @@ import kotlinx.coroutines.CancellationException
         profiles?.let { displayed ->
             item("profile-heading") { VelaSectionHeader("Profiles") }
             items(displayed.profiles, key = { it.id }) { profile ->
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                GlassManagementGroup {
                     VelaListRow(profile.displayName, glyph = VelaGlyph.Profile,
                         supporting = "${if (profile.id == displayed.activeProfileId) "Current profile · " else ""}${profile.kind.name.lowercase()} · subtitles ${profile.preferences.subtitles.name.lowercase()} · autoplay ${if (profile.preferences.autoplayNext) "on" else "off"}")
                     ManagementButtons {
-                        VelaButton("Preferences", enabled = !actions.busy) { original = profile; editRevision = displayed.revision; editing = true }
-                        VelaButton("Explicit memory", enabled = !actions.busy) { memoryProfile = profile }
+                        VelaButton("Preferences", enabled = !actions.busy, variant = ButtonVariant.Primary) { original = profile; editRevision = displayed.revision; editing = true }
+                        VelaButton("What Vela remembers", enabled = !actions.busy) { memoryProfile = profile }
                         if (profile.id != displayed.activeProfileId) VelaButton("Switch here…", enabled = !actions.busy) {
                             actions.confirm("Switch to ${profile.displayName}? Current work stops and prior profile conversation and approvals clear.") { management.switchProfile(displayed.revision, profile.id); refresh() }
                         }
@@ -78,37 +82,55 @@ import kotlinx.coroutines.CancellationException
                             actions.confirm("Permanently delete ${profile.displayName} and ALL of its explicit memories? Switch away from active profiles before deleting them.", danger = true) { management.deleteProfile(displayed.revision, profile.id, true); refresh() }
                         }
                     }
-                    HorizontalDivider(color = Vela.colors.line)
                 }
             }
         }
+        item("profile-maintenance") { GlassManagementGroup {
+            VelaSectionHeader("Maintenance")
+            VelaButton("Recover household storage…", enabled = !actions.busy, variant = ButtonVariant.Quiet) {
+                actions.confirm("Stop current work and reconcile saved household storage? No data is reset or deleted.") { profiles = management.reloadHousehold(); loadError = null }
+            }
+        } }
     }
 }
 
-@Composable private fun ProfileEditor(original: HouseholdProfile?, actions: ManagementActions, close: () -> Unit,
+@Composable private fun ProfileEditor(original: HouseholdProfile?, current: Boolean, actions: ManagementActions, close: () -> Unit,
     save: (String, String, String, SubtitlePreference, Boolean) -> Unit) {
     var name by rememberSaveable { mutableStateOf(original?.displayName.orEmpty()) }
     var audio by rememberSaveable { mutableStateOf(original?.preferences?.audioLanguages?.joinToString(", ").orEmpty()) }
     var subtitles by rememberSaveable { mutableStateOf(original?.preferences?.subtitleLanguages?.joinToString(", ").orEmpty()) }
     var intent by rememberSaveable { mutableStateOf(original?.preferences?.subtitles ?: SubtitlePreference.AUTOMATIC) }
     var autoplay by rememberSaveable { mutableStateOf(original?.preferences?.autoplayNext ?: false) }
-    val backFocus = Modifier.rememberManagementEntryFocus()
     BackHandler(!actions.busy, close)
-    ManagementList(if (original == null) "New adult profile" else "Preferences · ${original.displayName}", actions) {
-        item("profile-editor-back") { VelaButton("Back", backFocus, enabled = !actions.busy, onClick = close) }
+    GlassManagementEditor("Make yourself at home", actions, close, "Save profile", name.isNotBlank(),
+        save = { save(name, audio, subtitles, intent, autoplay) }, person = {
+            Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.M)) {
+                Box(Modifier.size(60.dp).background(Vela.colors.surfaceRaised, CircleShape), contentAlignment = Alignment.Center) {
+                    Text(original?.displayName?.let { it.substring(0, it.offsetByCodePoints(0, 1)).uppercase(java.util.Locale.ROOT) } ?: "+", style = Vela.type.title, color = Vela.colors.ink)
+                }
+                Text(if (original == null) "New adult profile" else if (current) "Current person" else "Person", style = Vela.type.meta, color = Vela.colors.inkMuted)
+                Text(original?.displayName ?: "Add a person", style = Vela.type.title, color = Vela.colors.ink, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                Text("Your preferences.\nA shared home.", style = Vela.type.body, color = Vela.colors.inkMuted)
+                Text("Preferences", style = Vela.type.label, color = Vela.colors.ink)
+            }
+        }) {
         item("profile-editor-name") { ManagementField("Display name", name, !actions.busy, 60) { name = it } }
-        item("profile-editor-languages") { VelaSectionHeader("Language preferences") }
-        item("profile-editor-audio") { ManagementField("Audio languages · comma-separated tags, e.g. en, es", audio, !actions.busy, 520) { audio = it } }
-        item("profile-editor-subtitles") { ManagementField("Subtitle languages · comma-separated tags", subtitles, !actions.busy, 520) { subtitles = it } }
-        item("profile-editor-intent") {
-            VelaChoiceGroup("Subtitle intent", SubtitlePreference.entries, intent, { it.name.lowercase() }, { intent = it }, enabled = !actions.busy)
+        item("profile-editor-languages") {
+            BoxWithConstraints(Modifier.fillMaxWidth()) {
+                if (maxWidth >= 440.dp) Row(horizontalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                    GlassLanguageControl("Preferred audio", audio, !actions.busy, Modifier.weight(1f)) { audio = it }
+                    GlassLanguageControl("Subtitles", subtitles, !actions.busy, Modifier.weight(1f), intent, { intent = it }) { subtitles = it }
+                } else Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                    GlassLanguageControl("Preferred audio", audio, !actions.busy) { audio = it }
+                    GlassLanguageControl("Subtitles", subtitles, !actions.busy, intent = intent, changeIntent = { intent = it }) { subtitles = it }
+                }
+            }
         }
         item("profile-editor-autoplay") { VelaToggleRow("Autoplay next episode", autoplay, { autoplay = it }, enabled = !actions.busy) }
-        item("profile-editor-explanation") { ManagementText("Language availability depends on the title. Your library preferences and access restrictions stay the same.") }
-        item("profile-editor-save") { ManagementButtons {
-            VelaButton("Back", enabled = !actions.busy, onClick = close)
-            VelaButton(if (actions.busy) "Saving…" else "Save profile", enabled = !actions.busy && name.isNotBlank(), busy = actions.busy, variant = ButtonVariant.Primary) { save(name, audio, subtitles, intent, autoplay) }
-        } }
+        item("profile-editor-explanation") {
+            Text("Anyone in the room can switch; profiles have no PIN. Home rows and My list are shared. Language availability depends on the title.",
+                style = Vela.type.meta, color = Vela.colors.inkMuted, modifier = Modifier.readingWidth())
+        }
     }
 }
 
@@ -166,7 +188,7 @@ import kotlinx.coroutines.CancellationException
         }
         displayed?.let { loaded ->
             items(loaded.entries, key = { it.id }) { entry ->
-                Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                GlassManagementGroup {
                     VelaListRow(entry.kind.name.lowercase().replaceFirstChar { it.titlecase() }, glyph = VelaGlyph.Bookmark,
                         supporting = "${entry.tags.joinToString(", ")} · ${if (entry.shareWithAgent) "shared with agent" else "private to owner"}")
                     ManagementText(entry.text, "Saved words · ${profile.displayName}")
@@ -174,7 +196,6 @@ import kotlinx.coroutines.CancellationException
                         VelaButton("Edit exact words", enabled = !actions.busy) { original = entry; editRevision = loaded.revision; editing = true }
                         VelaButton("Delete…", enabled = !actions.busy, variant = ButtonVariant.Danger) { actions.confirm("Permanently delete these saved words for ${profile.displayName}?", danger = true) { management.deleteMemory(loaded.revision, profile.id, entry.id); refresh() } }
                     }
-                    HorizontalDivider(color = Vela.colors.line)
                 }
             }
             if (loaded.entries.size < loaded.total) item("memory-more") { VelaButton("Load more (${loaded.entries.size} of ${loaded.total})", enabled = !actions.busy) { actions.run { refresh(true) } } }
@@ -187,18 +208,12 @@ import kotlinx.coroutines.CancellationException
     var tags by rememberSaveable { mutableStateOf(original?.tags?.joinToString(", ").orEmpty()) }
     var kind by rememberSaveable { mutableStateOf(original?.kind ?: MemoryKind.PREFERENCE) }
     var shared by rememberSaveable { mutableStateOf(original?.shareWithAgent ?: false) }
-    val backFocus = Modifier.rememberManagementEntryFocus()
     fun submit() = save(MemoryDraft(kind, text.trim(), ManagementForms.words(tags), shared))
-    ManagementList("Save exact words · $profileLabel", actions) {
-        item("memory-editor-back") { VelaButton("Back", backFocus, enabled = !actions.busy, onClick = close) }
+    GlassManagementEditor("Save exact words · $profileLabel", actions, close, "Save these words", text.isNotBlank(), save = { submit() }) {
         item("memory-editor-kind") { VelaChoiceGroup("Memory kind", MemoryKind.entries, kind, { it.name.lowercase() }, { kind = it }, enabled = !actions.busy) }
         item("memory-editor-words") { ManagementField("Exact words · no credentials", text, !actions.busy, 2000, true) { text = it } }
         item("memory-editor-tags") { ManagementField("Tags · comma-separated lowercase words", tags, !actions.busy, 264) { tags = it } }
         item("memory-editor-sharing") { VelaToggleRow("Share with agent", shared, { shared = it }, enabled = !actions.busy) }
         item("memory-editor-explanation") { ManagementText("Save is deliberate. A conflict leaves this draft unchanged. Return, reload the list and reopen the editor to review the current entry before reapplying an edit.") }
-        item("memory-editor-save") { ManagementButtons {
-            VelaButton("Back", enabled = !actions.busy, onClick = close)
-            VelaButton(if (actions.busy) "Saving…" else "Save these words", enabled = !actions.busy && text.isNotBlank(), busy = actions.busy, variant = ButtonVariant.Primary) { submit() }
-        } }
     }
 }

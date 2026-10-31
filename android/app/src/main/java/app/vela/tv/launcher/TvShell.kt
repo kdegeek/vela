@@ -98,12 +98,17 @@ import kotlinx.coroutines.*
     VelaTheme(settings) {
         Surface(Modifier.fillMaxSize(), color = Vela.colors.canvas) {
             BoxWithConstraints(Modifier.fillMaxSize()) {
+                // The scene reaches behind navigation as well as Home; foreground art stays crisp.
+                if (selected == Page.HOME) {
+                    VelaAmbientBackground(Modifier.matchParentSize())
+                    VelaBackdrop(home.media?.backdrop ?: home.media?.image, Modifier.matchParentSize())
+                } else VelaAmbientBackground(Modifier.matchParentSize())
                 val shortSurface = maxHeight < 360.dp
                 Column(Modifier.fillMaxSize().then(if (shortSurface) Modifier.verticalScroll(rememberScrollState()) else Modifier)
                     .padding(top = VelaSpace.SafeVertical, bottom = VelaSpace.SafeVertical)) {
                     TopBar(selected, identity, agentIndicator(running, pending, lines.lastOrNull()?.text), navigation, tabs,
                         { restoreSettingsOrigin = null; selected = it }, { openSettingsChild(Page.PROFILES, "profiles") }, ::askScreen, { home.focused = null }, { homeTabFocused = it })
-                    Spacer(Modifier.height(VelaSpace.Xs))
+                    Spacer(Modifier.height(VelaSpace.S))
                     LaunchedEffect(Unit) { focusTab(Page.HOME) }
                     Box((if (shortSurface) Modifier.height(300.dp) else Modifier.weight(1f)).focusProperties {
                         onExit = { if (requestedFocusDirection == FocusDirection.Up) { cancelFocusChange(); focusTab(selected.tab) } }

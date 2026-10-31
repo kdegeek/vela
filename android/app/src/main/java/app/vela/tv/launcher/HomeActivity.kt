@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -17,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -80,59 +78,73 @@ class HomeActivity : ComponentActivity() {
             val loaded = layout.rows.map { spec -> async { data.load(spec) } }.awaitAll()
             presentation.rows = loaded
             presentation.loaded = true
-            presentation.focused = presentation.focused?.let { old -> loaded.flatMap { it.tiles }.firstOrNull { it.key == old.key } }
+            presentation.focused = presentation.focused?.let { old -> loaded.flatMap { it.tiles }.firstOrNull { it.key == old.key && it.action == old.action } }
             presentation.media = homeMediaTile(loaded, presentation.focused, presentation.media)
         } finally { loading = false }
     }
-    BoxWithConstraints(Modifier.fillMaxSize().background(Vela.colors.canvas)) {
-        val media = presentation.media
-        VelaBackdrop(media?.backdrop ?: media?.image, Modifier.matchParentSize())
-        // Keep the nominal hero fixed on the baseline; short surfaces scroll the complete content.
-        val scrollHero = maxHeight < 260.dp || LocalDensity.current.fontScale > 1.3f
-        Column(Modifier.fillMaxSize()) {
-            notice?.let { receipt ->
+    // One scroll boundary owns complete rows, captions and utilities. The shell owns the scene.
+    LazyColumn(Modifier.fillMaxSize().focusRestorer(), state = list,
+        contentPadding = PaddingValues(bottom = VelaSpace.M),
+        verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
+        notice?.let { receipt ->
+            insetItem("receipt") {
                 key(receipt) {
-                    FlowRow(Modifier.safeHorizontal(), horizontalArrangement = Arrangement.spacedBy(VelaSpace.S),
-                        verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
-                        Text("Home updated", Modifier.align(Alignment.CenterVertically), style = Vela.type.meta,
-                            color = Vela.colors.inkMuted)
-                        VelaButton(if (undoing) "Restoring…" else "Undo", enabled = !undoUnavailable, busy = undoing,
-                            variant = ButtonVariant.Quiet) { onUndo(receipt) }
-                        VelaButton("Keep layout", variant = ButtonVariant.Quiet) { presentation.acknowledgedUndo = receipt }
+                    VelaGlassSurface(Modifier.fillMaxWidth()) {
+                        FlowRow(Modifier.padding(horizontal = VelaSpace.M, vertical = VelaSpace.Xs),
+                            horizontalArrangement = Arrangement.spacedBy(VelaSpace.S),
+                            verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
+                            Row(Modifier.weight(1f).align(Alignment.CenterVertically),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
+                                Glyph(VelaGlyph.Check, null, tint = Vela.colors.accent)
+                                Text("Home updated", style = Vela.type.label, color = Vela.colors.ink)
+                            }
+                            // Capture the displayed receipt, never re-read a newer receipt at activation.
+                            VelaButton(if (undoing) "Restoring…" else "Undo", enabled = !undoUnavailable,
+                                busy = undoing) { onUndo(receipt) }
+                            VelaButton("Keep layout", variant = ButtonVariant.Quiet) {
+                                presentation.acknowledgedUndo = receipt
+                            }
+                        }
                     }
                 }
             }
-            val compactHero = compact || notice != null
-            if (media != null && !scrollHero) MediaHero(media, compactHero, loading, Modifier.safeHorizontal())
-            LazyColumn(Modifier.weight(1f).fillMaxWidth().focusRestorer(), state = list,
-                contentPadding = PaddingValues(top = VelaSpace.M, bottom = VelaSpace.S),
-                verticalArrangement = Arrangement.spacedBy(VelaSpace.RowGap)) {
-                if (media != null && scrollHero) item("hero") { MediaHero(media, compactHero, loading, Modifier.safeHorizontal()) }
-                if (!presentation.loaded) {
-                    layout.rows.forEach { spec -> item(ownerRowKey(spec.id)) { SkeletonRow(spec.title, spec.style.cardFormat()) } }
-                } else {
-                    if (presentation.rows.all { it.tiles.isEmpty() && it.error == null }) insetItem("empty") {
-                        EmptyState("Your home is ready", "Open Apps or connect your library from Settings.", "Settings", onSettings)
-                    }
-                    presentation.rows.filter { it.tiles.isNotEmpty() || it.error != null }.forEach { row ->
-                        item(ownerRowKey(row.spec.id)) { TileRow(row, {
-                            presentation.focused = it
-                            presentation.media = homeMediaTile(presentation.rows, it, presentation.media)
-                        }, onSelect, onRetry = { retry++ }) }
-                    }
+        }
+        presentation.media?.let { media ->
+            insetItem("hero") { MediaHero(media, loading, compact || notice != null) }
+        }
+        if (!presentation.loaded) {
+            layout.rows.forEach { spec -> item(ownerRowKey(spec.id)) { SkeletonRow(spec.title, spec.style.cardFormat()) } }
+        } else {
+            presentation.rows.filter { it.tiles.isNotEmpty() || it.error != null }.forEach { row ->
+                item(ownerRowKey(row.spec.id)) {
+                    TileRow(row, {
+                        presentation.focused = it
+                        presentation.media = homeMediaTile(presentation.rows, it, presentation.media)
+                    }, onSelect, onRetry = { retry++ })
                 }
-                insetItem("arrange") {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(VelaSpace.S), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
-                        VelaButton("Arrange home", variant = ButtonVariant.Quiet, onClick = onArrange)
-                        undo?.takeIf { it === presentation.acknowledgedUndo }?.let { receipt ->
-                            key(receipt) {
-                                VelaButton("Undo last home change", enabled = !undoUnavailable, busy = undoing,
-                                    variant = ButtonVariant.Quiet) { onUndo(receipt) }
-                            }
+            }
+            if (presentation.rows.all { it.tiles.isEmpty() && it.error == null }) insetItem("empty") {
+                Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
+                    Text("Home, at your pace", style = Vela.type.headline, color = Vela.colors.ink)
+                    Text("Your apps are in Apps. Saved titles and library rows appear here when available.",
+                        style = Vela.type.body, color = Vela.colors.inkMuted)
+                }
+            }
+        }
+        insetItem("arrange") {
+            VelaGlassSurface {
+                FlowRow(Modifier.padding(VelaSpace.Xxs), horizontalArrangement = Arrangement.spacedBy(VelaSpace.Xxs),
+                    verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
+                    VelaButton("Arrange home", variant = ButtonVariant.Quiet, onClick = onArrange)
+                    undo?.takeIf { it === presentation.acknowledgedUndo }?.let { receipt ->
+                        key(receipt) {
+                            VelaButton("Undo last home change", enabled = !undoUnavailable, busy = undoing,
+                                variant = ButtonVariant.Quiet) { onUndo(receipt) }
                         }
-                        if (presentation.loaded && media == null) {
-                            VelaButton("Library settings", variant = ButtonVariant.Quiet, onClick = onSettings)
-                        }
+                    }
+                    if (presentation.loaded && presentation.media == null) {
+                        VelaButton("Library settings", variant = ButtonVariant.Quiet, onClick = onSettings)
                     }
                 }
             }
@@ -140,15 +152,17 @@ class HomeActivity : ComponentActivity() {
     }
 }
 
-@Composable private fun MediaHero(tile: Tile, compact: Boolean, loading: Boolean, modifier: Modifier) {
-    Column(modifier.fillMaxWidth().heightIn(min = if (compact) VelaSize.HeroCompact else VelaSize.Hero),
+@Composable private fun MediaHero(tile: Tile, loading: Boolean, compact: Boolean) {
+    Column(Modifier.fillMaxWidth().heightIn(min = if (compact) 56.dp else 60.dp)
+        .semantics { if (loading) stateDescription = "Refreshing" },
         verticalArrangement = Arrangement.Center) {
-        if (!compact) Text(if (loading) "Refreshing…" else tile.kicker ?: tileAffordance(tile.action).verb,
-            style = Vela.type.meta, color = Vela.colors.accent, maxLines = 1, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-        Text(tile.title, style = if (compact) Vela.type.section else Vela.type.display,
-            color = Vela.colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(if (compact && loading) "Refreshing…" else tile.subtitle.orEmpty(),
-            style = Vela.type.meta, color = Vela.colors.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(tile.title, style = Vela.type.headline, color = Vela.colors.ink,
+            maxLines = 2, overflow = TextOverflow.Ellipsis)
+        val metadata = listOfNotNull(tile.subtitle?.takeIf { it.isNotBlank() },
+            homeMediaProvider(tile)?.takeUnless { tile.subtitle?.contains(it, ignoreCase = true) == true })
+            .joinToString(" · ")
+        if (metadata.isNotBlank()) Text(metadata, style = Vela.type.meta, color = Vela.colors.inkMuted,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

@@ -58,6 +58,20 @@ Base URLs use the API root with no `/jellyfin` or `/api` suffix.
 
 ## Acceptance data and routes
 
+For native visual comparison with the approved glass concepts, use the same
+generated MP4 with the optional loopback-only entry point:
+
+```sh
+python3 -B dev/tv-fixtures/visual_fixture.py --media "$TV_FIXTURE_MEDIA" --duration 60 --port 18096
+```
+
+It serves the four existing public reference photographs documented in
+[asset provenance](../../docs/design/explorations/liquid-glass-20261031/mocks/ASSETS.md)
+for selected item artwork. Catalog identity remains visibly `FIXTURE`; video,
+metadata, authentication, missing artwork and all other routes keep the base
+fixture behavior. No fictional catalog or photograph is installed in the app.
+This entry point adds no Home Assistant routes and exposes no arbitrary directory.
+
 Routes and field casing follow the current Android `media/Jellyfin.kt`,
 `media/Playback.kt`, `media/JellyfinStream.kt` and `home/HomeAssistant.kt`.
 Catalog titles, media metadata, subtitles and health/error responses identify FIXTURE;

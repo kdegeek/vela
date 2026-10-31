@@ -15,21 +15,27 @@ import java.util.Date
     val busy by app.runner.running.collectAsState()
     val lines by app.runner.lines.collectAsState()
     val pending by app.runner.pending.collectAsState()
-    VelaPage("Working for you", Modifier.fillMaxSize(), actions = {
+    GlassDestinationPage("Activity", Modifier.fillMaxSize(), actions = {
         // The first content action is safe; entering Activity never focuses Stop.
         VelaButton("Ask something else", variant = ButtonVariant.Agent, onClick = openAsk)
         if (!busy) VelaButton("Clear activity", variant = ButtonVariant.Quiet) { app.runner.clear() }
     }) {
         if (busy) item("current") {
-            AgentTaskPanel(tasks.lastOrNull { it.state == "running" }?.task ?: "Working for you",
-                lines.lastOrNull()?.text, approvalQuestion = pending, remoteAnswers = remoteAnswers) {
-                VelaButton("Ask something else", variant = ButtonVariant.Agent, onClick = openAsk)
-                VelaButton("Stop task", variant = ButtonVariant.Danger) { app.runner.stop() }
+            GlassManagementGroup {
+                Text("Now", style = Vela.type.meta, color = Vela.colors.agent)
+                ManagementText(tasks.lastOrNull { it.state == "running" }?.task ?: "Working for you", "Current task")
+                WorkingIndicator(lines.lastOrNull()?.text?.takeIf { it.isNotBlank() } ?: "Working…")
+                ManagementButtons {
+                    VelaButton("Ask something else", variant = ButtonVariant.Agent, onClick = openAsk)
+                    VelaButton("Stop task", variant = ButtonVariant.Danger) { app.runner.stop() }
+                }
             }
-        } else pending?.let { question -> item("approval") { ApprovalNotice(question, remoteAnswers) } }
+        }
+        // Approval is a read-only notice, separate from owner-action confirmation dialogs.
+        pending?.let { question -> item("approval") { ApprovalNotice(question, remoteAnswers) } }
         if (tasks.isEmpty() && !busy) item("empty") { EmptyState("Nothing to catch up on", "Ask Vela to play a show, change your home screen, or help around the house. Activity stays on this device and clears when Vela restarts.") }
         items(tasks.asReversed(), key = { it.id }) { task ->
-            Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
+            GlassManagementGroup {
                 val tone = taskTone(task.state)
                 VelaListRow(task.task, supporting = listOfNotNull(taskStateLabel(task.state), task.detail).joinToString(" · "),
                     glyph = statusGlyph(tone) ?: VelaGlyph.Stop, tone = tone) {

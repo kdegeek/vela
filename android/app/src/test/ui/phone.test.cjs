@@ -37,7 +37,7 @@ function state(overrides={}) {
  return {running:false,lines:[],tasks:[],pendingId:null,pending:null,settings:{model:'saved-model'},
   device:{model:'Emulator',androidApi:36,surfaceWidth:1920,surfaceHeight:1080,accessibility:false,mediaAccess:false},...overrides};
 }
-function setup({storageUnavailable=false,confirmAnswer=true}={}) {
+function setup({storageUnavailable=false,confirmAnswer=true,fontBehavior=null}={}) {
  const elements = [...html.matchAll(/<([a-z][a-z0-9]*)\b([^>]*)>/g)].map(([,tag,attrs])=>new Element(tag,attrs));
  const ids = Object.fromEntries(elements.filter(e=>e.id).map(e=>[e.id,e]));
  for(const [,id,body] of html.matchAll(/<form id="([^"]+)"[^>]*>([\s\S]*?)<\/form>/g)) {
@@ -49,10 +49,18 @@ function setup({storageUnavailable=false,confirmAnswer=true}={}) {
  }
  const controls = elements.filter(e=>['BUTTON','INPUT','SELECT','TEXTAREA'].includes(e.tagName) && e.id !== 'reconnect');
  const remote = elements.filter(e=>e.dataset.key);
- const requests = [], timers = [], historyCalls = [];
+ const requests = [], timers = [], historyCalls = [], fonts = [];
+ const fontApi = fontBehavior ? {atob,FontFace:class {
+  constructor(family,bytes,descriptors) {
+   if(fontBehavior==='throws') throw Error('Font API unavailable');
+   this.family=family;this.bytes=bytes;this.descriptors=descriptors;
+  }
+  load() { return fontBehavior==='rejects'?Promise.reject(Error('Cannot decode font')):Promise.resolve(this); }
+ }} : {};
  let nextState = state(), fail = null, respond = null;
  const context = vm.createContext({
-  document:{getElementById:id=>{assert.ok(ids[id],`Missing DOM element ${id}`);return ids[id];},querySelectorAll:selector=>selector==='[data-key]'?remote:controls,createElement:tag=>new Element(tag)},
+  ...fontApi,
+  document:{fonts:fontBehavior?{add:face=>fonts.push(face)}:undefined,getElementById:id=>{assert.ok(ids[id],`Missing DOM element ${id}`);return ids[id];},querySelectorAll:selector=>selector==='[data-key]'?remote:controls,createElement:tag=>new Element(tag)},
   location:{hash:'#t=test-token',pathname:'/'},localStorage:{setItem(){if(storageUnavailable)throw Error('Storage unavailable');},getItem(){return 'test-token';}},history:{replaceState(...args){historyCalls.push(args);}},
   URLSearchParams,AbortSignal,JSON,Date,Set,Error,URL,Blob,crypto:require('node:crypto').webcrypto,confirm:()=>confirmAnswer,
   setTimeout:callback=>{timers.push(callback);return timers.length;},clearTimeout(){},
@@ -64,7 +72,7 @@ function setup({storageUnavailable=false,confirmAnswer=true}={}) {
   }
  });
  vm.runInContext(script,context);
- return {ids,controls,remote,requests,historyCalls,context,model:ids.settingsForm.elements.namedItem('model'),setState:s=>nextState=s,setFailure:e=>fail=e,setResponder:r=>respond=r,
+ return {ids,controls,remote,requests,historyCalls,fonts,context,model:ids.settingsForm.elements.namedItem('model'),setState:s=>nextState=s,setFailure:e=>fail=e,setResponder:r=>respond=r,
   poll:async()=>{await vm.runInContext('poll()',context);await tick();}};
 }
 test('DOM harness distinguishes boolean hidden from ARIA and quoted presentation attributes',()=>{
@@ -83,6 +91,7 @@ test('disconnect disables controls, hides stale approval, and preserves an unsen
  const ui=setup();await tick();ui.setState(state({pendingId:'old',pending:'Open app?'}));await ui.poll();
  ui.ids.ask.value='Keep my draft';ui.setFailure('Network unavailable');await ui.poll();
  assert.ok(ui.controls.every(e=>e.disabled));assert.equal(ui.ids.pending.hidden,true);assert.equal(ui.ids.ask.value,'Keep my draft');
+ assert.equal(ui.ids.chatHeading.textContent,'A little closer to home.');
  assert.match(ui.ids.connection.textContent,/Disconnected/);assert.equal(ui.ids.connectionHelp.hidden,false);
  ui.setFailure(null);await ui.poll();assert.ok(ui.remote.every(e=>!e.disabled));
 });
@@ -97,6 +106,7 @@ test('agent ownership disables remote and immediately exposes Stop',async()=>{
 });
 test('approval sends the displayed ID once and stays locked through intervening polls',async()=>{
  const ui=setup();await tick();ui.setState(state({pendingId:'prompt-1',pending:'Open app?'}));await ui.poll();
+ assert.equal(ui.ids.pendingIdentity.textContent,'Prompt prompt-1 · This request only.');
  let release;ui.setResponder(url=>url==='/api/answer'?new Promise(resolve=>{release=resolve;}):null);
  const answering=ui.ids.allow.emit('click');await tick();
  ui.setState(state({pendingId:'prompt-2',pending:'A new question'}));await ui.poll();
@@ -104,7 +114,7 @@ test('approval sends the displayed ID once and stays locked through intervening 
  const requests=ui.requests.filter(r=>r.url==='/api/answer');assert.equal(requests.length,1);
  assert.deepEqual(JSON.parse(requests[0].body),{allow:true,promptId:'prompt-1'});
  release({ok:true,status:200,json:async()=>({ok:true})});await answering;
- assert.equal(ui.ids.pendingText.textContent,'A new question');assert.equal(ui.ids.allow.disabled,false);
+ assert.equal(ui.ids.pendingText.textContent,'A new question');assert.equal(ui.ids.pendingIdentity.textContent,'Prompt prompt-2 · This request only.');assert.equal(ui.ids.allow.disabled,false);
 });
 test('a settings save cannot be submitted twice and rehydrates the saved masked values',async()=>{
  const ui=setup();await tick();ui.model.value='new-model';let release;
@@ -320,4 +330,56 @@ test('failed Plex settings save preserves edits and does not clear other connect
  assert.equal(field('plexToken').value,'new-owner-token');assert.equal(field('homeAssistantToken').value,'••••••');
  assert.equal(field('plexToken').disabled,false);assert.match(ui.ids.saved.textContent,/Invalid Plex credential/);
  assert.ok(!ui.ids.saved.textContent.includes('new-owner-token'));
+});
+
+
+test('approval reference displays the exact untrusted ID as text and clears with the prompt',async()=>{
+ const ui=setup();await tick();
+ const promptId='profile/42:<img src=x onerror=alert(1)>';
+ ui.setState(state({pendingId:promptId,pending:'Review the actual target before deciding.'}));await ui.poll();
+ assert.equal(ui.ids.pending.hidden,false);
+ assert.equal(ui.ids.chatHeading.textContent,'One thing to check.');assert.equal(ui.ids.chatIntro.textContent,'Vela is waiting for your decision.');
+ assert.equal(ui.ids.pendingIdentity.textContent,`Prompt ${promptId} · This request only.`);
+ assert.deepEqual(ui.ids.pendingIdentity.children,[]);
+ await ui.ids.deny.emit('click');
+ const request=ui.requests.find(r=>r.url==='/api/answer');
+ assert.deepEqual(JSON.parse(request.body),{allow:false,promptId});
+ ui.setState(state());await ui.poll();
+ assert.equal(ui.ids.pending.hidden,true);assert.equal(ui.ids.pendingIdentity.textContent,'');
+ assert.equal(ui.ids.chatHeading.textContent,'A little closer to home.');assert.equal(ui.ids.chatIntro.textContent,'Your TV and Vela, within reach.');
+ assert.equal(ui.ids.allow.disabled,true);assert.equal(ui.ids.deny.disabled,true);
+});
+
+test('refused approval retains the new displayed prompt identity while the decision is locked',async()=>{
+ const ui=setup();await tick();ui.setState(state({pendingId:'first',pending:'First target'}));await ui.poll();
+ let release;ui.setResponder(url=>url==='/api/answer'?new Promise(resolve=>{release=resolve;}):null);
+ const answer=ui.ids.allow.emit('click');await tick();
+ ui.setState(state({pendingId:'replacement',pending:'Replacement target'}));await ui.poll();
+ assert.equal(ui.ids.pendingIdentity.textContent,'Prompt replacement · This request only.');
+ assert.equal(ui.ids.allow.disabled,true);assert.equal(ui.ids.deny.disabled,true);
+ release(refusal(409,'Prompt expired'));await answer;
+ assert.equal(ui.ids.pendingText.textContent,'Replacement target');
+ assert.equal(ui.ids.pendingIdentity.textContent,'Prompt replacement · This request only.');
+ assert.equal(ui.ids.pending.hidden,false);assert.equal(ui.ids.allow.disabled,false);
+ assert.deepEqual(ui.requests.filter(r=>r.url==='/api/answer').map(r=>JSON.parse(r.body)),[{allow:true,promptId:'first'}]);
+});
+
+
+test('bundled Manrope loads from the exact approved bytes without a font URL or request',async()=>{
+ const ui=setup({fontBehavior:'loads'});await tick();
+ assert.equal(ui.fonts.length,1);const face=ui.fonts[0];
+ assert.equal(face.family,'Manrope');
+ const approved=fs.readFileSync(path.join(__dirname,'../../../../../docs/design/explorations/liquid-glass-20261031/mocks/assets/manrope-latin.woff2'));
+ assert.deepEqual(Buffer.from(face.bytes),approved);
+ assert.ok(ui.requests.every(r=>r.url==='/api/state'));assert.equal(ui.model.value,'saved-model');
+});
+
+test('font constructor and asynchronous decode failures preserve pairing, polling and draft submission',async()=>{
+ for(const fontBehavior of ['throws','rejects']) {
+  const ui=setup({fontBehavior});await tick();
+  assert.ok(ui.remote.every(e=>!e.disabled));assert.equal(ui.requests[0].headers['X-Vela-Token'],'test-token');
+  ui.ids.ask.value='My actual request';ui.ids.askForm.emit('submit');await tick();
+  const request=ui.requests.find(r=>r.url==='/api/ask');assert.deepEqual(JSON.parse(request.body),{text:'My actual request'});
+  assert.equal(ui.ids.ask.value,'');assert.equal(ui.ids.ask.disabled,false);
+ }
 });
