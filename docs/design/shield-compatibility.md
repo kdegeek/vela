@@ -31,8 +31,10 @@ No app installation, app launch, settings change, playback or Home-button takeov
 ## Image PoC follow-through
 
 The owner subsequently authorized building a pre-flashed OS and confirmed the Tube is their only Shield.
-The target is now the LineageOS 22.2 `sif` image, whose custom userspace is **arm64**; the observed stock 32-bit ABI above
-does not constrain that firmware target. The [Shield image build](../../firmware/shield/README.md) records the source lock,
+The target is now the LineageOS 22.2 `sif` image. The completed baseline proves its userspace is **32-bit ARM
+(`armeabi-v7a`, ARMv8-A target)**, with an **ARM64 kernel and COMPAT enabled**. The earlier arm64-userspace
+assumption was incorrect. Both the baseline and current firmware APKs contain the required ARMv7 library;
+the image preflight now rejects ARM64-only APKs. The [Shield image build](../../firmware/shield/README.md) records the source lock,
 system-app integration and Polycasa builder. Software acquisition/build work is authorized; no destructive physical
 device action has been performed. Initial flashing requires the internal service USB modification and microSD installation
 described by the maintainer, plus a verified stock recovery kit.

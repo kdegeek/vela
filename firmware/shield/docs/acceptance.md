@@ -4,16 +4,16 @@ Hardware scope is the owner's existing 2019 Tube (`sif`). No physical-device wri
 
 ## Implemented and checked locally
 
-- Unsigned, non-debuggable firmware APK: `android/app/build/outputs/apk/firmware/app-firmware-unsigned.apk`. SDK `aapt2` verified its package, firmware-only permissions and arm64 native libraries.
-- `testDebugUnitTest`: **416 tests**, no failures/errors/skips. Includes all 20 firmware policy cases.
+- Unsigned, non-debuggable firmware APK: `android/app/build/outputs/apk/firmware/app-firmware-unsigned.apk`. SDK `aapt2` verified its package and firmware-only permissions. ARMv7 (`armeabi-v7a`) native support is present and required by the corrected preflight; the earlier ARM64-only assumption was wrong.
+- Latest combined application run: **512 JVM tests**, no failures/errors/skips. Includes the firmware bootstrap policy cases. [Current application evidence](../../../docs/design/evidence/field-correction-20261031/README.md).
 - Explicit firmware-variant policy run: **20 tests passed**, using `-Pandroid.onlyEnableUnitTestForTheTestedBuildType=false testFirmwareUnitTest --tests app.vela.tv.firmware.FirmwareBootstrapPolicyTest`.
 - `lintDebug lintFirmware assembleDebug assembleFirmware`: successful. The firmware-only manifest and receiver packaged successfully. Lint has warnings and no errors; no release qualification is implied.
-- Shield tooling: **25 Python tests passed**. `bash -n`, ShellCheck and `git diff --check` passed.
+- Shield tooling: **27 Python tests passed**, including regressions that reproduced the wrong-ABI acceptance before the fix. ARMv7-only and universal APKs pass; ARM64-only, directory markers and empty native libraries fail before staging. `git diff --check` passes. Earlier unchanged shell checks are recorded below.
 - Original official source manifest hash independently recomputed as `bd859b78d00048f4e41555e63112421ab293adbb0d4a667e9040a5876dbd6390`; every one of its 1,171 project revisions is immutable, and the 30 NVIDIA dependency revisions match. Public-remote replay hash: `5ca34678edb0bd343b845d401ec6f72623d8d6a3100d67f88adfbba9a94de9c6`, also produced on the Linux VM.
 
 The actual firmware APK also passed staging against the pinned Tube product and board sources. Independent review corrections bind the built OS manifest and installed integration marker to the source snapshot, compare every non-signature APK entry, and declare the observed optional WindowManager libraries. Regression fixtures reject stale OS archives and same-DEX APKs with changed manifests/resources/native libraries.
 
-Tooling tests use synthetic APK/target-files/OTA fixtures. They establish rejection and packaging behavior, not actual Soong linkage, successful OTA installation, boot, or playback. Full platform compilation remains a separate required check.
+Tooling tests use synthetic APK/target-files/OTA fixtures. They establish rejection and packaging behavior. The separate [completed baseline build](baseline-build-20261031.md) now establishes full compilation and native packaging for `0809edf`; neither establishes successful OTA installation, boot or hardware playback.
 
 ## Provisioned on Polycasa
 
@@ -23,13 +23,12 @@ The Ubuntu base image SHA-256 was verified against Canonical's published value: 
 
 Polycasa's configured host DNS failed to resolve the Ubuntu download. The verified download used a Mac-resolved address with HTTPS hostname validation retained. Host DNS was not changed. This new guest uses its own public DNS configuration. Cloud-init reported two unresolved virtual/transitional package names; the actual build tools and additional extractor packages were installed and checked afterward. That first-boot error history was retained.
 
-Full source sync is running in `vela-source-sync.service`, with four sync jobs and a four-CPU quota. Vendor archive acquisition is running in `vela-vendor-fetch.service`. Both are named, bounded systemd units inside the new VM, with task logs under `/srv/vela`. Source initialization and the first NVIDIA archive download have succeeded. No full OS compile has completed yet.
+Source sync, vendor acquisition and native extraction subsequently completed. The baseline full build passed **138,839 actions** under the four-job/four-CPU limits and produced an inspected native OTA and matching recovery. The VM was gracefully shut off, with disk/caches retained and autostart disabled. Its completed units/logs and source patches are retained; no baseline source-sync or build unit remained running at handoff. [Build record](baseline-build-20261031.md).
 
-## Four remaining image acceptance items
+## Three remaining image acceptance items
 
-1. Finish source/vendor acquisition, validate native vendor extraction, and retain all binary/tooling receipts and generated vendor hashes.
-2. Compile the complete OS, generate the OTA from verified target-files, and inspect its recovery/device assertions and checksums.
-3. Acquire and inspect the exact Tube stock recovery kit. Its catalogue URL currently redirects to NVIDIA login and its content/checksum has not been verified.
-4. Prepare service USB and microSD, then perform separately coordinated physical installation and boot/remote/network/CEC/media/DRM/update/recovery acceptance.
+1. Incrementally rebuild and inspect an image containing the current glass UI and fixes. The completed `0809edf` baseline is older than the application at `ce8613c`; retain both identities and use a new output directory.
+2. Acquire and inspect the exact Tube stock recovery kit. Its recorded catalogue URL redirects to NVIDIA login and its content/checksum has not been verified.
+3. Prepare service USB and microSD, then perform separately coordinated physical installation and boot/remote/network/CEC/media/DRM/update/recovery acceptance. Physical Shield work remains paused.
 
-Items 1–2 are ongoing software work on the authorized builder. Items 3–4 remain physical-install prerequisites. Development test keys and known Lineage feature limitations preclude a shipping-ready firmware claim. The broader TV/phone/model acceptance queue is tracked separately in [the application acceptance record](../../../docs/design/acceptance-2026-10-31.md).
+Item 1 is software work on the authorized builder. Items 2–3 remain physical-install prerequisites and are not authorized by successful compilation. Development test keys and known Lineage feature limitations preclude a shipping-ready firmware claim. The broader TV/phone/model acceptance queue is tracked separately in [the application acceptance record](../../../docs/design/acceptance-2026-10-31.md).

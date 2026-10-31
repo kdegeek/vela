@@ -1,10 +1,10 @@
 # Vela image for the Shield Tube
 
-Target: the owner's **2019 Shield TV Tube, `sif`**, using LineageOS 22.2 / Android 15, arm64. This builds an Android recovery-installable OS package for internal storage. It is separate from the older x86 Linux image under `os/`.
+Target: the owner's **2019 Shield TV Tube, `sif`**, using LineageOS 22.2 / Android 15, with **32-bit ARM (`armeabi-v7a`) userspace and an ARM64 kernel**. This builds an Android recovery-installable OS package for internal storage. It is separate from the older x86 Linux image under `os/`.
 
 The integration supplies the Vela firmware APK as a privileged system-extension app, a matching two-permission allowlist, a default HOME preference, and a Tube-only OTA assertion. It retains upstream partition sizes, kernel, HALs, setup wizard, fallback launcher, recovery DTBs and SELinux enforcement. After Android setup and unlock, this appliance variant enrolls its accessibility service once; later owner revocation is respected. No provider credentials, home tokens, microphone grants or purchase approvals are provisioned into the image.
 
-**Status:** tooling and application integration are implemented. The authorized Polycasa VM has been provisioned and the full upstream source sync has started. A complete Vela OS image has not yet been compiled or booted. Development artifacts use public test keys and must not be shipped as production firmware.
+**Status:** a complete baseline OS image compiled and packaged successfully: **138,839 build actions**, followed by native OTA generation and artifact inspection. It contains the older `0809edf` application, so an incremental image update is needed for the approved glass UI and subsequent fixes. The builder was shut off after baseline delivery with disk/caches retained. [Build evidence, architecture correction and artifact identities](docs/baseline-build-20261031.md). Neither image boot nor hardware acceptance has been established. Development artifacts use public test keys and must not be shipped as production firmware.
 
 ## Inputs and host
 
@@ -25,7 +25,7 @@ cd android
 ./gradlew --no-daemon testDebugUnitTest lintDebug lintFirmware assembleDebug assembleFirmware
 ```
 
-The image input is `android/app/build/outputs/apk/firmware/app-firmware-unsigned.apk`. `assembleDebug` retains its existing sideloaded APK path. The staging tool checks the firmware package, non-debuggable state, two permissions and arm64 native libraries using the SDK's `aapt2`.
+The image input is `android/app/build/outputs/apk/firmware/app-firmware-unsigned.apk`. `assembleDebug` retains its existing sideloaded APK path. The staging tool checks the firmware package, non-debuggable state and two permissions using the SDK's `aapt2`, and requires non-empty ARMv7 native libraries. ARM64-only APKs cannot run in this image's userspace; ARM64 support may additionally be packaged in a universal APK.
 
 On the Linux builder, with this repository available at `$VELA_REPO` and a **new empty** `$VELA_OS_TREE`:
 
@@ -87,4 +87,4 @@ shellcheck firmware/shield/build.sh
 
 Tests exercise source pins, target exclusion, idempotent staging, preservation of another vendor directory, stale app/source/configuration rejection, folded/separate system-extension layouts, OTA generation and checksum provenance. Synthetic target-files fixtures are not an Android image build.
 
-Remaining image gates are: complete vendor-input capture and extraction, successful full OS compilation/packaging, an acquired and verified stock recovery kit, and physical installation/boot/media/OTA acceptance. Production signing and eventual OEM hardware qualification follow this development PoC.
+Remaining image work is an incremental update with the current application, acquisition and verification of the exact stock recovery kit, and separately authorized physical installation/boot/media/OTA acceptance. Vendor acquisition, extraction and full compilation/packaging are complete for the recorded baseline. Production signing and eventual OEM hardware qualification follow this development PoC.

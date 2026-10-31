@@ -20,14 +20,14 @@ BADGING = "package: name='app.vela.tv' versionCode='1'\n" + "\n".join(
     f"uses-permission: name='{p}'" for p in shield.PERMISSIONS)
 
 
-def apk_bytes(dex=b"fixture-dex", arm64=True, manifest=b"fixture-binary-manifest", native=b"fixture-native", resources=b"fixture-resources", signed=False):
+def apk_bytes(dex=b"fixture-dex", abis=("armeabi-v7a",), manifest=b"fixture-binary-manifest", native=b"fixture-native", resources=b"fixture-resources", signed=False):
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as archive:
         archive.writestr("AndroidManifest.xml", manifest)
         archive.writestr("classes.dex", dex)
         archive.writestr("resources.arsc", resources)
-        if arm64:
-            archive.writestr("lib/arm64-v8a/fixture.so", native)
+        for abi in abis:
+            archive.writestr(f"lib/{abi}/fixture.so", native)
         if signed:
             archive.writestr("META-INF/MANIFEST.MF", b"fixture-signature-manifest")
             archive.writestr("META-INF/CERT.SF", b"fixture-signature")
@@ -138,10 +138,32 @@ class ShieldTest(unittest.TestCase):
                 with self.assertRaises(shield.BuildError):
                     shield.validate_apk(self.apk, Path("aapt2"))
 
-    def test_arm32_stock_runtime_does_not_change_firmware_architecture(self):
-        self.apk.write_bytes(apk_bytes(arm64=False))
-        with self.assertRaises(shield.BuildError):
-            self.stage()
+    def test_firmware_requires_armv7_native_code_before_staging(self):
+        for abis in (("arm64-v8a",), ("x86_64",), ()):
+            with self.subTest(abis=abis):
+                self.apk.write_bytes(apk_bytes(abis=abis))
+                with self.assertRaisesRegex(shield.BuildError, "armeabi-v7a"):
+                    self.stage()
+                self.assertFalse((self.tree / "vendor/vela").exists())
+                self.assertEqual(PRODUCT, self.product.read_text())
+
+    def test_armv7_only_and_universal_apks_are_supported(self):
+        for abis in (("armeabi-v7a",), ("armeabi-v7a", "arm64-v8a")):
+            with self.subTest(abis=abis):
+                self.apk.write_bytes(apk_bytes(abis=abis))
+                self.stage()
+                self.assertEqual(self.apk.read_bytes(), (self.tree / "vendor/vela/VelaTv.apk").read_bytes())
+
+    def test_armv7_directory_or_empty_library_is_not_native_support(self):
+        for name, body in (("lib/armeabi-v7a/", b""), ("lib/armeabi-v7a/README", b"not a library"),
+                           ("lib/armeabi-v7a/fixture.so", b"")):
+            with self.subTest(name=name):
+                self.apk.write_bytes(apk_bytes(abis=("arm64-v8a",)))
+                with zipfile.ZipFile(self.apk, "a") as archive:
+                    archive.writestr(name, body)
+                with self.assertRaisesRegex(shield.BuildError, "armeabi-v7a"):
+                    self.stage()
+                self.assertFalse((self.tree / "vendor/vela").exists())
 
     def test_freeze_rejects_branch_revisions_and_preserves_existing_lock(self):
         with patch.object(shield, "command", return_value=MANIFEST.replace("a" * 40, "lineage-22.2")):

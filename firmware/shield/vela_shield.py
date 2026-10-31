@@ -91,8 +91,9 @@ def validate_apk(apk: Path, aapt2: Path) -> dict:
         names = set(archive.namelist())
         if not {"AndroidManifest.xml", "classes.dex"} <= names:
             raise BuildError("Not a compiled Android application APK.")
-        if not any(name.startswith("lib/arm64-v8a/") for name in names):
-            raise BuildError("Firmware must include arm64-v8a native libraries; sif's custom OS is arm64.")
+        if not any(entry.filename.startswith("lib/armeabi-v7a/") and entry.filename.endswith(".so")
+                   and not entry.is_dir() and entry.file_size > 0 for entry in archive.infolist()):
+            raise BuildError("Firmware must include armeabi-v7a native libraries; sif runs 32-bit ARM userspace with an ARM64 kernel.")
     badging = command([str(aapt2), "dump", "badging", str(apk)])
     if not re.search(r"^package: name='app\.vela\.tv' ", badging, re.M):
         raise BuildError("Expected package app.vela.tv.")
