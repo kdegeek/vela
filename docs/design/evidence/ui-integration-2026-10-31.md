@@ -33,7 +33,7 @@ and design increment; it does not establish complete TV firmware qualification.
 ## Final executed checks
 
 `env JAVA_HOME=/opt/homebrew/opt/openjdk@21 ./gradlew --no-daemon testDebugUnitTest lintDebug lintFirmware assembleDebug assembleFirmware`
-from `android/`: **passed**. XML reports contain **498 tests**, zero failures,
+from `android/`: **passed**. XML reports contain **500 tests**, zero failures,
 errors or skips. This includes **20 FirmwareBootstrapPolicyTest cases**, rather
 than an additional 20 tests. Both lint variants contain zero errors and the same
 13 existing warnings. Both debug and unsigned firmware APKs assemble.
@@ -76,8 +76,8 @@ Built artifacts at this verification point:
 
 | Artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `android/app/build/outputs/apk/debug/app-debug.apk` | 52,989,622 | `d74ec196d125aa8fa37d3c07b56c184c02c750e2d51cea447981793d3241bc5d` |
-| `android/app/build/outputs/apk/firmware/app-firmware-unsigned.apk` | 40,151,364 | `6b54e0f26041287d8d042b6e24c232d5a64a98c1a840db9a5153c5d0eae1b9bd` |
+| `android/app/build/outputs/apk/debug/app-debug.apk` | 51,803,554 | `100298ac6fd36a804c348a103c6d896085f5af33790be027fb1ca9199117e0b3` |
+| `android/app/build/outputs/apk/firmware/app-firmware-unsigned.apk` | 40,151,364 | `13446b9fe848437f9f0169c1a588690c8ae641a9c8afcb7aa36aee57a7f4bf9f` |
 
 The Home/Undo integration adds 20 storage-history, eight prepared-action and 14
 media-header/default-layout cases. Native Restore defaults and Undo restored the
@@ -90,6 +90,17 @@ include fixture-only settings, exact restoration and capture-scope correction.
 The media fixture now matches Jellyfin's anonymous image GET/HEAD routes;
 **20 HTTP fixture tests pass**, including a regression first observed failing.
 No production image-authentication behavior changed.
+
+The independent [Home/Undo review](home-undo-review.md) found one defensive
+error-contract issue: storage-level stale rejection did not stop an agent batch.
+The coordinator reproduced it with two failing assertions before correction.
+A specific stale-receipt exception now maps to action invalidation, so remaining
+calls are skipped and the task ends. Two additional regressions cover the real
+agent batch and ordinary persistence failures retaining explicit retry behavior.
+All ten prepared Undo tests and the combined **500-test** suite pass. A live
+UI/phone race was not demonstrated; their shared controller normally excludes
+the competing save. The capture gallery retains the preceding Home/Undo APK's
+provenance; this later correction changes backend error handling.
 
 ## Observed browser behavior
 

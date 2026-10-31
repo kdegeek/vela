@@ -103,11 +103,68 @@ class LayoutUndoActionTest {
             env.history.setLayout(c)
             env.history.undoLayout(receipt)
         }
-        val result = ToolExecutor(listOf(tool)).execute(call, { _, _ -> error("Unexpected approval") })
+        var stopped = false
+        val result = ToolExecutor(listOf(tool)).execute(call, { _, _ -> error("Unexpected approval") },
+            stopped = { stopped = true })
         assertTrue(result.isError)
+        assertTrue(stopped)
+        assertTrue(result.content.contains("changed"))
         assertEquals(c, env.history.layout.value)
         assertEquals(b, env.history.layoutUndo.value?.previous)
         assertEquals(2, env.writes.size)
+    }
+
+    @Test fun storageInvalidationStopsTheBatchBeforeAnotherUndoCanCaptureNewHistory() = runTest {
+        val env = Environment(a)
+        env.history.setLayout(b)
+        var restoreAttempts = 0
+        val tool = env.tool { receipt ->
+            if (++restoreAttempts == 1) env.history.setLayout(c)
+            env.history.undoLayout(receipt)
+        }
+        var turns = 0
+        val provider = object : Provider {
+            override suspend fun complete(system: String, history: List<Msg>, tools: List<ToolSpec>): Turn =
+                if (turns++ == 0) Turn(null, listOf(call, call.copy(id = "second-undo")))
+                else Turn("Done", emptyList())
+        }
+        val events = mutableListOf<AgentEvent>()
+        val result = Agent(provider, listOf(tool), "", { _, _ -> error("Unexpected approval") })
+            .run("Undo the previous Home change", events = { events += it })
+        assertEquals(1, restoreAttempts)
+        assertEquals(1, turns)
+        assertEquals(c, env.history.layout.value)
+        assertEquals(b, env.history.layoutUndo.value?.previous)
+        assertEquals(2, env.writes.size)
+        val outcomes = result.filterIsInstance<Msg.ToolResult>()
+        assertEquals(2, outcomes.size)
+        assertTrue(outcomes.all { it.isError })
+        assertTrue(outcomes[1].content.startsWith("Skipped:"))
+        assertTrue(events.last() is AgentEvent.Failed)
+    }
+
+    @Test fun ordinaryPersistenceFailureKeepsHistoryAvailableForAnExplicitRetry() = runTest {
+        val env = Environment(a)
+        env.history.setLayout(b)
+        val receipt = env.history.layoutUndo.value
+        var attempts = 0
+        val tool = env.tool { captured ->
+            if (++attempts == 1) throw IllegalStateException("Simulated storage verification failure")
+            env.history.undoLayout(captured)
+        }
+        var stopped = false
+        val executor = ToolExecutor(listOf(tool))
+        val failed = executor.execute(call, { _, _ -> error("Unexpected approval") }, stopped = { stopped = true })
+        assertTrue(failed.isError)
+        assertFalse(stopped)
+        assertSame(receipt, env.history.layoutUndo.value)
+        assertEquals(b, env.history.layout.value)
+        assertEquals(1, env.writes.size)
+        val retried = executor.execute(call.copy(id = "explicit-retry"), { _, _ -> error("Unexpected approval") })
+        assertFalse(retried.isError)
+        assertEquals(a, env.history.layout.value)
+        assertNull(env.history.layoutUndo.value)
+        assertEquals(2, attempts)
     }
 
     @Test fun cancellationDuringApprovalDoesNotConsumeOrRestoreTheLayout() = runTest {

@@ -19,6 +19,9 @@ class LayoutUndo internal constructor(previous: HomeLayout) {
     val previous: HomeLayout = immutableLayout(previous)
 }
 
+/** Distinguishes an obsolete change from a failure to persist the still-current change. */
+class StaleLayoutUndoException : IllegalStateException("Home changed; this Undo is no longer available.")
+
 /** Android-free state machine. [commit] must persist and verify before returning, or throw. */
 internal class LayoutHistory(initial: HomeLayout, private val commit: (String) -> Unit) {
     private var current = immutableLayout(initial)
@@ -42,7 +45,7 @@ internal class LayoutHistory(initial: HomeLayout, private val commit: (String) -
 
     @Synchronized
     fun undoLayout(expected: LayoutUndo) {
-        check(undo === expected) { "Home changed; this Undo is no longer available." }
+        if (undo !== expected) throw StaleLayoutUndoException()
         commit(Layouts.encode(expected.previous))
         current = expected.previous
         undo = null

@@ -11,6 +11,7 @@ The existing `layout: StateFlow<HomeLayout>` and `setLayout` signatures are unch
 class LayoutUndo internal constructor(previous: HomeLayout) {
     val previous: HomeLayout
 }
+class StaleLayoutUndoException : IllegalStateException
 
 // SettingsStore
 val layoutUndo: StateFlow<LayoutUndo?>
@@ -80,8 +81,8 @@ The application should continue to use its shared SettingsStore instance.
 3. Enter the existing owner-layout Runner lease and invoke
    `settings.undoLayout(capturedReceipt)` on IO while holding that lease.
 4. Report completion only after the method returns. A stale receipt throws
-   `IllegalStateException("Home changed; this Undo is no longer available.")`
-   before writing. Surface that as an obsolete action, not permission to undo
+   `StaleLayoutUndoException` with the message "Home changed; this Undo is no
+   longer available." before writing. Surface that as an obsolete action, not permission to undo
    a different change. I/O failures propagate and leave the receipt retryable.
 
 Do not substitute the latest receipt while executing a previously prepared
@@ -105,6 +106,13 @@ gesture begun on an obsolete notice cannot activate a replacement notice.
 `undoOwnerLayout` enters Runner's `owner-layout` controller before dispatching the
 captured receipt to IO. Busy admission and the storage identity check both apply;
 errors are shown without substituting the latest receipt or retrying silently.
+
+The stale exception remains an `IllegalStateException` subtype for existing
+callers. The agent adapter translates only that specific exception into
+`ActionInvalidatedException`, including when the final storage check rejects a
+receipt after IO dispatch. That stops the task and skips the rest of its tool
+batch; it cannot capture newer history through a subsequent Undo. Unrelated
+persistence exceptions keep the existing failure path and do not consume history.
 
 The agent and authenticated MCP backend also expose `layout_undo` through the
 shared tool set. `prepareLayoutUndo` snapshots the receipt and classifies its
@@ -141,3 +149,8 @@ restored the default order. See [Home/Undo acceptance evidence](evidence/home-en
 The new prepared-action suite adds eight cases for approval denial, missing or
 stale history, ABA, cancellation, and the IO handoff identity check. This does not
 claim live MCP transport execution or physical Shield acceptance.
+
+The later independent review's storage-gap invalidation finding is corrected
+as described above. Its strengthened regression failed before the change; the
+batch-stop and ordinary-storage-error regressions now pass with the full
+**500-test** combined suite. The prepared-action suite contains ten tests.
