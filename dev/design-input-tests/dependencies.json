@@ -1,0 +1,200 @@
+[
+  {
+    "name": "androidx.compose.foundation:foundation-android:1.12.1",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.compose.foundation/foundation-android/1.12.1/782d83fdb0f27e1fd723099da6ef33c45a69711c/foundation.aar",
+    "sha256": "444749ea7b5a563e530504b9035c87e47ed0fb62b9f7ba00e90af8aa81e6bfb8"
+  },
+  {
+    "name": "androidx.compose.ui:ui-android:1.12.1",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.compose.ui/ui-android/1.12.1/95600d9aea586baa1493db8a2c0ab48507cc4ecf/ui.aar",
+    "sha256": "3f1ae17e237d9dc0a2a0f42cb04b85b8de6e12f67adc5f5c12173fe31e501cb2"
+  },
+  {
+    "name": "androidx.compose.ui:ui-geometry-android:1.12.1",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.compose.ui/ui-geometry-android/1.12.1/96da08446336091b5fc670d1b2898fb341adb211/ui-geometry.aar",
+    "sha256": "09a23c76f5d52ea5ec61d4a78d4876940f0f033c975e5c604246f89a63532754"
+  },
+  {
+    "name": "androidx.compose.ui:ui-graphics-android:1.12.1",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.compose.ui/ui-graphics-android/1.12.1/4845c4ce1160556550774c554ede96f4e6999f3f/ui-graphics.aar",
+    "sha256": "1e6451f05ad569e306e7022b3c41d16aa75080bb2c99b59c4d67e7dbf6f428e7"
+  },
+  {
+    "name": "androidx.compose.ui:ui-text-android:1.12.1",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.compose.ui/ui-text-android/1.12.1/c56eda7f2fe00c23d56729fbf14ae83b2e346b22/ui-text.aar",
+    "sha256": "e710a5776966537df09a2e5c4ca1dacc14ca11d7b20a6af16c0e992ddd3aecd3"
+  },
+  {
+    "name": "androidx.compose.ui:ui-unit-android:1.12.1",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.compose.ui/ui-unit-android/1.12.1/eb2a07d9fdb78160915bdf745a1c4eaab575cb0b/ui-unit.aar",
+    "sha256": "97d2bf062395d981435bc8d571b1d5d75587a7f26f3444671b2287f233e18ae7"
+  },
+  {
+    "name": "androidx.compose.ui:ui-util-android:1.12.1",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.compose.ui/ui-util-android/1.12.1/bc47747ffec23978ed0877a81389a99fd7e2a0c4/ui-util.aar",
+    "sha256": "cd47f06626c19a06086e16823a32e49e0a0c7d903451668da2f777d063507aa5"
+  },
+  {
+    "name": "androidx.compose.runtime:runtime-android:1.12.1",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.compose.runtime/runtime-android/1.12.1/ba1fb5d45b4fe4d6a64bade2ed260438e38eba95/runtime.aar",
+    "sha256": "1701a61d06d2f6144f2cd8b015abbc5ad6952eacb70c24c208cdfd2bb188dde7"
+  },
+  {
+    "name": "androidx.compose.runtime:runtime-annotation-android:1.12.1",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.compose.runtime/runtime-annotation-android/1.12.1/b3b290da41f89f33ac97c1880a6c5b44660971f4/runtime-annotation.aar",
+    "sha256": "071d6200f5f34ffb5ce69cc19ee8db577c188832bb472779213d4633eca26565"
+  },
+  {
+    "name": "androidx.compose.runtime:runtime-retain-android:1.12.1",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.compose.runtime/runtime-retain-android/1.12.1/d24af7d8bf33f1d29645a71f5aa11b92adf6c428/runtime-retain.aar",
+    "sha256": "6e32111eed0f67ef2ae70c2d9c83cb6bfb54095fe2fb2fdc800febd14d0d7a61"
+  },
+  {
+    "name": "androidx.compose.runtime:runtime-saveable-android:1.12.1",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.compose.runtime/runtime-saveable-android/1.12.1/7a5ddf612079125bf07e31743a17aaf6ff9cd5c4/runtime-saveable.aar",
+    "sha256": "0c83d47820fbc8ffb6e3e49311ccd4755676d6f94bb8c6d8564ab4c799df8779"
+  },
+  {
+    "name": "org.jetbrains.kotlin:kotlin-stdlib:2.4.21",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.4.21/c343e135bd1e7dd94b7ed76b4159068d888d09db/kotlin-stdlib-2.4.21.jar",
+    "sha256": "bd8250210584cb659847dce9cda660f8e9906e5def7fbebcea93dc6dcb6a88a3"
+  },
+  {
+    "name": "org.jetbrains.kotlin:kotlin-compiler-embeddable:2.4.21",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.4.21/3cd9c37c505fb9879e03ebeaf91d9c9500ab6eca/kotlin-compiler-embeddable-2.4.21.jar",
+    "sha256": "ef19419c765e7ac8404465fa026ca8fc4dbb8a822de0fc79aa53c8dce29f1d02"
+  },
+  {
+    "name": "org.jetbrains.kotlin:kotlin-reflect:1.6.10",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/org.jetbrains.kotlin/kotlin-reflect/1.6.10/1cbe9c92c12a94eea200d23c2bbaedaf3daf5132/kotlin-reflect-1.6.10.jar",
+    "sha256": "3277ac102ae17aad10a55abec75ff5696c8d109790396434b496e75087854203"
+  },
+  {
+    "name": "org.jetbrains:annotations:23.0.0",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/org.jetbrains/annotations/23.0.0/8cc20c07506ec18e0834947b84a864bfc094484e/annotations-23.0.0.jar",
+    "sha256": "7b0f19724082cbfcbc66e5abea2b9bc92cf08a1ea11e191933ed43801eb3cd05"
+  },
+  {
+    "name": "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.11.0",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm/1.11.0/3d57dc678bd8d72a60e7adf0eca5c54e3f4f4b79/kotlinx-coroutines-core-jvm-1.11.0.jar",
+    "sha256": "d1d75aa01dffbb4d1c520e67e4c4e7f5f6174718e7cb4632412503f2f0e604fa"
+  },
+  {
+    "name": "androidx.collection:collection-jvm:1.5.0",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.collection/collection-jvm/1.5.0/7ba2c69414d46ebc2dd76598bdd0a75c54281a57/collection-jvm-1.5.0.jar",
+    "sha256": "70b35924e4babcdffa37d0e575ee039c56a2d97123342624c48b603233704341"
+  },
+  {
+    "name": "androidx.lifecycle:lifecycle-common-jvm:2.9.4",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.lifecycle/lifecycle-common-jvm/2.9.4/ab739bccdb3541983385af169565c7c035d897e7/lifecycle-common-jvm-2.9.4.jar",
+    "sha256": "37d89b2101f074ac6c260917dabb185607645ee200aa3018c7c5bde70edcf184"
+  },
+  {
+    "name": "mockable-android",
+    "root": "gradle",
+    "path": "9.8.2/transforms/0a218f08f433623cb4c73ccf1d22baf4/transformed/android.jar",
+    "sha256": "78694e3ea530b7ad6e8d987a79891f2b2ba13ad06701717857b01a934d525b4d"
+  },
+  {
+    "name": "foundation-sources.jar",
+    "root": "review",
+    "path": "foundation-sources.jar",
+    "sha256": "5b58cea5db2583142e4b4b39dce10cbd75722bd06ab35161f06f987be90a53f1"
+  },
+  {
+    "name": "ui-sources.jar",
+    "root": "review",
+    "path": "ui-sources.jar",
+    "sha256": "8ddde80690da97cd840c6f8f59c608701f9e42c245f12f0eabc1434db57e0273"
+  },
+  {
+    "name": "android-sdk-37",
+    "root": "sdk",
+    "path": "platforms/android-37.0/android.jar",
+    "sha256": "bf1b4387cc7ca94fc6ef684f040d9d16fbf16248e181819f020736ea2053f177"
+  },
+  {
+    "name": "androidx.core:core:1.18.0",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.core/core/1.18.0/ff046a9f2725d94c2eaaa82e08674bb761c17792/core-1.18.0.aar",
+    "sha256": "311d83ac67d394076ec21d12ed2d10a44b59cb2929b7dce00e5a90a93842e37d"
+  },
+  {
+    "name": "androidx.core:core-ktx:1.18.0",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.core/core-ktx/1.18.0/d3e73ac068e614ed84893958bded6b0724717f2/core-ktx-1.18.0.aar",
+    "sha256": "c7c511e3df838fcbcb61ace36944de6bb7c10eb597be546974f001119939c85d"
+  },
+  {
+    "name": "androidx.core:core-viewtree:1.0.0",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.core/core-viewtree/1.0.0/449ba4f495b4d10d18edd01f32f9328be40d5749/core-viewtree-1.0.0.aar",
+    "sha256": "dc1b678d58ebcf2bfa1587be68ff826694ce3d221251b9ef30d4d4b36297e6de"
+  },
+  {
+    "name": "androidx.lifecycle:lifecycle-runtime-android:2.9.4",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.lifecycle/lifecycle-runtime-android/2.9.4/fd218d3a91d46511975ef11165ffba7d696c04a/lifecycle-runtime-release.aar",
+    "sha256": "86f16a1330eb23600ba90d0334b3e1db38d3a30c8b1efcd92ca21aa85afa8173"
+  },
+  {
+    "name": "androidx.lifecycle:lifecycle-viewmodel-android:2.9.4",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel-android/2.9.4/d7f04dd2b3815ea592642340dabc73352c3786a3/lifecycle-viewmodel-release.aar",
+    "sha256": "4b236b2e504db5ca5d09334fef05aa8cdc31ee35a433c3aa4d0420efa9613332"
+  },
+  {
+    "name": "androidx.lifecycle:lifecycle-viewmodel-savedstate-android:2.9.4",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.lifecycle/lifecycle-viewmodel-savedstate-android/2.9.4/5ec9278f5df344e931a5e57d91f91f181a165055/lifecycle-viewmodel-savedstate-release.aar",
+    "sha256": "079441c43fa3ff8ea7a02df3b12eec483c3e57583f832cfaff663750527c1421"
+  },
+  {
+    "name": "androidx.lifecycle:lifecycle-livedata-core:2.9.4",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.lifecycle/lifecycle-livedata-core/2.9.4/8ffb4401079c231b0a85014cf2e4df02c804d53b/lifecycle-livedata-core-2.9.4.aar",
+    "sha256": "ea866f0c379d1f92837994010ab5ac0a5d5499dbab521efc71b3bc2b497d6ba4"
+  },
+  {
+    "name": "androidx.savedstate:savedstate-android:1.4.0",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.savedstate/savedstate-android/1.4.0/8cf8663a8d810d4d50110ff135b3cd1d7227c867/savedstate.aar",
+    "sha256": "1656ce62cd233d488bdbbd42e533b80b22435b7a690acae6dbe7302392512c14"
+  },
+  {
+    "name": "androidx.customview:customview:1.0.0",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.customview/customview/1.0.0/30f5ff6075d112f8076e733b24410e68159735b6/customview-1.0.0.aar",
+    "sha256": "20e5b8f6526a34595a604f56718da81167c0b40a7a94a57daa355663f2594df2"
+  },
+  {
+    "name": "androidx.customview:customview-poolingcontainer:1.0.0",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.customview/customview-poolingcontainer/1.0.0/579fc832cf0e5be08d8d9571850b50d22d9de3c/customview-poolingcontainer-1.0.0.aar",
+    "sha256": "3584102fc49bf399c56e3b7be4bfe12000c46112320cd8cf85cc0a8f93f3e752"
+  },
+  {
+    "name": "androidx.activity:activity:1.13.0",
+    "root": "gradle",
+    "path": "modules-2/files-2.1/androidx.activity/activity/1.13.0/722e241a3182b6f135b6cc2eb16e37dc9e422339/activity-1.13.0.aar",
+    "sha256": "bd4f19a5f00effed0eecad0a310b1f2169b9fc66236a3ba743a222eb77747ee1"
+  }
+]

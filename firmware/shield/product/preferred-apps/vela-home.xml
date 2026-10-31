@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- PackageManager constructs the candidate set when provisioning a user.
+     Keep Android TV's setup wizard and fallback launcher installed. -->
+<preferred-activities>
+    <item name="app.vela.tv/app.vela.tv.launcher.HomeActivity">
+        <filter>
+            <action name="android.intent.action.MAIN" />
+            <cat name="android.intent.category.HOME" />
+            <cat name="android.intent.category.DEFAULT" />
+        </filter>
+    </item>
+</preferred-activities>

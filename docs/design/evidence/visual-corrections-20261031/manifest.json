@@ -1,0 +1,27 @@
+{
+  "baseCommit": "2afc4ab416b2a476e260f1a3f3cf6673775898f7",
+  "capture": "actual Android 14 Google TV emulator, 1920x1080",
+  "artifacts": {
+    "app-debug.apk": {
+      "bytes": 51767658,
+      "sha256": "8d8014afd55030da4e26b3e237e4e13573c29727b12fb4bfb03e9b44593ceb27"
+    },
+    "app-firmware-unsigned.apk": {
+      "bytes": 40118596,
+      "sha256": "ae3ba528c2096182ed928817bda3dd86150fb03ccbbd939db2707797311a3a63"
+    }
+  },
+  "screens": {
+    "ask-day.png": "c91d9324c9fd4285ce502ef89f6b967d0cd5ef483ee4c289473240391fd56d9d",
+    "ask-night.png": "67588dfa1abee84b92125986109379276eb65121bb8101493a0836bd34d63244",
+    "home-day.png": "72ff93951530387dc9401f3cb4a252c7def7048948a48b26e74f1987b8475613",
+    "home-night.png": "eba5f58cd7d42493984afd7387686b2b326149ffa8dcff4fc366a2ccea150289",
+    "profile-editor-day.png": "0c4a2d6e7a68df413eb2f0a0a319f15b8e9533745ac4f3ba561291d06b00a41a",
+    "profile-editor-night.png": "8c6a495b889568d1b541eb1af2a3c9fae73016efe2d5753d3c1b7e2401cc9dcc",
+    "profiles-day.png": "33a243975e294ef4186808c4d69d429bfb37d626222fb82b1fcb2f97ce0bc3f5",
+    "profiles-feedback-night.png": "4b89e6c1459ec9f8ebcb24dbcdaa0487bae7d9df2321e6ddad1ad0f089335026",
+    "profiles-night.png": "3d951079464f568230881e106d49db2fb9699c21c488b55a3796d422fb7b84a3",
+    "settings-day.png": "0294c1a1f4a4edc448f74ef683275c1a430cf118ad6c112f026cbb2d1aad5690",
+    "settings-night.png": "d5507aa02e7b3e94c137f9557317ddc1d2b5928ca44e91074b21f94c0ca7b6b2"
+  }
+}

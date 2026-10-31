@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Vela</string>
+    <string name="hands_label">Vela agent</string>
+    <string name="hands_description">Lets Vela\'s agent read what is on screen and use the remote for you: open apps, find shows, play, pause and go back.</string>
+</resources>
