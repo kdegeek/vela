@@ -158,6 +158,22 @@ class FixtureTests(unittest.TestCase):
         self.assertEqual("", output.getvalue())
         self.assertEqual(2, observations["counts"]["POST /Users/AuthenticateByName"])
 
+    def test_artwork_get_and_head_match_jellyfin_anonymous_reads(self):
+        for path in ("/Items/fixture-movie/Images/Primary",
+                     "/Items/fixture-movie/Images/Backdrop/0?maxWidth=1280&quality=90&tag=fixture-v1"):
+            status, headers, png = self.request(path, auth=False)
+            self.assertEqual(200, status)
+            self.assertEqual("image/png", headers["Content-Type"])
+            self.assertTrue(png.startswith(b"\x89PNG\r\n\x1a\n"))
+            status, headers, body = self.request(path, method="HEAD", auth=False)
+            self.assertEqual(200, status)
+            self.assertEqual("image/png", headers["Content-Type"])
+            self.assertEqual(b"", body)
+        self.assertEqual(404, self.request("/Items/fixture-no-art/Images/Primary", auth=False)[0])
+        self.assertEqual(401, self.request("/Items/fixture-movie", auth=False)[0])
+        self.assertEqual(401, self.request("/Items/fixture-movie/Images/Primary", method="POST", auth=False)[0])
+        self.assertEqual(401, self.request("/Videos/fixture-movie/stream", auth=False)[0])
+
     def test_playback_source_session_subtitle_and_report_binding(self):
         playback = self.negotiate()
         source = playback["MediaSources"][0]

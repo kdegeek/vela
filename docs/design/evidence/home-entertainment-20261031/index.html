@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Vela Home — native emulator captures</title>
+<style>
+  :root { color-scheme: light dark; font-family: var(--font-sans, system-ui, sans-serif); color: var(--foreground, light-dark(oklch(22% 0 none), oklch(94% 0 none))); overflow-wrap: break-word; }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  main { display: grid; gap: 1rem; }
+  p, figure { margin: 0; }
+  p, figcaption { line-height: 1.5; }
+  nav { display: flex; flex-wrap: wrap; gap: .5rem; }
+  button { font: inherit; color: inherit; background: var(--secondary, light-dark(oklch(94% 0 none), oklch(27% 0 none))); border: 1px solid var(--border, light-dark(oklch(78% 0 none), oklch(42% 0 none))); border-radius: var(--radius, .5rem); padding-inline: .85rem; padding-block: .6rem; min-block-size: 44px; cursor: pointer; touch-action: manipulation; }
+  button[aria-pressed="true"] { background: var(--primary, light-dark(oklch(35% .07 270), oklch(80% .06 270))); color: var(--primary-foreground, light-dark(oklch(98% 0 none), oklch(20% 0 none))); }
+  button:active { transform: scale(.98); }
+  :focus-visible { outline: 3px solid var(--ring, currentColor); outline-offset: 3px; }
+  @media (hover: hover) and (pointer: fine) { button:hover { border-color: var(--ring, currentColor); } }
+  figure { display: grid; gap: .65rem; }
+  figure[hidden] { display: none; }
+  img { display: block; inline-size: 100%; block-size: auto; aspect-ratio: 16 / 9; object-fit: contain; border-radius: var(--radius, .5rem); }
+  figcaption, .note { color: var(--muted-foreground, light-dark(oklch(43% 0 none), oklch(76% 0 none))); font-size: .9rem; }
+</style>
+<main>
+  <p>Actual Android TV app captures, 1920 × 1080. The library uses a labelled synthetic Jellyfin catalog and original test-pattern artwork.</p>
+  <nav aria-label="Choose capture">
+    <button type="button" data-view="library-night" aria-pressed="true">Library · Night</button>
+    <button type="button" data-view="library-day" aria-pressed="false">Library · Day</button>
+    <button type="button" data-view="apps-night" aria-pressed="false">Apps · Night</button>
+    <button type="button" data-view="apps-day" aria-pressed="false">Apps · Day</button>
+    <button type="button" data-view="media-focus" aria-pressed="false">Media focus</button>
+    <button type="button" data-view="app-focus" aria-pressed="false">App focus</button>
+    <button type="button" data-view="undo" aria-pressed="false">Undo notice</button>
+    <button type="button" data-view="restore" aria-pressed="false">Restore defaults</button>
+  </nav>
+  <figure id="library-night">
+    <img src="home-media-night.png" alt="Night Home with Continue watching first, media metadata, test-pattern artwork and Apps below.">
+    <figcaption>Continue watching leads Home. The header describes a title; Ask Vela stays in the top bar.</figcaption>
+  </figure>
+  <figure id="library-day" hidden>
+    <img src="home-media-day.png" alt="Day Home showing the same entertainment-first structure with the last focused episode in its header.">
+    <figcaption>Day theme. The header retains the last focused episode after returning from Settings.</figcaption>
+  </figure>
+  <figure id="apps-night" hidden>
+    <img src="home-apps-only-night.png" alt="Night Home with installed apps and arrangement controls, without library content or an AI marketing hero.">
+    <figcaption>Without a connected library, Apps fills the useful space. Keep layout has dismissed the notice; its one-step Undo remains available.</figcaption>
+  </figure>
+  <figure id="apps-day" hidden>
+    <img src="home-apps-only-day.png" alt="Day Home with installed apps and the checked Undo action beside Arrange home.">
+    <figcaption>The same apps-only state in Day. Empty library rows do not occupy space.</figcaption>
+  </figure>
+  <figure id="media-focus" hidden>
+    <img src="home-media-focus-night.png" alt="Remote focus ring around an episode card; the Home header describes that episode.">
+    <figcaption>Moving remote focus to an episode updates the media header.</figcaption>
+  </figure>
+  <figure id="app-focus" hidden>
+    <img src="home-app-focus-night.png" alt="Remote focus on the Settings app while the previous episode remains in the media header.">
+    <figcaption>Moving down to Apps keeps that episode in the header. No app is launched.</figcaption>
+  </figure>
+  <figure id="undo" hidden>
+    <img src="home-updated-notice.png" alt="Small Home updated notice with Undo and Keep layout above the installed apps.">
+    <figcaption>A native row move produces a compact notice. Undo restored the default order in the live check; stale changes are rejected.</figcaption>
+  </figure>
+  <figure id="restore" hidden>
+    <img src="restore-default-confirmation.png" alt="Native Restore default layout confirmation naming Continue watching, Apps, Recently added and My list.">
+    <figcaption>Restore defaults is explicit and confirmable. Existing custom layouts are preserved until the owner changes them.</figcaption>
+  </figure>
+  <p class="note">These captures establish this emulator's rendering and the recorded Home interactions. Physical Shield testing remains paused; live providers, services and full OS acceptance remain open.</p>
+</main>
+<script>
+  const buttons = [...document.querySelectorAll('button[data-view]')];
+  buttons.forEach(button => button.addEventListener('click', () => {
+    buttons.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    document.querySelectorAll('figure').forEach(figure => { figure.hidden = figure.id !== button.dataset.view; });
+  }));
+</script>
+</html>

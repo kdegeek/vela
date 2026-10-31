@@ -52,7 +52,8 @@ Optional `POST /Users/AuthenticateByName` accepts `{"Username":"fixture","Pw":"f
 and returns the same fixed Jellyfin token/user. Jellyfin requests use the client's
 `Authorization: MediaBrowser ... Token="fixture-jellyfin-token"` header. HA uses
 `Authorization: Bearer fixture-home-token`. Only the legacy video stream route
-also accepts the fixed `api_key` query parameter. Other API routes require headers.
+also accepts the fixed `api_key` query parameter. Item-artwork GET/HEAD is anonymous;
+metadata and effect routes require headers.
 Base URLs use the API root with no `/jellyfin` or `/api` suffix.
 
 ## Acceptance data and routes
@@ -76,7 +77,7 @@ all successful responses include `X-Vela-Fixture: true`.
 | Missing art / long title | `fixture-no-art` (no art tags; image 404); `fixture-long-title` |
 | Item errors | `fixture-item-error` appears in browse but item/playback returns 404; configurable `--item-error-status` |
 | Missing episode | `fixture-missing` in season 2, filtered by `isMissing=false`; playback rejected |
-| Artwork | `/Items/{id}/Images/Primary`, `/Items/{id}/Images/Backdrop/0`: original generated PNG |
+| Artwork | `/Items/{id}/Images/Primary`, `/Items/{id}/Images/Backdrop/0`: original generated PNG; anonymous GET/HEAD, matching Jellyfin's item-image endpoints |
 
 There are **105 available episodes in each season (210 total)** plus one explicitly
 missing episode. Pages return `Items`, `TotalRecordCount`, `StartIndex`, with a

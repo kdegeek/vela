@@ -10,7 +10,10 @@ class LayoutEditsTest {
         PinnedItem("Lights", TileAction.HomeService("light", "toggle", "light.room")),
         PinnedItem("Plex", TileAction.SearchApp("com.plexapp.android", "Arrival"))
     )), TileStyle.POSTER)
-    private val layout = HomeLayout(rows = listOf(Layouts.default.rows[0], pinned, Layouts.default.rows[1]))
+    private val layout = HomeLayout(rows = listOf(
+        Layouts.default.rows.single { it.id == "apps" }, pinned,
+        Layouts.default.rows.single { it.id == "resume" }
+    ))
 
     @Test fun moveChangesOnlyOrderAndRetainsEverySourceActionAndStableId() {
         val moved = LayoutEdits.move(layout, pinned.id, -1)

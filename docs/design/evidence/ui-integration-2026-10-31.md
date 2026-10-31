@@ -24,11 +24,16 @@ and design increment; it does not establish complete TV firmware qualification.
   actual Foundation-handler regressions.
 - Synthetic loopback phone fixtures and a standalone input-handler harness are
   available for repeatable checks; neither controls a device or uses a provider.
+- Home now leads with Continue watching, Apps, Recently added and My list. Its
+  header describes media, retains that media across app focus, and omits marketing
+  and pairing panels. Saved custom layouts remain unchanged until explicitly edited.
+  A compact notice offers checked one-step Undo, also exposed as `layout_undo`
+  through the prepared agent/MCP tool set. History is session-only.
 
 ## Final executed checks
 
 `env JAVA_HOME=/opt/homebrew/opt/openjdk@21 ./gradlew --no-daemon testDebugUnitTest lintDebug lintFirmware assembleDebug assembleFirmware`
-from `android/`: **passed**. XML reports contain **456 tests**, zero failures,
+from `android/`: **passed**. XML reports contain **498 tests**, zero failures,
 errors or skips. This includes **20 FirmwareBootstrapPolicyTest cases**, rather
 than an additional 20 tests. Both lint variants contain zero errors and the same
 13 existing warnings. Both debug and unsigned firmware APKs assemble.
@@ -71,8 +76,20 @@ Built artifacts at this verification point:
 
 | Artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `android/app/build/outputs/apk/debug/app-debug.apk` | 51,767,658 | `8d8014afd55030da4e26b3e237e4e13573c29727b12fb4bfb03e9b44593ceb27` |
-| `android/app/build/outputs/apk/firmware/app-firmware-unsigned.apk` | 40,118,596 | `ae3ba528c2096182ed928817bda3dd86150fb03ccbbd939db2707797311a3a63` |
+| `android/app/build/outputs/apk/debug/app-debug.apk` | 52,989,622 | `d74ec196d125aa8fa37d3c07b56c184c02c750e2d51cea447981793d3241bc5d` |
+| `android/app/build/outputs/apk/firmware/app-firmware-unsigned.apk` | 40,151,364 | `6b54e0f26041287d8d042b6e24c232d5a64a98c1a840db9a5153c5d0eae1b9bd` |
+
+The Home/Undo integration adds 20 storage-history, eight prepared-action and 14
+media-header/default-layout cases. Native Restore defaults and Undo restored the
+exact prior saved layout in the emulator, and Keep layout retained its Undo
+affordance. A second native row move/Undo restored the default order. Eight new
+[entertainment-first Home captures](home-entertainment-20261031/index.html)
+show populated and apps-only states in both themes, media/app focus, Undo and
+Restore defaults. Their [provenance and limits](home-entertainment-20261031/README.md)
+include fixture-only settings, exact restoration and capture-scope correction.
+The media fixture now matches Jellyfin's anonymous image GET/HEAD routes;
+**20 HTTP fixture tests pass**, including a regression first observed failing.
+No production image-authentication behavior changed.
 
 ## Observed browser behavior
 
@@ -119,6 +136,10 @@ four visual issues. They are corrected and recaptured in the
 [provenance and checks](visual-corrections-20261031/README.md). That pass contains
 11 current native captures, including both themes and visible refresh feedback.
 It does not establish full native acceptance, and the physical Shield remains paused.
+
+The later Home/Undo pass above supersedes those galleries' Home composition.
+Its synthetic populated-library captures establish Home rendering and selected
+navigation behavior, not real Jellyfin playback or provider execution.
 
 1. PR CI on the corrected design commit. Both independent source reviews are
    complete and their two navigation findings are addressed; the owner's

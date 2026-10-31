@@ -111,6 +111,7 @@ class Runner(
         Use device_status to learn what is configured. Explain missing permissions and connections with a concrete next step.
         Some apps draw opaque surfaces. If a screen cannot be read, say so; do not claim success without observation.
         Use layout_get before layout_set and keep rows the owner did not ask to change.
+        Use layout_undo to restore the immediately previous Home layout in this session. Undo never activates its tiles.
         Purchases, security devices, accounts, installs and resets need confirmation. A denial ends this task.
         Report an action as successful only if a tool or a fresh observation confirms it. A timeout has an unknown effect.
         Keep replies to one or two short sentences, without markdown. Ask a question when a title or target is ambiguous.

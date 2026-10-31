@@ -413,11 +413,15 @@ composable. Selection always calls `TvShell.select(tile)` which opens the title 
    `agentIndicator(app.runner.running, app.runner.pending, last line)`; `remoteAnswers` from
    `DeviceStatus.read(app).accessibility` remembered per resume. Profiles/Routines/External control
    remain `Page` entries, reached from Settings and the profile chip; Back from them returns to Settings.
-2. Home (`HomeActivity.kt`): `VelaBackdrop` + fixed hero (`VelaSize.Hero`, compact while Now Playing
+2. Home (`HomeActivity.kt`): media-derived `VelaBackdrop` + media-only header (`VelaSize.Hero`, compact while Now Playing
    bar is visible) + `LazyColumn` of `TileRow`s with no horizontal content padding. Remove the
    `offset(-12)` row trick and the top `"loading"` item that shifts content; first load shows
-   `SkeletonRow`s, refreshes keep stale rows. Pair panel is the first scrolling item when AI is not ready.
-   End actions: "Arrange home" and "Ask Vela to change home" (opens `AskActivity`; it does not auto-send).
+   `SkeletonRow`s, refreshes keep stale rows. The owner-approved entertainment-first revision removes
+   the idle marketing hero, Home pairing panel and footer Ask promotion. Pairing remains in Settings;
+   Ask/status remains in the shell. Default rows are Continue watching, Apps, Recently added, My list;
+   custom layouts retain their order/actions. Media selection survives app/action focus while a
+   matching current title exists. End actions: "Arrange home" and, without media, "Library settings".
+   Root integration supplies a checked one-step layout Undo through the existing controller.
 3. Search, Apps, My list, House: `VelaPage`/`CardGrid`/`CardRow`/`VelaListRow`; agent handoffs use
    `ButtonVariant.Agent`.
 4. Activity (`ActivityPage.kt`): `AgentTaskPanel` when running (Stop task = Danger, Ask something else =

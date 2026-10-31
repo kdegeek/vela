@@ -99,8 +99,8 @@ object Layouts {
 
     val default = HomeLayout(
         rows = listOf(
-            RowSpec("apps", "Apps", Source.Apps(), TileStyle.APP),
             RowSpec("resume", "Continue watching", Source.JellyfinResume),
+            RowSpec("apps", "Apps", Source.Apps(), TileStyle.APP),
             RowSpec("latest", "Recently added", Source.JellyfinLatest(), TileStyle.POSTER),
             RowSpec("watchlist", "My list", Source.Watchlist),
         ),

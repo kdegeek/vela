@@ -23,7 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.vela.tv.VelaApp
 import app.vela.tv.design.*
-import app.vela.tv.layout.TileAction
+import app.vela.tv.settings.LayoutUndo
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.async
@@ -46,15 +46,25 @@ class HomeActivity : ComponentActivity() {
     var loaded by mutableStateOf(false)
     var appliedReset = 0
     var focused by mutableStateOf<Tile?>(null)
+    var media by mutableStateOf<Tile?>(null)
+    var acknowledgedUndo by mutableStateOf<LayoutUndo?>(null)
 }
 
 @Composable internal fun HomeContent(app: VelaApp, refresh: Int, onSelect: (Tile) -> Unit,
-    onSettings: () -> Unit, onArrange: () -> Unit, onAsk: () -> Unit, compact: Boolean,
-    reset: Int, presentation: HomePresentation) {
+    onSettings: () -> Unit, onArrange: () -> Unit, onUndo: (LayoutUndo) -> Unit, compact: Boolean,
+    reset: Int, presentation: HomePresentation, undoing: Boolean) {
     val data = remember(app) { HomeData(app) }
     val layout by app.settings.layout.collectAsState()
     val settings by app.settings.settings.collectAsState()
     val saved by app.settings.watchlist.collectAsState()
+    val undo by app.settings.layoutUndo.collectAsState()
+    val owner by app.control.owner.collectAsState()
+    val running by app.runner.running.collectAsState()
+    val undoUnavailable = undoing || running || owner != null
+    val notice = undo?.takeUnless { it === presentation.acknowledgedUndo }
+    LaunchedEffect(undo) {
+        if (presentation.acknowledgedUndo !== undo) presentation.acknowledgedUndo = null
+    }
     var loading by remember { mutableStateOf(true) }
     var retry by remember { mutableIntStateOf(0) }
     val list = rememberLazyListState()
@@ -71,20 +81,33 @@ class HomeActivity : ComponentActivity() {
             presentation.rows = loaded
             presentation.loaded = true
             presentation.focused = presentation.focused?.let { old -> loaded.flatMap { it.tiles }.firstOrNull { it.key == old.key } }
+            presentation.media = homeMediaTile(loaded, presentation.focused, presentation.media)
         } finally { loading = false }
     }
     BoxWithConstraints(Modifier.fillMaxSize().background(Vela.colors.canvas)) {
-        VelaBackdrop(presentation.focused?.backdrop, Modifier.matchParentSize())
-        val showHero = settings.agentReady || presentation.focused?.action?.let { it !is TileAction.LaunchApp } == true
+        val media = presentation.media
+        VelaBackdrop(media?.backdrop ?: media?.image, Modifier.matchParentSize())
         // Keep the nominal hero fixed on the baseline; short surfaces scroll the complete content.
         val scrollHero = maxHeight < 260.dp || LocalDensity.current.fontScale > 1.3f
         Column(Modifier.fillMaxSize()) {
-            if (showHero && !scrollHero) Hero(presentation.focused, compact, loading, Modifier.safeHorizontal())
+            notice?.let { receipt ->
+                key(receipt) {
+                    FlowRow(Modifier.safeHorizontal(), horizontalArrangement = Arrangement.spacedBy(VelaSpace.S),
+                        verticalArrangement = Arrangement.spacedBy(VelaSpace.Xs)) {
+                        Text("Home updated", Modifier.align(Alignment.CenterVertically), style = Vela.type.meta,
+                            color = Vela.colors.inkMuted)
+                        VelaButton(if (undoing) "Restoring…" else "Undo", enabled = !undoUnavailable, busy = undoing,
+                            variant = ButtonVariant.Quiet) { onUndo(receipt) }
+                        VelaButton("Keep layout", variant = ButtonVariant.Quiet) { presentation.acknowledgedUndo = receipt }
+                    }
+                }
+            }
+            val compactHero = compact || notice != null
+            if (media != null && !scrollHero) MediaHero(media, compactHero, loading, Modifier.safeHorizontal())
             LazyColumn(Modifier.weight(1f).fillMaxWidth().focusRestorer(), state = list,
                 contentPadding = PaddingValues(top = VelaSpace.M, bottom = VelaSpace.S),
                 verticalArrangement = Arrangement.spacedBy(VelaSpace.RowGap)) {
-                if (showHero && scrollHero) item("hero") { Hero(presentation.focused, compact, loading, Modifier.safeHorizontal()) }
-                if (!settings.agentReady) insetItem("pair") { PairCard(app, Modifier.fillMaxWidth()) }
+                if (media != null && scrollHero) item("hero") { MediaHero(media, compactHero, loading, Modifier.safeHorizontal()) }
                 if (!presentation.loaded) {
                     layout.rows.forEach { spec -> item(ownerRowKey(spec.id)) { SkeletonRow(spec.title, spec.style.cardFormat()) } }
                 } else {
@@ -92,13 +115,24 @@ class HomeActivity : ComponentActivity() {
                         EmptyState("Your home is ready", "Open Apps or connect your library from Settings.", "Settings", onSettings)
                     }
                     presentation.rows.filter { it.tiles.isNotEmpty() || it.error != null }.forEach { row ->
-                        item(ownerRowKey(row.spec.id)) { TileRow(row, { presentation.focused = it }, onSelect, onRetry = { retry++ }) }
+                        item(ownerRowKey(row.spec.id)) { TileRow(row, {
+                            presentation.focused = it
+                            presentation.media = homeMediaTile(presentation.rows, it, presentation.media)
+                        }, onSelect, onRetry = { retry++ }) }
                     }
                 }
                 insetItem("arrange") {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(VelaSpace.S), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
                         VelaButton("Arrange home", variant = ButtonVariant.Quiet, onClick = onArrange)
-                        VelaButton("Ask Vela to change home", variant = ButtonVariant.Agent, onClick = onAsk)
+                        undo?.takeIf { it === presentation.acknowledgedUndo }?.let { receipt ->
+                            key(receipt) {
+                                VelaButton("Undo last home change", enabled = !undoUnavailable, busy = undoing,
+                                    variant = ButtonVariant.Quiet) { onUndo(receipt) }
+                            }
+                        }
+                        if (presentation.loaded && media == null) {
+                            VelaButton("Library settings", variant = ButtonVariant.Quiet, onClick = onSettings)
+                        }
                     }
                 }
             }
@@ -106,15 +140,14 @@ class HomeActivity : ComponentActivity() {
     }
 }
 
-@Composable private fun Hero(tile: Tile?, compact: Boolean, loading: Boolean, modifier: Modifier) {
-    val content = tile?.takeUnless { it.action is TileAction.LaunchApp }
+@Composable private fun MediaHero(tile: Tile, compact: Boolean, loading: Boolean, modifier: Modifier) {
     Column(modifier.fillMaxWidth().heightIn(min = if (compact) VelaSize.HeroCompact else VelaSize.Hero),
         verticalArrangement = Arrangement.Center) {
-        if (!compact) Text(if (loading) "Refreshing…" else content?.kicker ?: "Make yourself at home",
+        if (!compact) Text(if (loading) "Refreshing…" else tile.kicker ?: tileAffordance(tile.action).verb,
             style = Vela.type.meta, color = Vela.colors.accent, maxLines = 1, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-        Text(content?.title ?: "Your evening, on your terms.", style = if (compact) Vela.type.section else Vela.type.display,
+        Text(tile.title, style = if (compact) Vela.type.section else Vela.type.display,
             color = Vela.colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(if (compact && loading) "Refreshing…" else content?.subtitle ?: "Ask for a show. Set the mood. Make yourself at home.",
+        Text(if (compact && loading) "Refreshing…" else tile.subtitle.orEmpty(),
             style = Vela.type.meta, color = Vela.colors.inkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

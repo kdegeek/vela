@@ -21,6 +21,7 @@ import app.vela.tv.control.NowPlayingAccess
 import app.vela.tv.design.*
 import app.vela.tv.layout.*
 import app.vela.tv.profile.HouseholdState
+import app.vela.tv.settings.LayoutUndo
 import kotlinx.coroutines.*
 
 @Composable internal fun TvShell(app: VelaApp, resume: Int) {
@@ -33,6 +34,7 @@ import kotlinx.coroutines.*
     var error by remember { mutableStateOf<String?>(null) }
     var failedAction by remember { mutableStateOf<TileAction?>(null) }
     var opening by remember { mutableStateOf(false) }
+    var undoing by remember { mutableStateOf(false) }
     var nowPlayingDetails by rememberSaveable { mutableStateOf(false) }
     var nowPlayingVisible by remember { mutableStateOf(false) }
     var mediaAccess by remember { mutableStateOf(NowPlayingAccess.LOADING) }
@@ -73,6 +75,16 @@ import kotlinx.coroutines.*
         }
     }
     fun select(t: Tile) { if (t.action is TileAction.PlayJellyfin || t.action is TileAction.OpenUri) tile = t else perform(t.action) }
+    fun undoHome(receipt: LayoutUndo) {
+        if (undoing) return
+        undoing = true
+        scope.launch {
+            try { undoOwnerLayout(app, receipt); homeReset++ }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { failedAction = null; error = e.message ?: "Couldn't restore the previous home layout." }
+            finally { undoing = false }
+        }
+    }
     fun ask(prompt: String) {
         runCatching { app.runner.ask(prompt); selected = Page.ACTIVITY }
             .onFailure { failedAction = null; error = it.message ?: "Couldn't start the task." }
@@ -99,7 +111,7 @@ import kotlinx.coroutines.*
                         pages.SaveableStateProvider(selected.name) {
                             when (selected) {
                                 Page.HOME -> HomeContent(app, resume + refresh, ::select, { selected = Page.SETTINGS },
-                                    { openSettingsChild(Page.ARRANGE, "arrange") }, ::askScreen, nowPlayingVisible, homeReset, home)
+                                    { openSettingsChild(Page.ARRANGE, "arrange") }, ::undoHome, nowPlayingVisible, homeReset, home, undoing)
                                 Page.SEARCH -> SearchPage(app, refresh, ::select, ::ask) { selected = Page.SETTINGS }
                                 Page.APPS -> RowsPage(app, RowSpec("all-apps", "Your apps", Source.Apps(), TileStyle.APP), resume + refresh, ::select)
                                 Page.LIST -> RowsPage(app, RowSpec("my-list", "My list", Source.Watchlist), resume + refresh, ::select)

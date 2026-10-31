@@ -312,14 +312,26 @@ panel and ten pills leaving room for a single row of app cards.
 
 ### 11.2 Home
 
-Layers, back to front: backdrop (focused item) → scrims → fixed compact hero → rows (`LazyColumn`).
-Hero: kicker (`meta`, `accent`), title (`display`, 1 line), metadata (`meta`, `inkMuted`). Idle hero
-(nav or app focused): "Your evening, on your terms." / "Ask for a show. Set the mood. Make yourself at
-home." Pairing panel (AI not configured) is the first scrolling item, not the hero.
-Rows render exactly the layout document's order, title and style. A row whose source failed shows its
-error strip; an empty row is omitted (as today). The column ends with two quiet actions:
-"Arrange home" (D-pad reorder/remove using the coordinator-approved `owner-layout` controller) and
-"Ask Vela to change home" (Agent variant; opens Ask, never auto-sends).
+Owner-approved direction: entertainment leads, with the agent available through the compact shell
+lantern, voice and activity status. The default rows are **Continue watching → Apps → Recently added
+→ My list**. Saved owner/agent layouts retain their explicit order, sources, styles and actions.
+
+Layers, back to front: media backdrop → scrims → content-derived media header → rows (`LazyColumn`).
+The header exists only when current real media is available: kicker (`meta`, `accent`), title
+(`display`, 1 line), metadata (`meta`, `inkMuted`). It retains the last valid media selection across
+app/action/shell focus, avoiding a layout jump. It does not depend on AI readiness. Home has no idle
+marketing pitch or full pairing panel; pairing remains in Settings. App-only Home starts with apps.
+
+Rows still render exactly the layout document's order, title and style. Failed sources show their
+error strips; empty rows are omitted. The column ends with quiet "Arrange home" and, when there is
+no media, "Library settings". There is no default oversized Ask tile or redundant footer Ask action.
+Explicitly created Ask rows remain supported through the shared tile path.
+
+Requested redesigns apply immediately through guarded layout execution. Offer checked one-step
+Undo for the last successful layout change and retain Restore default layout in Arrange home.
+Undo must refuse a stale receipt rather than overwrite a newer layout. It does not replay the
+previous layout's external actions. No extra permission step is introduced for ordinary layout
+changes; existing action-risk checks remain.
 
 ### 11.3 Content destinations
 

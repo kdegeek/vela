@@ -206,13 +206,23 @@ class TvTools(private val app: VelaApp, private val profile: ProfileExecution? =
         tool("layout_get", "The home screen layout as JSON.") {
             ToolOutcome(Layouts.encode(app.settings.layout.value))
         },
+        tool("layout_undo", "Undo the last Home layout change in this session. Restores only the layout; never activates its tiles. Fails if that exact change is no longer current.",
+            prepare = {
+                prepareLayoutUndo(app.settings.layoutUndo.value, { app.settings.layoutUndo.value }, ::layoutRisk) { receipt ->
+                    withContext(Dispatchers.IO) {
+                        currentCoroutineContext().ensureActive()
+                        app.settings.undoLayout(receipt)
+                    }
+                }
+            },
+        ) { error("Undo requires its prepared receipt.") },
         tool(
             "layout_set", "Replace the home screen layout. Read it first with layout_get and keep rows the owner didn't ask to change. Format:\n${Layouts.SCHEMA_HELP}",
             props = { str("layout", "the whole layout as a JSON string") },
             check = { a -> Layouts.decode(a.str("layout")).getOrNull()?.let(::layoutRisk) },
         ) { a ->
             Layouts.decode(a.str("layout")).fold(
-                { app.settings.setLayout(it); ToolOutcome("Home screen updated.") },
+                { app.settings.setLayout(it); ToolOutcome("Home screen updated. The last change can be undone with layout_undo.") },
                 { ToolOutcome("That layout isn't valid: ${it.message}", isError = true) },
             )
         },

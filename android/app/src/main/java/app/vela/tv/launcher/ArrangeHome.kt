@@ -11,6 +11,7 @@ import androidx.compose.ui.focus.focusRequester
 import app.vela.tv.VelaApp
 import app.vela.tv.design.*
 import app.vela.tv.layout.*
+import app.vela.tv.settings.LayoutUndo
 import kotlinx.coroutines.*
 
 internal const val OWNER_LAYOUT_CONTROLLER = "owner-layout"
@@ -18,6 +19,15 @@ internal suspend fun saveOwnerLayout(app: VelaApp, layout: HomeLayout) = withCon
     val checked = Layouts.decode(Layouts.encode(layout)).getOrThrow()
     app.runner.withController(OWNER_LAYOUT_CONTROLLER) {
         withContext(Dispatchers.IO) { app.settings.setLayout(checked) }
+    }
+}
+
+internal suspend fun undoOwnerLayout(app: VelaApp, receipt: LayoutUndo) = withContext(Dispatchers.Main.immediate) {
+    app.runner.withController(OWNER_LAYOUT_CONTROLLER) {
+        withContext(Dispatchers.IO) {
+            currentCoroutineContext().ensureActive()
+            app.settings.undoLayout(receipt)
+        }
     }
 }
 
@@ -95,6 +105,6 @@ internal suspend fun saveOwnerLayout(app: VelaApp, layout: HomeLayout) = withCon
         ConfirmDialog("Remove row?", "Remove “${layout.rows.firstOrNull { it.id == id }?.title ?: "this row"}” from Home? Its apps and library are kept.", "Remove",
             onConfirm = { removeId = null; edit(null) { LayoutEdits.remove(it, id) } }, onDismiss = { removeId = null }, danger = true)
     }
-    if (defaults) ConfirmDialog("Restore default layout?", "Replace your current rows with Apps, Continue watching, Recently added and My list?", "Restore defaults",
+    if (defaults) ConfirmDialog("Restore default layout?", "Replace your current rows with Continue watching, Apps, Recently added and My list?", "Restore defaults",
         onConfirm = { defaults = false; edit(null) { Layouts.default } }, onDismiss = { defaults = false })
 }

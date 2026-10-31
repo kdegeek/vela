@@ -271,9 +271,13 @@ class Handler(BaseHTTPRequestHandler):
             if route == "<unknown>":
                 raise BadRequest(404, "Unknown FIXTURE route or item.")
             authenticating = path == "/Users/AuthenticateByName"
+            # Jellyfin's item-image GET/HEAD endpoints are anonymous. Match that
+            # contract for Coil artwork without relaxing metadata/effect auth.
+            image_read = self.command in ("GET", "HEAD") and re.fullmatch(
+                r"/Items/[^/]+/Images/(?:Primary|Backdrop/0)", path) is not None
             is_home = path.startswith("/api/")
             auth = self.headers.get("Authorization", "")
-            if not authenticating:
+            if not authenticating and not image_read:
                 if is_home:
                     accepted = auth == f"Bearer {HA_TOKEN}"
                 else:

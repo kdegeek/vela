@@ -119,8 +119,11 @@ class SettingsStore(context: Context) {
     private val _settings = MutableStateFlow(read("settings.json")?.let { runCatching { json.decodeFromString(VelaSettings.serializer(), it) }.getOrNull() } ?: VelaSettings())
     val settings: StateFlow<VelaSettings> = _settings
 
-    private val _layout = MutableStateFlow(read("layout.json")?.let { Layouts.decode(it).getOrNull() } ?: Layouts.default)
-    val layout: StateFlow<HomeLayout> = _layout
+    private val layoutHistory = LayoutHistory(read("layout.json")?.let { Layouts.decode(it).getOrNull() } ?: Layouts.default) {
+        write("layout.json", it)
+    }
+    val layout: StateFlow<HomeLayout> = layoutHistory.layout
+    val layoutUndo: StateFlow<LayoutUndo?> = layoutHistory.layoutUndo
 
     private val _watchlist = MutableStateFlow(read("watchlist.json")?.let {
         runCatching { json.decodeFromString<List<app.vela.tv.layout.PinnedItem>>(it) }.getOrNull()
@@ -154,9 +157,13 @@ class SettingsStore(context: Context) {
 
     @Synchronized
     fun setLayout(l: HomeLayout) {
-        Layouts.decode(Layouts.encode(l)).getOrThrow()
-        write("layout.json", Layouts.encode(l))
-        _layout.value = l
+        layoutHistory.setLayout(l)
+    }
+
+    /** Invoke on IO inside the owner-layout lease, passing the receipt captured by the caller. */
+    @Synchronized
+    fun undoLayout(expected: LayoutUndo) {
+        layoutHistory.undoLayout(expected)
     }
 
     private fun read(name: String): String? = runCatching {
