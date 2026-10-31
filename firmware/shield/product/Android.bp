@@ -1,0 +1,38 @@
+// Vela is signed by the OS build. The lab uses the development testkey without
+// platform-signature privileges; shipping images require a private app key.
+android_app_import {
+    name: "VelaTv",
+    apk: "VelaTv.apk",
+    certificate: "testkey",
+    privileged: true,
+    system_ext_specific: true,
+    // AGP already produces dex. Avoid a boot-classpath dependent preopt of the
+    // external APK; do not disable APK signature or manifest checks.
+    dex_preopt: { enabled: false },
+    optional_uses_libs: ["androidx.window.extensions", "androidx.window.sidecar"],
+    required: ["vela-privapp-permissions", "vela-preferred-home", "vela-image-inputs"],
+}
+
+prebuilt_etc {
+    name: "vela-privapp-permissions",
+    filename: "privapp-permissions-app.vela.tv.xml",
+    src: "permissions/privapp-permissions-app.vela.tv.xml",
+    sub_dir: "permissions",
+    system_ext_specific: true,
+}
+
+prebuilt_etc {
+    name: "vela-preferred-home",
+    filename: "vela-home.xml",
+    src: "preferred-apps/vela-home.xml",
+    sub_dir: "preferred-apps",
+    system_ext_specific: true,
+}
+
+prebuilt_etc {
+    name: "vela-image-inputs",
+    filename: "image-inputs.json",
+    src: "vela-staging.json",
+    sub_dir: "vela",
+    system_ext_specific: true,
+}

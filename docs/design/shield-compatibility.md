@@ -27,3 +27,12 @@ Do not work around that with adb key events, screen capture, activity launching 
 logs, port forwards and other operations the device route cannot perform.
 
 No app installation, app launch, settings change, playback or Home-button takeover was performed during this connection check.
+
+## Image PoC follow-through
+
+The owner subsequently authorized building a pre-flashed OS and confirmed the Tube is their only Shield.
+The target is now the LineageOS 22.2 `sif` image, whose custom userspace is **arm64**; the observed stock 32-bit ABI above
+does not constrain that firmware target. The [Shield image build](../../firmware/shield/README.md) records the source lock,
+system-app integration and Polycasa builder. Software acquisition/build work is authorized; no destructive physical
+device action has been performed. Initial flashing requires the internal service USB modification and microSD installation
+described by the maintainer, plus a verified stock recovery kit.

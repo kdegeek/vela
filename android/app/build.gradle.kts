@@ -14,6 +14,21 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("boolean", "FIRMWARE", "false")
+        buildConfigField("boolean", "FIRMWARE_ENROLL_BY_DEFAULT", "false")
+    }
+
+    buildTypes {
+        create("firmware") {
+            initWith(getByName("release"))
+            isDebuggable = false
+            signingConfig = null // The image build signs this APK with Vela's private app key.
+            buildConfigField("boolean", "FIRMWARE", "true")
+            // The owner requested an agent appliance. Enroll once after normal
+            // TV setup; an explicit provisioner opt-out or later revocation wins.
+            buildConfigField("boolean", "FIRMWARE_ENROLL_BY_DEFAULT", "true")
+            matchingFallbacks += listOf("release")
+        }
     }
 
     buildFeatures {

@@ -3,6 +3,7 @@ package app.vela.tv
 import android.app.Application
 import app.vela.tv.agent.Runner
 import app.vela.tv.agent.TvTools
+import app.vela.tv.firmware.FirmwareBootstrap
 import app.vela.tv.integrations.ControlArbiter
 import app.vela.tv.integrations.ControlApprovalBroker
 import app.vela.tv.mcp.*
@@ -114,5 +115,6 @@ class VelaApp : Application(), RoutineRuntimeOwner {
             combine(runner.running, control.owner) { running, owner -> !running && owner == null }
                 .distinctUntilChanged().collect { idle -> if (idle) wakeRoutines() }
         }
+        FirmwareBootstrap.onApplicationCreate(this)
     }
 }
