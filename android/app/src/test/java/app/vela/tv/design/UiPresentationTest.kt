@@ -32,3 +32,42 @@ class UiPresentationTest {
         }
     }
 }
+
+class AgentPresentationTest {
+    @Test fun `pending approval wins over both running and idle and retains the actual question`() {
+        for (running in listOf(false, true)) assertEquals(AgentIndicator.NeedsApproval("Allow playback?"),
+            agentIndicator(running, "Allow playback?", "Opening app"))
+    }
+    @Test fun `blank pending and step text do not invent agent activity`() {
+        for (blank in listOf(null, "", " \n\t")) {
+            assertEquals(AgentIndicator.Idle, agentIndicator(false, blank, "stale step"))
+            assertEquals(AgentIndicator.Working(null), agentIndicator(true, blank, blank))
+            assertEquals(AgentIndicator.Working("Opening app"), agentIndicator(true, blank, "Opening app"))
+        }
+    }
+    @Test fun `task outcome words never imply success for an unknown or failed outcome`() {
+        val known = mapOf("running" to StatusTone.Agent, "complete" to StatusTone.Success,
+            "failed" to StatusTone.Danger, "canceled" to StatusTone.Neutral)
+        known.forEach { (state, tone) ->
+            assertEquals(tone, taskTone(state))
+            assertEquals(state.replaceFirstChar { it.uppercaseChar() }, taskStateLabel(state))
+        }
+        for (state in listOf("", "effect unknown", "queued", "COMPLETE")) assertEquals(StatusTone.Neutral, taskTone(state))
+        assertEquals("Effect unknown", taskStateLabel("effect unknown"))
+        assertEquals("", taskStateLabel(""))
+    }
+    @Test fun `approval instructions offer only the actual external response path`() {
+        assertEquals("Press OK to allow once, or Back to decline.", approvalInstruction(true))
+        assertEquals("Answer on your paired phone.", approvalInstruction(false))
+    }
+    @Test fun `status tones have distinct noncolor signals`() {
+        assertNull(statusGlyph(StatusTone.Neutral))
+        assertEquals(VelaGlyph.Activity, statusGlyph(StatusTone.Agent))
+        assertEquals(VelaGlyph.Check, statusGlyph(StatusTone.Success))
+        assertEquals(VelaGlyph.Caution, statusGlyph(StatusTone.Caution))
+        assertEquals(VelaGlyph.Error, statusGlyph(StatusTone.Danger))
+        assertEquals(StatusTone.Danger, StatusKind.Error.tone)
+        assertEquals(StatusTone.Caution, StatusKind.Caution.tone)
+        assertEquals(StatusTone.Success, StatusKind.Success.tone)
+    }
+}

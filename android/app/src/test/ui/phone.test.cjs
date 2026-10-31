@@ -11,8 +11,12 @@ const tick = async () => { for(let i=0;i<8;i++) await new Promise(resolve => set
 class Element {
  constructor(tag, attributes='') {
   this.tagName = tag.toUpperCase(); this.listeners = {}; this.children = []; this.textContent = ''; this.value = ''; this.disabled = false;
-  this.dataset = {}; this.hidden = /\bhidden\b/.test(attributes); this.scrollHeight = 500; this.scrollTop = 400; this.clientHeight = 100;
+  this.dataset = {};
+  // Inspect attribute names, not aria-hidden or words inside quoted class/title values.
+  this.hidden = [...attributes.matchAll(/(?:^|\s)([^\s=/>]+)(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/g)].some(([,name])=>name.toLowerCase()==='hidden');
+  this.scrollHeight = 500; this.scrollTop = 400; this.clientHeight = 100;
   for(const [,name,value] of attributes.matchAll(/([\w-]+)="([^"]*)"/g)) {
+   if(name.toLowerCase() === 'hidden') continue; // HTML boolean attributes stay booleans, even hidden="false".
    if(name === 'data-key') this.dataset.key = value; else this[name === 'class' ? 'className' : name] = value;
   }
  }
@@ -55,6 +59,14 @@ function setup({storageUnavailable=false,confirmAnswer=true}={}) {
  return {ids,controls,remote,requests,historyCalls,context,model:ids.settingsForm.elements.namedItem('model'),setState:s=>nextState=s,setFailure:e=>fail=e,setResponder:r=>respond=r,
   poll:async()=>{await vm.runInContext('poll()',context);await tick();}};
 }
+test('DOM harness distinguishes boolean hidden from ARIA and quoted presentation attributes',()=>{
+ for(const attributes of ['', 'aria-hidden="true"', 'class="visually-hidden"', 'title="Keep hidden until connected"', 'data-note=hidden', 'data-note= hidden', 'data-state="hidden" aria-hidden="false"']) {
+  assert.equal(new Element('div',attributes).hidden,false,attributes);
+ }
+ for(const attributes of ['hidden', 'hidden=""', 'hidden="hidden"', 'hidden="false"', 'HIDDEN', 'class="panel" hidden aria-hidden="false"']) {
+  assert.equal(new Element('div',attributes).hidden,true,attributes);
+ }
+});
 test('offline actions start disabled, then enable only after authenticated state',async()=>{
  const ui=setup();assert.ok(ui.remote.every(e=>e.disabled));await tick();assert.ok(ui.remote.every(e=>!e.disabled));
  assert.equal(ui.model.value,'saved-model');assert.ok(ui.requests.every(r=>r.headers['X-Vela-Token']==='test-token'));

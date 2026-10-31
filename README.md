@@ -12,6 +12,8 @@ native 4K output, real-model qualification and hardware acceptance remain open.
 
 - [Build and run Android TV](android/README.md)
 - [Build the Shield Tube firmware image](firmware/shield/README.md)
+- [Vela design language](docs/design/vela-design-language.md) and [composable component contract](docs/design/vela-component-contract.md)
+- [Design integration checks and remaining acceptance](docs/design/evidence/ui-integration-2026-10-31.md)
 - [Design system, backend contracts and release inventory](docs/design/vela-tv-system.md)
 - [Requested agent-team work plan](docs/design/vela-agent-team.md)
 - [Android TV product direction](docs/superpowers/specs/2026-10-30-vela-agentic-tv-design.md)

@@ -47,26 +47,27 @@ class AskActivity : ComponentActivity() {
             val field = remember { FocusRequester() }
             LaunchedEffect(Unit) { field.requestFocus() }
             VelaTheme(settings) {
-                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding().padding(24.dp), contentAlignment = Alignment.Center) {
-                    Surface(Modifier.widthIn(max = 620.dp).fillMaxWidth(), shape = VelaDesign.PanelShape) {
-                        Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).imePadding().padding(VelaSpace.L), contentAlignment = Alignment.Center) {
+                    Surface(Modifier.widthIn(max = VelaSize.DialogWidth).fillMaxWidth(), shape = VelaShapes.Panel, color = Vela.colors.agentContainer,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (Vela.highContrast) Vela.colors.lineStrong else Vela.colors.agent)) {
+                        Column(Modifier.verticalScroll(rememberScrollState()).padding(VelaSpace.L), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
                             Text(if (listening.value) "I'm listening…" else "What would you like?", style = MaterialTheme.typography.headlineMedium,
                                 modifier = Modifier.semantics { heading(); liveRegion = LiveRegionMode.Polite })
                             Text("Find something to watch, set the mood, or make Vela yours.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (!settings.agentReady) Text("Connect AI from your paired phone in Settings. You can browse apps while AI is disconnected.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            OutlinedTextField(text, { text = it.take(8000); error.value = null }, modifier = Modifier.fillMaxWidth().focusRequester(field),
-                                label = { Text("Your request") }, placeholder = { Text("Put on the next episode") }, singleLine = true,
+                            VelaTextField(text, { text = it; error.value = null }, "Your request", modifier = Modifier.fillMaxWidth().focusRequester(field),
+                                placeholder = "Put on the next episode", singleLine = true,
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send), keyboardActions = KeyboardActions(onSend = { send(text) }))
                             error.value?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                VelaButton("Ask", enabled = settings.agentReady && text.isNotBlank() && !listening.value) { send(text) }
-                                if (SpeechRecognizer.isRecognitionAvailable(this@AskActivity)) VelaButton(if (listening.value) "Stop listening" else "Speak") {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(VelaSpace.S), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                                VelaButton("Ask", enabled = settings.agentReady && text.isNotBlank() && !listening.value, variant = ButtonVariant.Primary, glyph = VelaGlyph.Sail) { send(text) }
+                                if (SpeechRecognizer.isRecognitionAvailable(this@AskActivity)) VelaButton(if (listening.value) "Stop listening" else "Speak", variant = ButtonVariant.Agent, glyph = VelaGlyph.Mic) {
                                     if (listening.value) stopListening() else listen()
                                 }
                                 VelaButton("Back") { finish() }
                             }
                             Text(if (listening.value) "Speak your request. Review the text, then choose Ask." else "You can type, speak, or ask from your paired phone.",
-                                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                style = Vela.type.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

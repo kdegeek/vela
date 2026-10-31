@@ -3,11 +3,10 @@ package app.vela.tv.launcher
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import app.vela.tv.VelaApp
 import app.vela.tv.design.*
 import app.vela.tv.memory.*
@@ -53,31 +52,32 @@ import kotlinx.coroutines.CancellationException
         return
     }
     ManagementList("Household profiles & memory", actions) {
-        item { Text("Each profile has its own preferences and saved memories. Profiles have no PIN protection. Home rows and My list are shared.") }
-        item { OwnerControlStatus(management) }
-        item { ManagementButtons {
-            VelaButton("Refresh profiles", enabled = !actions.busy) { actions.run { refresh() } }
+        item("profile-actions") { ManagementButtons {
+            VelaButton("Refresh profiles", enabled = !actions.busy, glyph = VelaGlyph.Refresh) { actions.run { refresh() } }
+            VelaButton("New adult profile", enabled = !actions.busy && profiles != null, variant = ButtonVariant.Primary) { original = null; editRevision = profiles!!.revision; editing = true }
             VelaButton("Recover household storage…", enabled = !actions.busy) { actions.confirm("Stop current work and reconcile saved household storage? No data is reset or deleted.") { profiles = management.reloadHousehold(); loadError = null } }
-            VelaButton("New adult profile", enabled = !actions.busy && profiles != null) { original = null; editRevision = profiles!!.revision; editing = true }
         } }
-        loadError?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
-        if (profiles == null && loadError == null) item { LoadingState("Loading household profiles…") }
+        item("profile-explanation") { ManagementText("Each profile has its own preferences and saved memories. Profiles have no PIN protection. Home rows and My list are shared.") }
+        item("profile-owner") { OwnerControlStatus(management) }
+        loadError?.let { item("profile-error") { ManagementError(it) } }
+        if (profiles == null && loadError == null) item("profile-loading") { LoadingState("Loading household profiles…") }
         profiles?.let { displayed ->
+            item("profile-heading") { VelaSectionHeader("Profiles") }
             items(displayed.profiles, key = { it.id }) { profile ->
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(profile.displayName + if (profile.id == displayed.activeProfileId) " · current profile" else "", style = MaterialTheme.typography.titleLarge)
-                    Text("${profile.kind.name.lowercase()} · ${profile.id.take(8)} · subtitles ${profile.preferences.subtitles.name.lowercase()} · autoplay ${if (profile.preferences.autoplayNext) "on" else "off"}")
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                    VelaListRow(profile.displayName, glyph = VelaGlyph.Profile,
+                        supporting = "${if (profile.id == displayed.activeProfileId) "Current profile · " else ""}${profile.kind.name.lowercase()} · ${profile.id.take(8)} · subtitles ${profile.preferences.subtitles.name.lowercase()} · autoplay ${if (profile.preferences.autoplayNext) "on" else "off"}")
                     ManagementButtons {
                         VelaButton("Preferences", enabled = !actions.busy) { original = profile; editRevision = displayed.revision; editing = true }
                         VelaButton("Explicit memory", enabled = !actions.busy) { memoryProfile = profile }
                         if (profile.id != displayed.activeProfileId) VelaButton("Switch here…", enabled = !actions.busy) {
                             actions.confirm("Switch to ${profile.displayName}? Current work stops and prior profile conversation and approvals clear.") { management.switchProfile(displayed.revision, profile.id); refresh() }
                         }
-                        if (profile.id != displayed.activeProfileId && displayed.profiles.size > 1) VelaButton("Delete profile…", enabled = !actions.busy) {
-                            actions.confirm("Permanently delete ${profile.displayName} and ALL of its explicit memories? Switch away from active profiles before deleting them.") { management.deleteProfile(displayed.revision, profile.id, true); refresh() }
+                        if (profile.id != displayed.activeProfileId && displayed.profiles.size > 1) VelaButton("Delete profile…", enabled = !actions.busy, variant = ButtonVariant.Danger) {
+                            actions.confirm("Permanently delete ${profile.displayName} and ALL of its explicit memories? Switch away from active profiles before deleting them.", danger = true) { management.deleteProfile(displayed.revision, profile.id, true); refresh() }
                         }
                     }
-                    HorizontalDivider()
+                    HorizontalDivider(color = Vela.colors.line)
                 }
             }
         }
@@ -91,19 +91,23 @@ import kotlinx.coroutines.CancellationException
     var subtitles by rememberSaveable { mutableStateOf(original?.preferences?.subtitleLanguages?.joinToString(", ").orEmpty()) }
     var intent by rememberSaveable { mutableStateOf(original?.preferences?.subtitles ?: SubtitlePreference.AUTOMATIC) }
     var autoplay by rememberSaveable { mutableStateOf(original?.preferences?.autoplayNext ?: false) }
+    val backFocus = Modifier.rememberManagementEntryFocus()
     BackHandler(!actions.busy, close)
     ManagementList(if (original == null) "New adult profile" else "Preferences · ${original.displayName}", actions) {
-        item { ManagementButtons {
+        item("profile-editor-back") { VelaButton("Back", backFocus, enabled = !actions.busy, onClick = close) }
+        item("profile-editor-name") { ManagementField("Display name", name, !actions.busy, 60) { name = it } }
+        item("profile-editor-languages") { VelaSectionHeader("Language preferences") }
+        item("profile-editor-audio") { ManagementField("Audio languages · comma-separated tags, e.g. en, es", audio, !actions.busy, 520) { audio = it } }
+        item("profile-editor-subtitles") { ManagementField("Subtitle languages · comma-separated tags", subtitles, !actions.busy, 520) { subtitles = it } }
+        item("profile-editor-intent") {
+            VelaChoiceGroup("Subtitle intent", SubtitlePreference.entries, intent, { it.name.lowercase() }, { intent = it }, enabled = !actions.busy)
+        }
+        item("profile-editor-autoplay") { VelaToggleRow("Autoplay next episode", autoplay, { autoplay = it }, enabled = !actions.busy) }
+        item("profile-editor-explanation") { ManagementText("Language availability depends on the title. Your library preferences and access restrictions stay the same.") }
+        item("profile-editor-save") { ManagementButtons {
             VelaButton("Back", enabled = !actions.busy, onClick = close)
-            VelaButton("Save profile", enabled = !actions.busy && name.isNotBlank()) { save(name, audio, subtitles, intent, autoplay) }
+            VelaButton(if (actions.busy) "Saving…" else "Save profile", enabled = !actions.busy && name.isNotBlank(), busy = actions.busy, variant = ButtonVariant.Primary) { save(name, audio, subtitles, intent, autoplay) }
         } }
-        item { ManagementField("Display name", name, !actions.busy, 60) { name = it } }
-        item { ManagementField("Audio languages · comma-separated tags, e.g. en, es", audio, !actions.busy, 520) { audio = it } }
-        item { ManagementField("Subtitle languages · comma-separated tags", subtitles, !actions.busy, 520) { subtitles = it } }
-        item { Text("Subtitle intent"); ManagementButtons { SubtitlePreference.entries.forEach { value -> VelaButton(value.name.lowercase(), selected = intent == value, enabled = !actions.busy) { intent = value } } } }
-        item { VelaButton("Autoplay next episode: ${if (autoplay) "on" else "off"}", enabled = !actions.busy) { autoplay = !autoplay } }
-        item { Text("Language availability depends on the title. Your library preferences and access restrictions stay the same.") }
-        item { VelaButton("Save profile", enabled = !actions.busy && name.isNotBlank()) { save(name, audio, subtitles, intent, autoplay) } }
     }
 }
 
@@ -124,10 +128,12 @@ import kotlinx.coroutines.CancellationException
     LaunchedEffect(profile.id) { try { refresh() } catch (e: CancellationException) { throw e } catch (e: Exception) { error = e.message ?: "Could not load memory." } }
     BackHandler(!actions.busy) { if (exported != null) exported = null else if (editing) editing = false else close() }
     exported?.let { json ->
+        val hideFocus = Modifier.rememberManagementEntryFocus()
         ManagementList("Private export · ${profile.displayName}", actions) {
-            item { VelaButton("Hide export") { exported = null } }
-            item { Text("Includes private entries. For a JSON download use Export on the paired phone. This export is not sent to the agent.") }
-            item { OutlinedTextField(json, {}, Modifier.fillMaxWidth(), label = { Text("Profile export") }, readOnly = true, minLines = 4, maxLines = 12) }
+            item("export-hide") { VelaButton("Hide export", hideFocus) { exported = null } }
+            item("export-explanation") { ManagementText("Includes private entries. For a JSON download use Export on the paired phone. This export is not sent to the agent.") }
+            item("export-content") { VelaTextField(json, {}, "Profile export", Modifier.fillMaxWidth(), readOnly = true, singleLine = false, minLines = 4, maxLines = 12) }
+            item("export-hide-end") { VelaButton("Hide export") { exported = null } }
         }
         return
     }
@@ -139,36 +145,37 @@ import kotlinx.coroutines.CancellationException
         }
         return
     }
+    val backFocus = Modifier.rememberManagementEntryFocus()
     ManagementList("Explicit memory · ${profile.displayName}", actions) {
-        item { Text("Only words you explicitly Save are remembered. Never enter credentials. Shared entries may be sent to your AI provider. Memory cannot grant permissions. Saving, editing or removing used memory invalidates prior agent context.") }
-        item { OwnerControlStatus(management) }
-        item { ManagementButtons {
-            VelaButton("Back", enabled = !actions.busy, onClick = close)
-            VelaButton("Reload memory", enabled = !actions.busy) { actions.run { refresh() } }
-            VelaButton("New memory", enabled = !actions.busy && page != null) { original = null; editRevision = page!!.revision; editing = true }
-            VelaButton("Clear all memory…", enabled = !actions.busy && page != null) { actions.confirm("Permanently clear ALL explicit memory for ${profile.displayName}?") { management.clearMemories(page!!.revision, profile.id, true); refresh() } }
+        item("memory-actions") { ManagementButtons {
+            VelaButton("Back", backFocus, enabled = !actions.busy, onClick = close)
+            VelaButton("Reload memory", enabled = !actions.busy, glyph = VelaGlyph.Refresh) { actions.run { refresh() } }
+            VelaButton("New memory", enabled = !actions.busy && page != null, variant = ButtonVariant.Primary) { original = null; editRevision = page!!.revision; editing = true }
+            VelaButton("Clear all memory…", enabled = !actions.busy && page != null, variant = ButtonVariant.Danger) { actions.confirm("Permanently clear ALL explicit memory for ${profile.displayName}?", danger = true) { management.clearMemories(page!!.revision, profile.id, true); refresh() } }
             VelaButton("Export profile…", enabled = !actions.busy) { actions.confirm("Show a private export of ${profile.displayName}, including entries not shared with the agent, on this screen?") { exported = management.exportProfile(profile.id) } }
         } }
-        error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
+        item("memory-explanation") { ManagementText("Only words you explicitly Save are remembered. Never enter credentials. Shared entries may be sent to your AI provider. Memory cannot grant permissions. Saving, editing or removing used memory invalidates prior agent context.", "Explicit memory") }
+        item("memory-owner") { OwnerControlStatus(management) }
+        error?.let { item("memory-error") { ManagementError(it) } }
         val displayed = page
         when {
-            displayed == null && error == null -> item { LoadingState("Loading explicit memory…") }
-            displayed?.entries?.isEmpty() == true -> item { Text("No explicit memory saved for this profile.") }
+            displayed == null && error == null -> item("memory-loading") { LoadingState("Loading explicit memory…") }
+            displayed?.entries?.isEmpty() == true -> item("memory-empty") { EmptyState("No explicit memory", "No explicit memory saved for this profile.") }
         }
         displayed?.let { loaded ->
             items(loaded.entries, key = { it.id }) { entry ->
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(entry.kind.name.lowercase(), style = MaterialTheme.typography.titleMedium)
-                    Text(entry.text)
-                    Text("${entry.tags.joinToString(", ")} · ${if (entry.shareWithAgent) "shared with agent" else "private to owner"}")
+                Column(verticalArrangement = Arrangement.spacedBy(VelaSpace.S)) {
+                    VelaListRow(entry.kind.name.lowercase().replaceFirstChar { it.titlecase() }, glyph = VelaGlyph.Bookmark,
+                        supporting = "${entry.tags.joinToString(", ")} · ${if (entry.shareWithAgent) "shared with agent" else "private to owner"}")
+                    ManagementText(entry.text, "Saved words · ${profile.displayName}")
                     ManagementButtons {
                         VelaButton("Edit exact words", enabled = !actions.busy) { original = entry; editRevision = loaded.revision; editing = true }
-                        VelaButton("Delete…", enabled = !actions.busy) { actions.confirm("Permanently delete these saved words for ${profile.displayName}?") { management.deleteMemory(loaded.revision, profile.id, entry.id); refresh() } }
+                        VelaButton("Delete…", enabled = !actions.busy, variant = ButtonVariant.Danger) { actions.confirm("Permanently delete these saved words for ${profile.displayName}?", danger = true) { management.deleteMemory(loaded.revision, profile.id, entry.id); refresh() } }
                     }
-                    HorizontalDivider()
+                    HorizontalDivider(color = Vela.colors.line)
                 }
             }
-            if (loaded.entries.size < loaded.total) item { VelaButton("Load more (${loaded.entries.size} of ${loaded.total})", enabled = !actions.busy) { actions.run { refresh(true) } } }
+            if (loaded.entries.size < loaded.total) item("memory-more") { VelaButton("Load more (${loaded.entries.size} of ${loaded.total})", enabled = !actions.busy) { actions.run { refresh(true) } } }
         }
     }
 }
@@ -178,14 +185,18 @@ import kotlinx.coroutines.CancellationException
     var tags by rememberSaveable { mutableStateOf(original?.tags?.joinToString(", ").orEmpty()) }
     var kind by rememberSaveable { mutableStateOf(original?.kind ?: MemoryKind.PREFERENCE) }
     var shared by rememberSaveable { mutableStateOf(original?.shareWithAgent ?: false) }
+    val backFocus = Modifier.rememberManagementEntryFocus()
     fun submit() = save(MemoryDraft(kind, text.trim(), ManagementForms.words(tags), shared))
     ManagementList("Save exact words · $profileLabel", actions) {
-        item { ManagementButtons { VelaButton("Back", enabled = !actions.busy, onClick = close); VelaButton("Save these words", enabled = !actions.busy && text.isNotBlank()) { submit() } } }
-        item { ManagementButtons { MemoryKind.entries.forEach { value -> VelaButton(value.name.lowercase(), selected = value == kind, enabled = !actions.busy) { kind = value } } } }
-        item { ManagementField("Exact words · no credentials", text, !actions.busy, 2000, true) { text = it } }
-        item { ManagementField("Tags · comma-separated lowercase words", tags, !actions.busy, 264) { tags = it } }
-        item { VelaButton("Share with agent: ${if (shared) "yes" else "no"}", enabled = !actions.busy) { shared = !shared } }
-        item { Text("Save is deliberate. A conflict leaves this draft unchanged. Return, reload the list and reopen the editor to review the current entry before reapplying an edit.") }
-        item { VelaButton("Save these words", enabled = !actions.busy && text.isNotBlank()) { submit() } }
+        item("memory-editor-back") { VelaButton("Back", backFocus, enabled = !actions.busy, onClick = close) }
+        item("memory-editor-kind") { VelaChoiceGroup("Memory kind", MemoryKind.entries, kind, { it.name.lowercase() }, { kind = it }, enabled = !actions.busy) }
+        item("memory-editor-words") { ManagementField("Exact words · no credentials", text, !actions.busy, 2000, true) { text = it } }
+        item("memory-editor-tags") { ManagementField("Tags · comma-separated lowercase words", tags, !actions.busy, 264) { tags = it } }
+        item("memory-editor-sharing") { VelaToggleRow("Share with agent", shared, { shared = it }, enabled = !actions.busy) }
+        item("memory-editor-explanation") { ManagementText("Save is deliberate. A conflict leaves this draft unchanged. Return, reload the list and reopen the editor to review the current entry before reapplying an edit.") }
+        item("memory-editor-save") { ManagementButtons {
+            VelaButton("Back", enabled = !actions.busy, onClick = close)
+            VelaButton(if (actions.busy) "Saving…" else "Save these words", enabled = !actions.busy && text.isNotBlank(), busy = actions.busy, variant = ButtonVariant.Primary) { submit() }
+        } }
     }
 }

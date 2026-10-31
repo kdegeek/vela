@@ -44,6 +44,7 @@ class PlayerActivity : ComponentActivity() {
     private var playerListener: Player.Listener? = null
     private var client: JellyfinClient? = null
     private lateinit var view: PlayerView
+    private lateinit var chrome: PlayerChrome
     private lateinit var preferences: PlaybackPreferences
     private lateinit var reports: PlaybackReportQueue
     private var targetId = ""
@@ -80,11 +81,14 @@ class PlayerActivity : ComponentActivity() {
         client = (application as VelaApp).settings.settings.value.jellyfin((application as VelaApp).settings.deviceId)
         pinnedProfileId = savedInstanceState?.getString("playback-profile")
         reports = PlaybackReportQueue.shared((application as VelaApp).scope)
+        val appearance = (application as VelaApp).settings.settings.value
+        chrome = PlayerChrome(this, appearance.highContrast, appearance.reduceMotion)
         view = PlayerView(this).apply {
             useController = true
             setShowSubtitleButton(true)
             setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
         }
+        chrome.applyTo(view)
         setContentView(view)
     }
 
@@ -294,17 +298,17 @@ class PlayerActivity : ComponentActivity() {
         if (isFinishing || isDestroyed) return
         request?.publish(PlaybackPhase.FAILED, message)
         dialog?.dismiss()
-        dialog = AlertDialog.Builder(this).setTitle("Couldn't play this title").setMessage(message)
+        dialog = chrome.dialog("Couldn't play this title", message, error = true)
             .setNegativeButton("Back") { _, _ -> finish() }.setOnCancelListener { finish() }
             .apply { if (retryable) setPositiveButton("Retry") { _, _ -> releasePlayback(); bindRequest(null); preparePlayback() } }
-            .create().also { it.show() }
+            .create().also { chrome.show(it) }
     }
 
     private fun showCompletion(item: JellyfinItem) {
         dialog?.dismiss()
-        dialog = AlertDialog.Builder(this).setTitle("Finished ${item.name}").setMessage("Playback complete.")
+        dialog = chrome.dialog("Finished ${item.name}", "Playback complete.")
             .setNegativeButton("Back") { _, _ -> finish() }.setOnCancelListener { finish() }
-            .create().also { it.show() }
+            .create().also { chrome.show(it) }
         nextJob = lifecycleScope.launch {
             val next: JellyfinItem = try { client?.nextEpisode(item) ?: return@launch }
             catch (e: CancellationException) { throw e } catch (_: Exception) { return@launch }
@@ -314,10 +318,10 @@ class PlayerActivity : ComponentActivity() {
                 return@launch
             }
             dialog?.dismiss()
-            dialog = AlertDialog.Builder(this@PlayerActivity).setTitle("Up next").setMessage("${next.seriesName.orEmpty()} · ${next.name}")
+            dialog = chrome.dialog("Up next", "${next.seriesName.orEmpty()} · ${next.name}")
                 .setPositiveButton("Play next") { _, _ ->
                     releasePlayback(); completedItem = null; targetId = next.id; bindRequest(null); savedPosition = null; playWhenReady = true; preparePlayback()
-                }.setNegativeButton("Back") { _, _ -> finish() }.setOnCancelListener { finish() }.create().also { it.show() }
+                }.setNegativeButton("Back") { _, _ -> finish() }.setOnCancelListener { finish() }.create().also { chrome.show(it) }
         }
     }
 
