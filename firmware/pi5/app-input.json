@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "package": "app.vela.tv",
+  "variant": "firmware",
+  "sha256": "b1237c0e1ca32efa8c6e3252aa0198d88397fee652f5e20efddf67b65b34db2f",
+  "bytes": 40353268,
+  "application_source_commit": "ce8613cc6cbd0d4e1b21b74e73500dfd02dfcf6c",
+  "arm64_abi": "arm64-v8a",
+  "target_sdk": 36,
+  "minimum_sdk": 28
+}

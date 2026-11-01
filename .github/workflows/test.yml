@@ -53,11 +53,16 @@ jobs:
         run: |
           python3 -m unittest discover -s firmware/shield/tests -v
           bash -n firmware/shield/build.sh
+      - name: Pi 5 source, staging and disk-image regressions
+        run: |
+          python3 -m unittest discover -s firmware/pi5 -p 'test_*.py' -v
+          bash -n firmware/pi5/build.sh
       - name: Install bats and shellcheck
         run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends bats shellcheck
       - name: shellcheck
         run: |
           shellcheck firmware/shield/build.sh
+          shellcheck firmware/pi5/build.sh
           shellcheck -x -P scripts/acceptance -S warning scripts/acceptance/*.sh bin/vela-ctl
           shellcheck -S warning os/files/usr/libexec/vela/fetch-wifi-firmware os/files/usr/libexec/vela/setup-commit os/files/usr/libexec/vela/setup-gate os/test/*.bats
       - name: bats

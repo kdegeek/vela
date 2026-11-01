@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-11-01T00:00:00-05:00",
+  "purpose": "Reproducible public-source Raspberry Vanilla Android 17 TV base for the Raspberry Pi 5 Vela prototype",
+  "scope": {
+    "included": "Public AOSP/Raspberry Vanilla source, the public Raspberry Vanilla prebuilt kernel, Vela as a privileged system_ext HOME app, and the upstream whole-SD image assembler",
+    "excluded": "KonstaKANG enhanced AOSP/LineageOS images, their non-commercial additions, GApps, Widevine, proprietary TV services, APK-only installation, hardware access, flashing, and production release approval"
+  },
+  "androidBase": {
+    "manifestUrl": "https://android.googlesource.com/platform/manifest",
+    "tag": "android-17.0.0_r1",
+    "tagObject": "7a9e46ba6ed424f922a3457f4964e67e0b966201",
+    "peeledCommit": "5bc9a7ce1cd78dd53613bbfd0ebf506e1e4adb0f",
+    "apiLevel": 37,
+    "releaseConfig": "cp2a",
+    "sourceEvidence": "https://android.googlesource.com/platform/manifest/+/5bc9a7ce1cd78dd53613bbfd0ebf506e1e4adb0f"
+  },
+  "raspberryVanillaManifest": {
+    "repository": "https://github.com/raspberry-vanilla/android_local_manifest.git",
+    "branch": "android-17.0",
+    "commit": "a155dda7f0db82d9b8076c1f39f41db4167fcb73",
+    "commitDate": "2026-07-03T12:29:21Z",
+    "rawXmlUrl": "https://raw.githubusercontent.com/raspberry-vanilla/android_local_manifest/a155dda7f0db82d9b8076c1f39f41db4167fcb73/manifest_brcm_rpi.xml",
+    "rawXmlBytes": 4103,
+    "rawXmlSha256": "1abea65bebdf61caaf92858268772dec4cac747018acffe9e4cf92f182b20730",
+    "rawXml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<manifest>\n  <remote name=\"github\" fetch=\"https://github.com/\" />\n\n  <!-- Raspberry Pi -->\n  <project path=\"device/brcm/rpi4\" name=\"raspberry-vanilla/android_device_brcm_rpi4\" remote=\"github\" revision=\"android-17.0\" >\n    <linkfile src=\"mkimg.sh\" dest=\"rpi4-mkimg.sh\" />\n    <linkfile src=\"wrimg.sh\" dest=\"rpi4-wrimg.sh\" />\n  </project>\n  <project path=\"device/brcm/rpi5\" name=\"raspberry-vanilla/android_device_brcm_rpi5\" remote=\"github\" revision=\"android-17.0\" >\n    <linkfile src=\"mkimg.sh\" dest=\"rpi5-mkimg.sh\" />\n    <linkfile src=\"wrimg.sh\" dest=\"rpi5-wrimg.sh\" />\n  </project>\n  <project path=\"device/brcm/rpi4-kernel\" name=\"raspberry-vanilla/android_device_brcm_rpi4-kernel\" remote=\"github\" revision=\"android-17.0\" />\n  <project path=\"device/brcm/rpi5-kernel\" name=\"raspberry-vanilla/android_device_brcm_rpi5-kernel\" remote=\"github\" revision=\"android-17.0\" />\n  <project path=\"vendor/brcm\" name=\"raspberry-vanilla/proprietary_vendor_brcm\" remote=\"github\" revision=\"android-17.0\" />\n\n  <!-- Audio -->\n  <project path=\"external/alsa-lib\" name=\"raspberry-vanilla/android_external_alsa-lib\" remote=\"github\" revision=\"android-17.0\" />\n  <project path=\"external/alsa-utils\" name=\"raspberry-vanilla/android_external_alsa-utils\" remote=\"github\" revision=\"android-17.0\" />\n\n  <!-- Build -->\n  <remove-project name=\"platform/build\" />\n  <remove-project name=\"platform/build/soong\" />\n  <project path=\"build/make\" name=\"raspberry-vanilla/android_build\" remote=\"github\" revision=\"android-17.0\" >\n    <linkfile src=\"CleanSpec.mk\" dest=\"build/CleanSpec.mk\" />\n    <linkfile src=\"buildspec.mk.default\" dest=\"build/buildspec.mk.default\" />\n    <linkfile src=\"core\" dest=\"build/core\" />\n    <linkfile src=\"envsetup.sh\" dest=\"build/envsetup.sh\" />\n    <linkfile src=\"target\" dest=\"build/target\" />\n    <linkfile src=\"tools\" dest=\"build/tools\" />\n  </project>\n  <project path=\"build/soong\" name=\"raspberry-vanilla/android_build_soong\" remote=\"github\" revision=\"android-17.0\" >\n    <linkfile src=\"root.bp\" dest=\"Android.bp\" />\n    <linkfile src=\"bootstrap.bash\" dest=\"bootstrap.bash\" />\n  </project>\n\n  <!-- Camera -->\n  <remove-project name=\"platform/external/libcamera\" />\n  <project path=\"external/libcamera\" name=\"raspberry-vanilla/android_external_libcamera\" remote=\"github\" revision=\"android-17.0\" />\n  <project path=\"external/libpisp\" name=\"raspberry-vanilla/android_external_libpisp\" remote=\"github\" revision=\"android-17.0\" />\n  <project path=\"external/libyuv_chromium\" name=\"raspberry-vanilla/android_external_libyuv_chromium\" remote=\"github\" revision=\"android-17.0\" />\n\n  <!-- FFmpeg -->\n  <remove-project name=\"platform/external/libudev-zero\" />\n  <project path=\"external/ffmpeg\" name=\"raspberry-vanilla/android_external_ffmpeg\" remote=\"github\" revision=\"android-17.0\" />\n  <project path=\"external/ffmpeg_codec2\" name=\"raspberry-vanilla/android_external_ffmpeg_codec2\" remote=\"github\" revision=\"android-17.0\" />\n  <project path=\"external/libudev-zero\" name=\"raspberry-vanilla/android_external_libudev-zero\" remote=\"github\" revision=\"android-17.0\" />\n\n  <!-- Graphics -->\n  <remove-project name=\"platform/external/drm_hwcomposer\" />\n  <remove-project name=\"platform/external/minigbm\" />\n  <project path=\"external/drm_hwcomposer\" name=\"raspberry-vanilla/android_external_drm_hwcomposer\" remote=\"github\" revision=\"android-17.0\" />\n  <project path=\"external/mesa3d-rpi\" name=\"raspberry-vanilla/android_external_mesa3d-rpi\" remote=\"github\" revision=\"android-17.0\" />\n  <project path=\"external/minigbm\" name=\"raspberry-vanilla/android_external_minigbm\" remote=\"github\" revision=\"android-17.0\" />\n\n  <!-- ninja-to-soong -->\n  <remove-project name=\"platform/external/rust/ninja-to-soong\" />\n  <project path=\"external/rust/ninja-to-soong\" name=\"raspberry-vanilla/android_external_rust_ninja-to-soong\" remote=\"github\" revision=\"android-17.0\" />\n\n  <!-- v4l2_codec2 -->\n  <remove-project name=\"platform/external/v4l2_codec2\" />\n  <project path=\"external/v4l2_codec2\" name=\"raspberry-vanilla/android_external_v4l2_codec2\" remote=\"github\" revision=\"android-17.0\" />\n\n</manifest>\n",
+    "projects": [
+      {"path":"device/brcm/rpi4","name":"raspberry-vanilla/android_device_brcm_rpi4","remoteUrl":"https://github.com/raspberry-vanilla/android_device_brcm_rpi4.git","branch":"android-17.0","commit":"175957cb3f0ce3facba0a7448d4ce0ca2e2b3e48"},
+      {"path":"device/brcm/rpi5","name":"raspberry-vanilla/android_device_brcm_rpi5","remoteUrl":"https://github.com/raspberry-vanilla/android_device_brcm_rpi5.git","branch":"android-17.0","commit":"26b5e928276f155717fc5ff4b28e4b9b854ccbd7"},
+      {"path":"device/brcm/rpi4-kernel","name":"raspberry-vanilla/android_device_brcm_rpi4-kernel","remoteUrl":"https://github.com/raspberry-vanilla/android_device_brcm_rpi4-kernel.git","branch":"android-17.0","commit":"9f7b4deed6db6e0707da97b78f07bd1011a1ee34"},
+      {"path":"device/brcm/rpi5-kernel","name":"raspberry-vanilla/android_device_brcm_rpi5-kernel","remoteUrl":"https://github.com/raspberry-vanilla/android_device_brcm_rpi5-kernel.git","branch":"android-17.0","commit":"d085cd393c45f3fc1493a42ec7673fe61f9ed62b"},
+      {"path":"vendor/brcm","name":"raspberry-vanilla/proprietary_vendor_brcm","remoteUrl":"https://github.com/raspberry-vanilla/proprietary_vendor_brcm.git","branch":"android-17.0","commit":"d233de997b7115a42a164f5a59fc3c3ebf3f9bf4"},
+      {"path":"external/alsa-lib","name":"raspberry-vanilla/android_external_alsa-lib","remoteUrl":"https://github.com/raspberry-vanilla/android_external_alsa-lib.git","branch":"android-17.0","commit":"f96b1e2a85095768ebe6d2b17a521f4dcf9bfc24"},
+      {"path":"external/alsa-utils","name":"raspberry-vanilla/android_external_alsa-utils","remoteUrl":"https://github.com/raspberry-vanilla/android_external_alsa-utils.git","branch":"android-17.0","commit":"6a4bf9f6b944bc618e30f7da9ef8978dbd75d0bd"},
+      {"path":"build/make","name":"raspberry-vanilla/android_build","remoteUrl":"https://github.com/raspberry-vanilla/android_build.git","branch":"android-17.0","commit":"e211fd8e22e0dcab3c5007d19ad31ff8d062d683"},
+      {"path":"build/soong","name":"raspberry-vanilla/android_build_soong","remoteUrl":"https://github.com/raspberry-vanilla/android_build_soong.git","branch":"android-17.0","commit":"b7b2bf5acb4c908b6f6a744a18c45848ff24238f"},
+      {"path":"external/libcamera","name":"raspberry-vanilla/android_external_libcamera","remoteUrl":"https://github.com/raspberry-vanilla/android_external_libcamera.git","branch":"android-17.0","commit":"9cfde41e57f3692f2e60f65cfc0bd403fd56391d"},
+      {"path":"external/libpisp","name":"raspberry-vanilla/android_external_libpisp","remoteUrl":"https://github.com/raspberry-vanilla/android_external_libpisp.git","branch":"android-17.0","commit":"a3e55cddde9b7fd0409143bd4dc7ce7aaf737c4b"},
+      {"path":"external/libyuv_chromium","name":"raspberry-vanilla/android_external_libyuv_chromium","remoteUrl":"https://github.com/raspberry-vanilla/android_external_libyuv_chromium.git","branch":"android-17.0","commit":"0e419c1b22c4f8827205ffcd8e53e3bd8edd8d34"},
+      {"path":"external/ffmpeg","name":"raspberry-vanilla/android_external_ffmpeg","remoteUrl":"https://github.com/raspberry-vanilla/android_external_ffmpeg.git","branch":"android-17.0","commit":"590457f6f3395fe2b5e8089b4c543947509d0ba8"},
+      {"path":"external/ffmpeg_codec2","name":"raspberry-vanilla/android_external_ffmpeg_codec2","remoteUrl":"https://github.com/raspberry-vanilla/android_external_ffmpeg_codec2.git","branch":"android-17.0","commit":"1cb7fcee97f3cedd46857f3cd8354777bed307b2"},
+      {"path":"external/libudev-zero","name":"raspberry-vanilla/android_external_libudev-zero","remoteUrl":"https://github.com/raspberry-vanilla/android_external_libudev-zero.git","branch":"android-17.0","commit":"6f093b428ecae5138654b61d7f29871cef8739dc"},
+      {"path":"external/drm_hwcomposer","name":"raspberry-vanilla/android_external_drm_hwcomposer","remoteUrl":"https://github.com/raspberry-vanilla/android_external_drm_hwcomposer.git","branch":"android-17.0","commit":"aab6ae69ce27a4ff6a1ceb9014548feda7d56cab"},
+      {"path":"external/mesa3d-rpi","name":"raspberry-vanilla/android_external_mesa3d-rpi","remoteUrl":"https://github.com/raspberry-vanilla/android_external_mesa3d-rpi.git","branch":"android-17.0","commit":"337f318ee54eaba38ca53e2f5a8be759ccbc68dd"},
+      {"path":"external/minigbm","name":"raspberry-vanilla/android_external_minigbm","remoteUrl":"https://github.com/raspberry-vanilla/android_external_minigbm.git","branch":"android-17.0","commit":"18c5217fea788ae440f6640aa556071142ba98c9"},
+      {"path":"external/rust/ninja-to-soong","name":"raspberry-vanilla/android_external_rust_ninja-to-soong","remoteUrl":"https://github.com/raspberry-vanilla/android_external_rust_ninja-to-soong.git","branch":"android-17.0","commit":"ab92db720efcfef884b40cde7ab3deb207837a65"},
+      {"path":"external/v4l2_codec2","name":"raspberry-vanilla/android_external_v4l2_codec2","remoteUrl":"https://github.com/raspberry-vanilla/android_external_v4l2_codec2.git","branch":"android-17.0","commit":"eb594b7f46997c7d5f3fe8bf36011b507b0746dc"}
+    ]
+  },
+  "sourceAcquisition": {
+    "documentedHost": "Ubuntu 22.04 LTS on 64-bit x86 Linux",
+    "aospPublishedMinimums": {"freeDiskBytes":400000000000,"ramBytes":68719476736,"glibc":"2.17 or later"},
+    "maintainerExtraPackages": ["dosfstools","e2fsprogs","fdisk","kpartx","mtools","rsync"],
+    "recommendedProtocol": [
+      "repo init -u https://android.googlesource.com/platform/manifest -b android-17.0.0_r1 --depth=1",
+      "install manifest_brcm_rpi.xml from the locked commit and replace each android-17.0 revision with its exact project commit from this file",
+      "install remove_projects.xml from the locked commit and verify SHA-256 ead76d5894c43f9fa09c09d9712cb597c18953cffdbe3cdabca7e99dddb4064f",
+      "repo sync -c -j4 --fail-fast",
+      "repo manifest -r -o resolved-manifest.xml and compare all Raspberry Vanilla revisions with this lock before modifying the tree"
+    ],
+    "partialCloneDecision": "Do not use --partial-clone for this first freeze. Raspberry Vanilla documents --depth=1 plus remove_projects.xml, but not partial clone; lazy blob retrieval makes a build network-dependent and does not avoid the checked-out files required by compilation.",
+    "hostRisk": "The retained builder's 32 GiB RAM plus 16 GiB swap and expected roughly 360 GiB free disk are below Google's current published minimums of 64 GiB RAM and 400 GB free. -j4 reduces pressure but does not convert this into a supported host. Confirm live free space and preserve a stop margin before syncing."
+  },
+  "target": {
+    "upstreamProduct": "aosp_rpi5_tv",
+    "upstreamLunch": "aosp_rpi5_tv-cp2a-userdebug",
+    "velaProduct": "vela_rpi5_tv",
+    "velaLunch": "vela_rpi5_tv-cp2a-userdebug",
+    "architecture": {"arch":"arm64","abi":"arm64-v8a","variant":"armv8-a","cpu":"cortex-a76","pageSizeBytes":16384},
+    "upstreamProductFile": "device/brcm/rpi5/aosp_rpi5_tv.mk",
+    "upstreamProductEvidence": "https://github.com/raspberry-vanilla/android_device_brcm_rpi5/blob/26b5e928276f155717fc5ff4b28e4b9b854ccbd7/aosp_rpi5_tv.mk",
+    "upstreamBoardEvidence": "https://github.com/raspberry-vanilla/android_device_brcm_rpi5/blob/26b5e928276f155717fc5ff4b28e4b9b854ccbd7/BoardConfig.mk",
+    "customRegistration": {
+      "device/vela/rpi5/vela_rpi5_tv.mk": "$(call inherit-product, device/brcm/rpi5/aosp_rpi5_tv.mk)\nPRODUCT_PACKAGES += VelaTv\nPRODUCT_NAME := vela_rpi5_tv\n",
+      "device/vela/rpi5/AndroidProducts.mk": "PRODUCT_MAKEFILES := $(LOCAL_DIR)/vela_rpi5_tv.mk\nCOMMON_LUNCH_CHOICES := vela_rpi5_tv-cp2a-userdebug\n",
+      "semantics": "AndroidProducts.mk makes the custom product discoverable by lunch. The inherited upstream product keeps PRODUCT_DEVICE=rpi5 and all Pi HAL/partition configuration; the final PRODUCT_NAME must match the custom makefile name. Do not inherit firmware/shield/product/vela.mk because its PRODUCT_BUILD_USERDATA_IMAGE=false policy is Shield Tube-specific."
+    }
+  },
+  "velaIntegration": {
+    "sourceDirectory": "firmware/pi5/product",
+    "stagedSourceDirectorySuggestion": "vendor/vela/rpi5",
+    "stagedProductDirectory": "device/vela/rpi5",
+    "modules": ["VelaTv","vela-privapp-permissions","vela-preferred-home","vela-image-inputs"],
+    "inputsRequiredBesideAndroidBp": ["VelaTv.apk","vela-staging.json","permissions/privapp-permissions-app.vela.tv.xml","preferred-apps/vela-home.xml"],
+    "placement": "/system_ext/priv-app/VelaTv/VelaTv.apk inside system.img, with the allowlist and preferred-app XML on the same system_ext filesystem",
+    "preferredHome": "app.vela.tv/app.vela.tv.launcher.HomeActivity",
+    "privilegedPermissions": ["android.permission.WRITE_SECURE_SETTINGS","android.permission.MEDIA_CONTENT_CONTROL"],
+    "appCompatibility": {"compileSdk":37,"targetSdk":36,"minSdk":28,"arm64NativeLibraryPresent":true,"zipalign16KiBCheck":"verified successfully with Android build-tools 37.0.0 zipalign -c -P 16 -v 4"},
+    "prototypeSigning": "The current android_app_import uses certificate testkey. This is appropriate only for a development userdebug image; replace it with a private app key and complete release signing before distribution.",
+    "homeSafety": "Keep upstream TvProvision and TvSampleLeanbackLauncher installed. The preferred HOME XML chooses Vela when PackageManager provisions the user without deleting setup or the fallback launcher."
+  },
+  "build": {
+    "commands": [
+      ". build/envsetup.sh",
+      "lunch vela_rpi5_tv-cp2a-userdebug",
+      "make bootimage systemimage vendorimage -j4",
+      "./rpi5-mkimg.sh"
+    ],
+    "requiredImages": ["boot.img","system.img","vendor.img"],
+    "notRequired": ["userdata.img","system_ext.img","product.img","recovery.img","bootloader image"],
+    "imageAssembler": "rpi5-mkimg.sh",
+    "assemblerSource": "device/brcm/rpi5/mkimg.sh linked into the source root by manifest_brcm_rpi.xml",
+    "assemblerEvidence": "https://github.com/raspberry-vanilla/android_device_brcm_rpi5/blob/26b5e928276f155717fc5ff4b28e4b9b854ccbd7/mkimg.sh",
+    "expectedOutputPattern": "out/target/product/rpi5/RaspberryVanillaAOSP17-YYYYMMDD-vela_rpi5_tv.img",
+    "wholeImageBytes": 15360000000,
+    "partitionTable": "DOS/MBR with one extended partition",
+    "partitions": [
+      {"number":1,"name":"boot","type":"FAT32 W95 LBA active","sizeMiB":128,"content":"boot.img: Pi config, kernel Image, DTBs, overlays, Android ramdisk and cmdline"},
+      {"number":2,"name":"extended","type":"MBR extended container","sizeMiB":3476,"content":"contains logical partitions 5, 6 and 7"},
+      {"number":5,"name":"system","type":"ext4 logical","sizeMiB":3072,"content":"system.img, including system_ext content"},
+      {"number":6,"name":"vendor","type":"ext4 logical","sizeMiB":384,"content":"vendor.img"},
+      {"number":7,"name":"metadata","type":"ext4 logical","sizeMiB":16,"content":"created by mkimg.sh with inode size 512"},
+      {"number":3,"name":"userdata","type":"ext4 primary","size":"remaining image space, approximately 11.6 decimal GB (10.8 GiB) after alignment","content":"created empty by mkimg.sh with inode size 512"}
+    ],
+    "userdataRule": "mkimg.sh never reads userdata.img; it formats partition 3 directly. The BoardConfig 128 MiB userdata-image size is therefore irrelevant to this whole-SD image. Preserve upstream geometry and do not carry Shield's PRODUCT_BUILD_USERDATA_IMAGE setting into this product.",
+    "flashBoundary": "The output is a complete raw removable-media image. Writing it destroys the selected card and remains a separate explicitly targeted operation."
+  },
+  "kernelAndFirmware": {
+    "prebuiltKernel": {
+      "repository":"https://github.com/raspberry-vanilla/android_device_brcm_rpi5-kernel.git",
+      "commit":"d085cd393c45f3fc1493a42ec7673fe61f9ed62b",
+      "imageGitBlob":"d94921eb7ed8c50804d3446cc50cdaee728a749c",
+      "imageBytes":53807616,
+      "availability":"Public and directly synced by the Android manifest; no login or extraction from KonstaKANG images is required."
+    },
+    "sourceKernel": {
+      "version":"6.18.38",
+      "kernelManifestRepository":"https://github.com/raspberry-vanilla/android_kernel_manifest.git",
+      "kernelManifestCommit":"5da8f417aa3f59ce7625056c4754ba06900c9ec7",
+      "kernelManifestSha256":"893d128ae72bdb9cb6febb251be366566b8b9b39ea7cc1cc25a67c44f791b8d9",
+      "androidKernelManifestBranch":"common-android17-6.18-lts",
+      "androidKernelManifestHead":"144e13a87fc59365452c1630c9bdec7dbbeef50c",
+      "kernelRepository":"https://github.com/raspberry-vanilla/android_kernel_brcm_rpi.git",
+      "kernelCommit":"7a9131c1065a28544c1b6592152981b4c4102367",
+      "buildCommand":"tools/bazel build --config=fast --config=stamp //common:rpi5",
+      "use":"Optional; the Android image build already carries the locked public prebuilt. Replacing it requires copying Image, DTBs and overlays into device/brcm/rpi5-kernel."
+    },
+    "embeddedFirmware": {
+      "repository":"https://github.com/raspberry-vanilla/proprietary_vendor_brcm.git",
+      "commit":"d233de997b7115a42a164f5a59fc3c3ebf3f9bf4",
+      "mechanism":"android_rpi5_defconfig sets CONFIG_EXTRA_FIRMWARE for regulatory.db, regulatory.db.p7s, BCM4345C0.hcd, brcmfmac43455-sdio.bin, its clm_blob and board text, using ../vendor/brcm/rpi5/proprietary/vendor/firmware. These bytes are embedded when building the kernel; the current vendor Android.bp/Android.mk do not package standalone firmware modules.",
+      "evidence":"https://github.com/raspberry-vanilla/android_kernel_brcm_rpi/blob/7a9131c1065a28544c1b6592152981b4c4102367/arch/arm64/configs/android_rpi5_defconfig#L1952-L1953"
+    }
+  },
+  "licenses": {
+    "conclusion":"The public-source path avoids the KonstaKANG image's explicit CC BY-NC-SA/non-commercial payload. It is source-accessible without credentials, but it is not all permissively licensed: Linux is GPL-2.0 and the embedded Broadcom/Cypress firmware is redistributable binary firmware under hardware-specific and notice conditions. A production distributor must generate and audit complete NOTICE/source-offer materials; this lock is not legal advice or a completed release-compliance review.",
+    "evidence": [
+      {"component":"Raspberry Pi device configuration","license":"Files inspected carry SPDX-License-Identifier: Apache-2.0; repository has no root license file","url":"https://github.com/raspberry-vanilla/android_device_brcm_rpi5/tree/26b5e928276f155717fc5ff4b28e4b9b854ccbd7"},
+      {"component":"Linux kernel source","license":"GPL-2.0","url":"https://github.com/raspberry-vanilla/android_kernel_brcm_rpi/blob/7a9131c1065a28544c1b6592152981b4c4102367/COPYING"},
+      {"component":"drm_hwcomposer","license":"Apache-2.0 marker and NOTICE","url":"https://github.com/raspberry-vanilla/android_external_drm_hwcomposer/tree/aab6ae69ce27a4ff6a1ceb9014548feda7d56cab"},
+      {"component":"v4l2_codec2","license":"BSD marker in the public source repository","url":"https://github.com/raspberry-vanilla/android_external_v4l2_codec2/tree/eb594b7f46997c7d5f3fe8bf36011b507b0746dc"},
+      {"component":"Broadcom Wi-Fi firmware","license":"Binary redistribution permitted complete and unmodified only for use with a Broadcom Product; agreement/copyright notice obligations apply","url":"https://github.com/RPi-Distro/firmware-nonfree/blob/4b356e134e8333d073bd3802d767a825adec3807/debian/copyright#L395-L438"},
+      {"component":"BCM4345C0 Bluetooth firmware","license":"Cypress binary license permits object-code reproduction/distribution solely for use with Cypress integrated-circuit products and imposes additional restrictions","url":"https://github.com/RPi-Distro/bluez-firmware/blob/d9d4741caba7314d6500f588b1eaa5ab387a4ff5/debian/copyright#L119-L173"},
+      {"component":"wireless-regdb","license":"ISC-style permission notice","url":"https://git.kernel.org/pub/scm/linux/kernel/git/wens/wireless-regdb.git/plain/LICENSE"},
+      {"component":"Excluded enhanced AOSP 17 image","license":"Page states additional non-commercial-licensed parts, commercial use prohibited and no mirroring","url":"https://konstakang.com/devices/rpi5/AOSP17/"},
+      {"component":"Excluded enhanced LineageOS 23.2 ATV image","license":"Page states additional non-commercial-licensed parts, commercial use prohibited and no mirroring","url":"https://konstakang.com/devices/rpi5/LineageOS23-ATV/"}
+    ]
+  },
+  "knownRuntimeLimits": [
+    "Public Raspberry Vanilla Pi 5 uses open Mesa V3D/OpenGL/Vulkan, minigbm and drm_hwcomposer; this is source-built graphics rather than an assumed reuse of an enhanced image's private stack.",
+    "The public maintainer contract says Pi 5 has H.265 hardware decoding only. vendor.prop enables FFmpeg Codec2 V4L2 H.265 and ranks FFmpeg video at 256; H.264 is software-decoded on Pi 5. Do not claim H.264, VP9 or AV1 hardware decode.",
+    "The same hardware-accelerated graphics and H.265 claims appear on the enhanced AOSP/Lineage pages, but that does not prove identical packages or performance. Only physical-device MediaCodec selection, dropped-frame and thermal tests can qualify Vela playback.",
+    "HDMI UI output is forced to 1920x1080 by default. The public wiki permits changing vendor.hwc.drm.force_mode to another EDID-reported mode and adjusting TARGET_SCREEN_DENSITY. A 3840x2160 override is an engineering candidate, not proof of a native 4K Vela client buffer or stable 4K60 composition.",
+    "SELinux is explicitly permissive in upstream BoardConfig; this is not a production security posture.",
+    "Userdata encryption is unsupported; BoardConfig also declares no recovery image and the public source recipe provides no signed OTA/update pipeline.",
+    "The public TV target is AOSP TV with TvProvision, LeanbackIME, TvSampleLeanbackLauncher and TvSettingsTwoPanel. It is not Google-certified Android TV and includes no GApps, Play Store, Widevine entitlement or Chromecast certification.",
+    "The whole-image fstab names /dev/block/mmcblk0 partitions, so this locked recipe is the SD-card path. USB/NVMe boot requires separate maintainer-documented configuration and is not established by this image recipe.",
+    "The target is arm64-only and uses 16 KiB pages. The current Vela firmware APK contains arm64-v8a native code and passed a 16 KiB zipalign check, but boot/runtime execution remains unverified.",
+    "No hardware, display, HDMI audio, CEC, Wi-Fi, Bluetooth, HOME provisioning, privileged grant, accessibility bootstrap, video decode, or cold-boot result is claimed by this source lock."
+  ],
+  "primarySources": {
+    "buildReadme":"https://github.com/raspberry-vanilla/android_local_manifest/blob/a155dda7f0db82d9b8076c1f39f41db4167fcb73/README.md",
+    "manifest":"https://github.com/raspberry-vanilla/android_local_manifest/blob/a155dda7f0db82d9b8076c1f39f41db4167fcb73/manifest_brcm_rpi.xml",
+    "deviceProduct":"https://github.com/raspberry-vanilla/android_device_brcm_rpi5/blob/26b5e928276f155717fc5ff4b28e4b9b854ccbd7/aosp_rpi5_tv.mk",
+    "deviceBoard":"https://github.com/raspberry-vanilla/android_device_brcm_rpi5/blob/26b5e928276f155717fc5ff4b28e4b9b854ccbd7/BoardConfig.mk",
+    "deviceVendorProperties":"https://github.com/raspberry-vanilla/android_device_brcm_rpi5/blob/26b5e928276f155717fc5ff4b28e4b9b854ccbd7/vendor.prop",
+    "imageAssembler":"https://github.com/raspberry-vanilla/android_device_brcm_rpi5/blob/26b5e928276f155717fc5ff4b28e4b9b854ccbd7/mkimg.sh",
+    "fstab":"https://github.com/raspberry-vanilla/android_device_brcm_rpi5/blob/26b5e928276f155717fc5ff4b28e4b9b854ccbd7/ramdisk/fstab.rpi5",
+    "videoWiki":"https://github.com/raspberry-vanilla/android_local_manifest/wiki/Video-decoding-&-encoding",
+    "displayWiki":"https://github.com/raspberry-vanilla/android_local_manifest/wiki/HDMI-display",
+    "hostRequirements":"https://source.android.com/docs/setup/start/requirements"
+  }
+}
