@@ -283,6 +283,24 @@ def source_projects(xml: str | bytes) -> dict:
             for p in tree.findall("project")}
 
 
+def check_userdata_policy(archive: zipfile.ZipFile) -> None:
+    """Only recovery formats /data; never publish the inherited oversized image."""
+    names = archive.namelist()
+    if names.count("META/misc_info.txt") != 1:
+        raise BuildError("Cannot establish userdata image policy without unambiguous target-files metadata.")
+    if any(Path(name).name == "userdata.img" for name in names):
+        raise BuildError("Target files contain a userdata image; the Tube must use live-partition recovery formatting.")
+    properties = {}
+    for line in archive.read("META/misc_info.txt").decode().splitlines():
+        key, separator, value = line.partition("=")
+        if separator and key in {"building_userdata_image", "userdata_size"}:
+            if key in properties:
+                raise BuildError("Ambiguous userdata target-files metadata.")
+            properties[key] = value
+    if properties.get("building_userdata_image", "") not in {"", "false"} or "userdata_size" in properties:
+        raise BuildError("Target files still declare userdata image generation or an unverified userdata size.")
+
+
 def bundle(workspace: Path, target_files: Path, snapshot: Path, output: Path) -> dict:
     workspace, target_files, snapshot, output = (p.resolve() for p in (workspace, target_files, snapshot, output))
     if output.exists():
@@ -314,6 +332,7 @@ def bundle(workspace: Path, target_files: Path, snapshot: Path, output: Path) ->
         if sha256(stage_dir / name) != expected:
             raise BuildError("Staged product configuration changed after staging.")
     with zipfile.ZipFile(target_files) as archive:
+        check_userdata_policy(archive)
         # Legacy Shield partition layouts can fold system_ext into system.
         # Keep the app and configuration together in either supported layout.
         roots = [prefix for prefix in ("SYSTEM_EXT", "SYSTEM/system_ext")
@@ -364,6 +383,7 @@ def bundle(workspace: Path, target_files: Path, snapshot: Path, output: Path) ->
                   "staging": state, "sources": source_lock, "target_files_sha256": sha256(target_files),
                   "installed_apk_sha256": hashlib.sha256(installed).hexdigest(),
                   "system_extension_archive_root": extension_root,
+                  "userdata_image_policy": "not-built; recovery-formats-live-UDA",
                   "artifacts": {name: sha256(output / name) for name in artifacts}}
     write_json(output / "provenance.json", provenance)
     sums = "".join(f"{sha256(file)}  {file.name}\n" for file in sorted(output.iterdir()))

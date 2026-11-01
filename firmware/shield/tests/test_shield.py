@@ -72,11 +72,21 @@ class ShieldTest(unittest.TestCase):
             shield.freeze(self.tree, snapshot)
         return snapshot
 
-    def target_files(self, dex=b"fixture-dex", include_permissions=True, extension="SYSTEM_EXT", app=None, build_manifest=MANIFEST, old_marker=False):
+    def target_files(self, dex=b"fixture-dex", include_permissions=True, extension="SYSTEM_EXT", app=None, build_manifest=MANIFEST, old_marker=False,
+                     userdata_image=False, userdata_build="", userdata_size=None, include_misc=True):
         target = self.root / "target-files.zip"
         with zipfile.ZipFile(target, "w") as archive:
             archive.writestr(f"{extension}/priv-app/VelaTv/VelaTv.apk", app if app is not None else apk_bytes(dex))
             archive.writestr("IMAGES/recovery.img", b"fixture-recovery")
+            if include_misc:
+                misc = "ota_override_device=sif\n"
+                if userdata_build is not None:
+                    misc += f"building_userdata_image={userdata_build}\n"
+                if userdata_size is not None:
+                    misc += f"userdata_size={userdata_size}\n"
+                archive.writestr("META/misc_info.txt", misc)
+            if userdata_image:
+                archive.writestr("IMAGES/userdata.img", b"oversized-fixture-userdata")
             archive.writestr("SYSTEM/etc/build-manifest.xml", build_manifest)
             marker = json.loads((self.tree / "vendor/vela/vela-staging.json").read_bytes())
             if old_marker:
@@ -206,6 +216,29 @@ class ShieldTest(unittest.TestCase):
                     shield.bundle(self.tree, target, snapshot, self.root / "bundle")
             run.assert_not_called()
         self.assertFalse((self.root / "bundle").exists())
+
+    def test_userdata_image_or_enabled_generation_is_rejected_before_ota(self):
+        snapshot = self.snapshot()
+        self.stage()
+        for index, options in enumerate(({"userdata_image": True}, {"userdata_build": "true"},
+                                        {"userdata_build": "unknown"}, {"userdata_size": 10099646976},
+                                        {"include_misc": False})):
+            with self.subTest(options=options):
+                target = self.target_files(**options)
+                output = self.root / f"bundle-{index}"
+                with patch.object(shield, "command", side_effect=self.command), patch.object(shield.subprocess, "run", side_effect=self.ota_run) as run:
+                    with self.assertRaisesRegex(shield.BuildError, "userdata"):
+                        shield.bundle(self.tree, target, snapshot, output)
+                run.assert_not_called()
+                self.assertFalse(output.exists())
+
+    def test_disabled_userdata_generation_accepts_omitted_image_properties(self):
+        snapshot = self.snapshot()
+        self.stage()
+        target = self.target_files(userdata_build=None)
+        with patch.object(shield, "command", side_effect=self.command), patch.object(shield.subprocess, "run", side_effect=self.ota_run):
+            result = shield.bundle(self.tree, target, snapshot, self.root / "bundle")
+        self.assertEqual("not-built; recovery-formats-live-UDA", result["userdata_image_policy"])
 
     def test_changed_resolved_sources_cannot_be_packaged(self):
         snapshot = self.snapshot()

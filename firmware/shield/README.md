@@ -6,6 +6,13 @@ The integration supplies the Vela firmware APK as a privileged system-extension 
 
 **Status:** the current application image is built and inspected at frozen integration `0bc9785`, including the approved glass UI and input-field fix. All 278 non-signature APK members, source/configuration markers, boot/recovery matching and development signatures passed inspection; the coordinator independently checked the transferred bundle on the Mac. The builder is shut off with disk/caches retained. [Current image identities and verification](docs/current-build-20261101.md); [preserved full-build baseline and architecture correction](docs/baseline-build-20261031.md). Neither image boot nor hardware acceptance has been established. Development artifacts use public test keys and must not be shipped as production firmware.
 
+**OS installation follow-through:** the owner selected full-OS work. The Tube
+currently lacks confirmed service USB and microSD preparation. An audit also
+found an inherited 10.1 GB standalone userdata image; its generation is now
+disabled and packaging rejects it or unverified userdata-size metadata. The
+older frozen bundle does not contain this correction; a new native rebuild is
+required. [Installation, device-fit, rollback and first-boot plan](docs/installation-plan.md).
+
 ## Inputs and host
 
 - [upstream-lock.json](upstream-lock.json) embeds the official October 30, 2026 source manifest: 1,171 immutable Git revisions and the 30-project NVIDIA device dependency closure. The replay tool validates the original hash, makes GitHub's relative remote absolute, and removes unused remotes. It records the transformed manifest hash separately.
@@ -85,6 +92,6 @@ python3 -m unittest discover -s firmware/shield/tests -v
 shellcheck firmware/shield/build.sh
 ```
 
-Tests exercise source pins, target exclusion, idempotent staging, preservation of another vendor directory, stale app/source/configuration rejection, folded/separate system-extension layouts, OTA generation and checksum provenance. Synthetic target-files fixtures are not an Android image build.
+Tests exercise source pins, target exclusion, idempotent staging, preservation of another vendor directory, stale app/source/configuration rejection, folded/separate system-extension layouts, userdata-image exclusion, OTA generation and checksum provenance. Synthetic target-files fixtures are not an Android image build.
 
 Remaining image work is acquisition and verification of the exact stock recovery kit, and separately authorized physical installation/boot/media/OTA/recovery acceptance. Vendor acquisition, extraction, full baseline compilation and the current-app rebuild/inspection are complete. Production signing and eventual OEM hardware qualification follow this development PoC.
