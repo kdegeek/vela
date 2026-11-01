@@ -55,9 +55,10 @@ recovery-format policy.
 
 Five unsafe fixture cases reproduced acceptance before the guard. All **29
 firmware-tooling tests** pass after the correction, including the real build's
-omitted-properties form. A new native build and artifact inspection are required
-before claiming this correction exists in an OS bundle. Older bundles and their
-evidence remain unchanged.
+omitted-properties form. The native rebuild at `8276c58` now verifies the correction
+in target-files and the delivered bundle; [artifact identities and independent
+checks](no-userdata-build-20261101.md). Older bundles and their evidence remain
+unchanged. Physical installation/boot is still unverified.
 
 ## Preparation and installation sequence
 

@@ -59,3 +59,18 @@ hashes](current-build-20261101.md).
 
 The physical Shield was not contacted during this follow-up. No image is declared
 ready for installation or production shipping.
+
+## Corrected OS rebuild — 2026-11-01
+
+The `8276c58` native rebuild now omits the oversized inherited standalone userdata
+image and its size metadata. The builder and coordinator verified the replacement
+package, matching recovery, exact application/configuration/source inputs and
+development signatures. All 29 tooling tests passed. The builder is shut off with
+caches retained. [Corrected artifact identities and evidence](no-userdata-build-20261101.md).
+
+The two physical acceptance groups remain. The owner reports service USB and
+microSD are not ready / not known ready; NVIDIA's exact stock rollback files are
+not acquired. Raw partition sizes and native bootloader-blob compatibility remain
+unresolved. The [installation plan](installation-plan.md) defines the preparation,
+destructive-action approval boundary and first-boot/update/recovery acceptance.
+No physical OS operation was performed by this rebuild.

@@ -10,8 +10,10 @@ The integration supplies the Vela firmware APK as a privileged system-extension 
 currently lacks confirmed service USB and microSD preparation. An audit also
 found an inherited 10.1 GB standalone userdata image; its generation is now
 disabled and packaging rejects it or unverified userdata-size metadata. The
-older frozen bundle does not contain this correction; a new native rebuild is
-required. [Installation, device-fit, rollback and first-boot plan](docs/installation-plan.md).
+corrected native image at `8276c58` is now rebuilt and verified, including an
+independent coordinator check of the delivered payloads, recovery and signatures.
+[Corrected bundle identities and evidence](docs/no-userdata-build-20261101.md).
+[Installation, device-fit, rollback and first-boot plan](docs/installation-plan.md).
 
 ## Inputs and host
 
