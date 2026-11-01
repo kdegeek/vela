@@ -1,0 +1,20 @@
+{
+  "device": "physical NVIDIA Shield TV 2019 Tube (sif)",
+  "android_api": 30,
+  "variant": "debug",
+  "apk_sha256": "d342b62711ccb5eb821121433163d556e9ff74f883f6013e621827f268a46592",
+  "tested_key_sequences": {
+    "right": 16,
+    "left": 17
+  },
+  "total_frames": 423,
+  "janky_frames": 20,
+  "jank_percent": 4.73,
+  "p50_ms": 8,
+  "p90_ms": 12,
+  "p95_ms": 15,
+  "p99_ms": 40,
+  "frame_deadline_misses": 10,
+  "high_input_latency_counter": 62,
+  "sample_caveat": "One warm diagnostic sample; stock API30, existing 1080p override, debug APK, agent automation. Not input latency, release, 4K, soak or playback qualification."
+}

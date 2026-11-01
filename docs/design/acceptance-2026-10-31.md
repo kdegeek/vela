@@ -88,3 +88,19 @@ Items 1–4 can advance from repository context once device/browser control is u
 Item 5 needs external endpoints/secure credentials. Item 6 needs hardware/vendor and
 release decisions plus authorization for any destructive firmware operation.
 The broader product inventory remains in [Vela TV system](vela-tv-system.md).
+
+## Physical Shield follow-up — 2026-11-01
+
+The owner resumed physical-device work and woke the Tube. The tested current
+debug APK was installed in place after backup/signature checks. Native D-pad
+traversal, Ask draft entry/clearing, keyboard/Back order, Night/Day rendering and a
+bounded 423-frame traversal sample are now observed on the stock Android 11/API 30
+`sif` device. Original pairing/device/household files are byte-identical; Night and
+the original default behavior are restored. Vela Home was deliberately left open.
+
+[Unmodified captures, frame data, state-preservation evidence and the exact
+remaining scope](evidence/shield-native-20261101/README.md). This advances items 1
+and 6 above; it does not qualify API 30 agent/accessibility control, live services,
+native 4K, a release benchmark or the separate firmware build's physical boot.
+No bootloader, firmware, wipe, permission-grant or system display-override change
+was made during this pass.
