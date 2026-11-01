@@ -32,3 +32,30 @@ Source sync, vendor acquisition and native extraction subsequently completed. Th
 3. Prepare service USB and microSD, then perform separately coordinated physical installation and boot/remote/network/CEC/media/DRM/update/recovery acceptance. Physical Shield work remains paused.
 
 Item 1 is software work on the authorized builder. Items 2–3 remain physical-install prerequisites and are not authorized by successful compilation. Development test keys and known Lineage feature limitations preclude a shipping-ready firmware claim. The broader TV/phone/model acceptance queue is tracked separately in [the application acceptance record](../../../docs/design/acceptance-2026-10-31.md).
+
+## Follow-up — 2026-11-01
+
+The list above records the baseline handoff. **Item 1 is now complete:** the image
+was rebuilt with the frozen current APK and integration `0bc9785`, inspected,
+transferred and independently verified on the Mac. The source manifest, all 278
+non-signature APK members and both configuration XMLs match; installed APK and
+whole-file OTA development signatures verify. The exact builder is shut off,
+autostart disabled, with caches retained. [Current image evidence and artifact
+hashes](current-build-20261101.md).
+
+**Two image acceptance items remain:**
+
+1. **Stock rollback kit — requires owner-supplied files.** The exact 2019 8 GB
+   NVIDIA recovery 9.2.1 archive and instructions returned HTTP 302 to login with
+   zero bytes. The catalogue/model pointer is verified; the archive contents and
+   hash are not. Download those exact files after NVIDIA authentication and place
+   them under ignored `firmware/shield/artifacts/rollback-20261101/`; then archive,
+   image/model and instruction inspection can proceed. No credentials/cookies are
+   needed. The stock OTA and Lineage installation ZIP do not satisfy this gate.
+2. **Physical installation/boot/media/OTA/recovery — owner-paused.** Service USB,
+   microSD, physical partition geometry, recovery formatting, remote/network/CEC,
+   4K/DRM and recovery behavior require separately authorized hardware work. The
+   unchanged upstream userdata-size metadata does not establish physical fit.
+
+The physical Shield was not contacted during this follow-up. No image is declared
+ready for installation or production shipping.
