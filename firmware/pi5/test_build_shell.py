@@ -1,5 +1,6 @@
 """Exercise the real wrapper's AOSP shell boundary with an optional-variable fixture."""
 from pathlib import Path
+import os
 import subprocess
 import tempfile
 import unittest
@@ -42,6 +43,44 @@ make() {
         result = self.run_aosp_boundary(13)
         self.assertEqual(result.returncode, 13, result.stderr)
         self.assertNotIn('ASSEMBLY_BOUNDARY_REACHED', result.stdout)
+
+
+class SourceSignerTests(unittest.TestCase):
+    def run_signer(self, *, jar_present=True, status=0):
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / 'android source'
+            (source / '.repo').mkdir(parents=True)
+            java = source / 'prebuilts/jdk/jdk21/linux-x86/bin/java'
+            java.parent.mkdir(parents=True)
+            java.write_text('#!/bin/sh\nprintf "%s\\n" "$@"\nexit "$FIXTURE_JAVA_STATUS"\n')
+            java.chmod(0o755)
+            jar = source / 'prebuilts/sdk/tools/linux/lib/apksigner.jar'
+            jar.parent.mkdir(parents=True)
+            if jar_present:
+                jar.write_bytes(b'fixture source SDK JAR')
+            result = subprocess.run(
+                ['bash', str(Path(__file__).parent / 'apksigner.sh'),
+                 'verify', '--verbose', '--print-certs', 'installed.apk'],
+                env={**os.environ, 'VELA_ANDROID_SOURCE': str(source),
+                     'FIXTURE_JAVA_STATUS': str(status)},
+                capture_output=True, text=True)
+            return result, str(jar)
+
+    def test_source_layout_uses_pinned_java_and_jar(self):
+        result, jar = self.run_signer()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(),
+                         ['-jar', jar, 'verify', '--verbose', '--print-certs', 'installed.apk'])
+
+    def test_missing_source_jar_is_reported_before_java(self):
+        result, _ = self.run_signer(jar_present=False)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('Missing pinned', result.stderr)
+        self.assertEqual(result.stdout, '')
+
+    def test_signer_failure_is_propagated(self):
+        result, _ = self.run_signer(status=7)
+        self.assertEqual(result.returncode, 7)
 
 
 if __name__ == '__main__':

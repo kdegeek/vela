@@ -90,6 +90,10 @@ It also checks the built vendor display mode and density against that marker.
 Artifact inspection establishes build contents; it cannot establish a successful
 boot or Android runtime behavior.
 
+Signature inspection uses `apksigner.sh` with `VELA_ANDROID_SOURCE` pointing to
+the locked checkout. It invokes that checkout's pinned JDK and SDK JAR directly;
+the SDK's installed-layout launcher does not locate the JAR in a source tree.
+
 Tooling regression checks:
 
 ```sh

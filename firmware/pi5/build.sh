@@ -19,6 +19,7 @@ for destination in "$snapshot" "$evidence"; do
     fi
 done
 export VELA_BUILD_JOBS=4 GOMAXPROCS=4 NINJA_HIGHMEM_NUM_JOBS=1
+export VELA_ANDROID_SOURCE=$source_dir
 mkdir -p "$evidence"
 for executable in repo git python3 make sfdisk fdisk kpartx mkfs.ext4 mkfs.vfat mcopy debugfs rsync fallocate dd losetup; do
     command -v "$executable" >/dev/null
@@ -65,7 +66,7 @@ if (( ${#images[@]} != 1 )); then
     exit 1
 fi
 python3 "$tool_dir/verify_image.py" --image "${images[0]}" --input-apk "$apk" \
-    --expected-marker "$evidence/image-inputs.json" --apksigner "$sdk_tools/apksigner" \
+    --expected-marker "$evidence/image-inputs.json" --apksigner "$tool_dir/apksigner.sh" \
     --output "$evidence/image-verification.json"
 sha256sum "${images[0]}" > "$evidence/image-SHA256SUMS"
 printf '%s\n' "${images[0]}" > "$evidence/image-path.txt"
