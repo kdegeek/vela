@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-31",
+  "sourceBaseCommit": "20502607a7667bfc012168f5819d84a1b4941ea4",
+  "sourceState": "Home/Undo integration delivered with this evidence; indentation-only production edits after build",
+  "device": {
+    "id": "emulator-5554",
+    "platform": "Android 14 Google TV",
+    "physical": false
+  },
+  "artifacts": [
+    {
+      "path": "android/app/build/outputs/apk/debug/app-debug.apk",
+      "bytes": 52989622,
+      "sha256": "d74ec196d125aa8fa37d3c07b56c184c02c750e2d51cea447981793d3241bc5d"
+    },
+    {
+      "path": "android/app/build/outputs/apk/firmware/app-firmware-unsigned.apk",
+      "bytes": 40151364,
+      "sha256": "6b54e0f26041287d8d042b6e24c232d5a64a98c1a840db9a5153c5d0eae1b9bd"
+    }
+  ],
+  "captures": [
+    {
+      "file": "home-app-focus-night.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "fc6d19dff493ba57b234a79be42edd26a8aff9ea5ef5562b903e9c64f7fd77c2",
+      "edits": "none",
+      "fullFrame": true
+    },
+    {
+      "file": "home-apps-only-day.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "1856feb35f8da0e5da89e5269b885ac1828bdd860e0d2083462d64b6196f5b15",
+      "edits": "none",
+      "fullFrame": true
+    },
+    {
+      "file": "home-apps-only-night.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "8e42fbf4aea9c0502e3bf513036ced197a534ce483788d4fc98c349d6c06be93",
+      "edits": "none",
+      "fullFrame": true
+    },
+    {
+      "file": "home-media-day.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "179d283b80fcdbb9c7a28d145a2d65fe0aaa64022bacf4258bd4911c204d2777",
+      "edits": "none",
+      "fullFrame": true
+    },
+    {
+      "file": "home-media-focus-night.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "0047787a2a05348cb397fd06fa440d19ef795af3047684a19712b2df4d20b4db",
+      "edits": "none",
+      "fullFrame": true
+    },
+    {
+      "file": "home-media-night.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "69a31d3a06eaf44273fece5a32214f10583b63406bb0a66e1a0a55a546520e96",
+      "edits": "none",
+      "fullFrame": true
+    },
+    {
+      "file": "home-updated-notice.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "db3f410ef4f48dd25a635a127b75d4b8b3b54524a0b773006de85adef2d51a34",
+      "edits": "none",
+      "fullFrame": true
+    },
+    {
+      "file": "restore-default-confirmation.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "584a1dee4cde5b12df6d49eda0de7190247e3674a793afc04efd73c26e149edc",
+      "edits": "none",
+      "fullFrame": true
+    }
+  ]
+}

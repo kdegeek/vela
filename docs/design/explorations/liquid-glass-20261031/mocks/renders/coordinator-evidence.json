@@ -1,0 +1,175 @@
+{
+  "scope": "Concept HTML rendering only; no Android, device, service or performance acceptance.",
+  "previews": {
+    "home-day": {
+      "width": 1000,
+      "contentHeight": 670,
+      "lastRender": {
+        "view": "home-day",
+        "theme": "day",
+        "opaque": false,
+        "images": 4,
+        "loaded": 4,
+        "focusCount": 1,
+        "focusTarget": "The Quiet North, details",
+        "frameWidth": 960,
+        "frameHeight": 540
+      },
+      "issues": []
+    },
+    "ask": {
+      "width": 1000,
+      "contentHeight": 670,
+      "lastRender": {
+        "view": "ask",
+        "theme": "night",
+        "opaque": false,
+        "images": 4,
+        "loaded": 4,
+        "focusCount": 1,
+        "focusTarget": "request",
+        "frameWidth": 960,
+        "frameHeight": 540
+      },
+      "issues": []
+    },
+    "editor": {
+      "width": 1000,
+      "contentHeight": 670,
+      "lastRender": {
+        "view": "editor",
+        "theme": "day",
+        "opaque": false,
+        "images": 0,
+        "loaded": 0,
+        "focusCount": 1,
+        "focusTarget": "Back",
+        "frameWidth": 960,
+        "frameHeight": 540
+      },
+      "issues": []
+    },
+    "phone-approval": {
+      "width": 409,
+      "contentHeight": 806,
+      "lastRender": {
+        "view": "phone-approval",
+        "theme": "night",
+        "opaque": false,
+        "images": 0,
+        "loaded": 0,
+        "focusCount": 0,
+        "frameWidth": 393,
+        "frameHeight": 790
+      },
+      "issues": []
+    },
+    "undo": {
+      "width": 1000,
+      "contentHeight": 670,
+      "lastRender": {
+        "view": "undo",
+        "theme": "night",
+        "opaque": false,
+        "images": 0,
+        "loaded": 0,
+        "focusCount": 1,
+        "focusTarget": "Open Settings",
+        "frameWidth": 960,
+        "frameHeight": 540
+      },
+      "issues": []
+    },
+    "details": {
+      "width": 1000,
+      "contentHeight": 670,
+      "lastRender": {
+        "view": "details",
+        "theme": "night",
+        "opaque": false,
+        "images": 5,
+        "loaded": 5,
+        "focusCount": 1,
+        "focusTarget": "Back",
+        "frameWidth": 960,
+        "frameHeight": 540
+      },
+      "issues": []
+    },
+    "materials": {
+      "width": 1000,
+      "contentHeight": 670,
+      "lastRender": {
+        "view": "materials",
+        "theme": "night",
+        "opaque": false,
+        "images": 3,
+        "loaded": 3,
+        "focusCount": 0,
+        "frameWidth": 960,
+        "frameHeight": 540
+      },
+      "issues": []
+    },
+    "opaque-home": {
+      "width": 728,
+      "contentHeight": 549,
+      "lastRender": {
+        "view": "opaque-home",
+        "theme": "night",
+        "opaque": true,
+        "images": 4,
+        "loaded": 4,
+        "focusCount": 1,
+        "focusTarget": "The Quiet North, details",
+        "frameWidth": 960,
+        "frameHeight": 540
+      },
+      "issues": []
+    },
+    "mobile-gallery": {
+      "width": 390,
+      "contentHeight": 497,
+      "lastRender": {
+        "view": "home-night",
+        "theme": "night",
+        "opaque": false,
+        "images": 4,
+        "loaded": 4,
+        "focusCount": 1,
+        "focusTarget": "The Quiet North, details",
+        "frameWidth": 960,
+        "frameHeight": 540
+      },
+      "issues": []
+    }
+  },
+  "finalGallery": {
+    "width": 728,
+    "contentHeight": 568,
+    "lastRender": {
+      "view": "home-night",
+      "theme": "night",
+      "opaque": false,
+      "images": 4,
+      "loaded": 4,
+      "focusCount": 1,
+      "focusTarget": "The Quiet North, details",
+      "frameWidth": 960,
+      "frameHeight": 540
+    },
+    "issues": []
+  },
+  "verification": [
+    [
+      {
+        "level": "log",
+        "text": "VELA_LOCAL_CHECKS {\"views\":26,\"total\":72,\"failed\":[]}"
+      }
+    ]
+  ],
+  "corrections": [
+    "Approval example uses the guarded garage-door action, not everyday light control.",
+    "Dedicated opaque views can switch to Glass while preserving Night/Day; comparison labels reflect current material."
+  ]
+}

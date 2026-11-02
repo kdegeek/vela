@@ -1,0 +1,661 @@
+{
+  "export_sha256": "4ef4fc55c4ae95c5e7491b8ab2a051384c015a164baf77209b61c4f993413ac3",
+  "html_bytes": 360805,
+  "local_checks": {
+    "initial_views": 26,
+    "checks": 64,
+    "failed": []
+  },
+  "previews": [
+    {
+      "view": "home-night",
+      "width": 1200,
+      "saved": true,
+      "metadata": {
+        "width": 1200,
+        "contentHeight": 682,
+        "capturedHeight": 682,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-night\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-night\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-night\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-night\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-night\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-night\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-night\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-night\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-night\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-night\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 1200,
+          "height": 682
+        }
+      }
+    },
+    {
+      "view": "home-day",
+      "width": 1200,
+      "saved": true,
+      "metadata": {
+        "width": 1200,
+        "contentHeight": 682,
+        "capturedHeight": 682,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-day\",\"theme\":\"day\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-day\",\"theme\":\"day\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-day\",\"theme\":\"day\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-day\",\"theme\":\"day\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-day\",\"theme\":\"day\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-day\",\"theme\":\"day\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-day\",\"theme\":\"day\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-day\",\"theme\":\"day\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-day\",\"theme\":\"day\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"home-day\",\"theme\":\"day\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 1200,
+          "height": 682
+        }
+      }
+    },
+    {
+      "view": "ask",
+      "width": 1200,
+      "saved": true,
+      "metadata": {
+        "width": 1200,
+        "contentHeight": 682,
+        "capturedHeight": 682,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"request\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"request\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"request\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"request\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"request\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"request\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"request\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"request\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"request\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"request\",\"frameWidth\":960,\"frameHeight\":540}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 1200,
+          "height": 682
+        }
+      }
+    },
+    {
+      "view": "editor",
+      "width": 1200,
+      "saved": true,
+      "metadata": {
+        "width": 1200,
+        "contentHeight": 682,
+        "capturedHeight": 682,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"editor\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"editor\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"editor\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"editor\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"editor\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"editor\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 1200,
+          "height": 682
+        }
+      }
+    },
+    {
+      "view": "phone",
+      "width": 409,
+      "saved": true,
+      "metadata": {
+        "width": 409,
+        "contentHeight": 806,
+        "capturedHeight": 806,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 409,
+          "height": 806
+        }
+      }
+    },
+    {
+      "view": "phone-approval",
+      "width": 409,
+      "saved": true,
+      "metadata": {
+        "width": 409,
+        "contentHeight": 806,
+        "capturedHeight": 806,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone-approval\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone-approval\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone-approval\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone-approval\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone-approval\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"phone-approval\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":0,\"frameWidth\":393,\"frameHeight\":790}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 409,
+          "height": 806
+        }
+      }
+    },
+    {
+      "view": "details",
+      "width": 1080,
+      "saved": true,
+      "metadata": {
+        "width": 1080,
+        "contentHeight": 615,
+        "capturedHeight": 615,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"details\",\"theme\":\"night\",\"opaque\":false,\"images\":5,\"loaded\":5,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"details\",\"theme\":\"night\",\"opaque\":false,\"images\":5,\"loaded\":5,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"details\",\"theme\":\"night\",\"opaque\":false,\"images\":5,\"loaded\":5,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"details\",\"theme\":\"night\",\"opaque\":false,\"images\":5,\"loaded\":5,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"details\",\"theme\":\"night\",\"opaque\":false,\"images\":5,\"loaded\":5,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"details\",\"theme\":\"night\",\"opaque\":false,\"images\":5,\"loaded\":5,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"details\",\"theme\":\"night\",\"opaque\":false,\"images\":5,\"loaded\":5,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"details\",\"theme\":\"night\",\"opaque\":false,\"images\":5,\"loaded\":5,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"details\",\"theme\":\"night\",\"opaque\":false,\"images\":5,\"loaded\":5,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"details\",\"theme\":\"night\",\"opaque\":false,\"images\":5,\"loaded\":5,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"details\",\"theme\":\"night\",\"opaque\":false,\"images\":5,\"loaded\":5,\"focusCount\":1,\"focusTarget\":\"Back\",\"frameWidth\":960,\"frameHeight\":540}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 1080,
+          "height": 615
+        }
+      }
+    },
+    {
+      "view": "apps",
+      "width": 1080,
+      "saved": true,
+      "metadata": {
+        "width": 1080,
+        "contentHeight": 615,
+        "capturedHeight": 615,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"apps\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Home\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"apps\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Home\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"apps\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Home\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"apps\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Home\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"apps\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Home\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"apps\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Home\",\"frameWidth\":960,\"frameHeight\":540}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 1080,
+          "height": 615
+        }
+      }
+    },
+    {
+      "view": "app-focus",
+      "width": 1080,
+      "saved": true,
+      "metadata": {
+        "width": 1080,
+        "contentHeight": 615,
+        "capturedHeight": 615,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"app-focus\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"app-focus\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"app-focus\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"app-focus\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"app-focus\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"app-focus\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"app-focus\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"app-focus\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"app-focus\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"app-focus\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 1080,
+          "height": 615
+        }
+      }
+    },
+    {
+      "view": "undo",
+      "width": 1080,
+      "saved": true,
+      "metadata": {
+        "width": 1080,
+        "contentHeight": 615,
+        "capturedHeight": 615,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"undo\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"undo\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"undo\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"undo\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"undo\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"undo\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Open Settings\",\"frameWidth\":960,\"frameHeight\":540}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 1080,
+          "height": 615
+        }
+      }
+    },
+    {
+      "view": "restore",
+      "width": 1080,
+      "saved": true,
+      "metadata": {
+        "width": 1080,
+        "contentHeight": 615,
+        "capturedHeight": 615,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"restore\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Cancel\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"restore\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Cancel\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"restore\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Cancel\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"restore\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Cancel\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"restore\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Cancel\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"restore\",\"theme\":\"night\",\"opaque\":false,\"images\":0,\"loaded\":0,\"focusCount\":1,\"focusTarget\":\"Cancel\",\"frameWidth\":960,\"frameHeight\":540}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 1080,
+          "height": 615
+        }
+      }
+    },
+    {
+      "view": "opaque-home",
+      "width": 1080,
+      "saved": true,
+      "metadata": {
+        "width": 1080,
+        "contentHeight": 615,
+        "capturedHeight": 615,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"opaque-home\",\"theme\":\"night\",\"opaque\":true,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"opaque-home\",\"theme\":\"night\",\"opaque\":true,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"opaque-home\",\"theme\":\"night\",\"opaque\":true,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"opaque-home\",\"theme\":\"night\",\"opaque\":true,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"opaque-home\",\"theme\":\"night\",\"opaque\":true,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"opaque-home\",\"theme\":\"night\",\"opaque\":true,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"opaque-home\",\"theme\":\"night\",\"opaque\":true,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"opaque-home\",\"theme\":\"night\",\"opaque\":true,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"opaque-home\",\"theme\":\"night\",\"opaque\":true,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"opaque-home\",\"theme\":\"night\",\"opaque\":true,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"The Quiet North, details\",\"frameWidth\":960,\"frameHeight\":540}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 1080,
+          "height": 615
+        }
+      }
+    },
+    {
+      "view": "ask-draft",
+      "width": 1080,
+      "saved": true,
+      "metadata": {
+        "width": 1080,
+        "contentHeight": 615,
+        "capturedHeight": 615,
+        "consoleMessages": [
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask-draft\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"ask-submit\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask-draft\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"ask-submit\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask-draft\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"ask-submit\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask-draft\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"ask-submit\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask-draft\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"ask-submit\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask-draft\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"ask-submit\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask-draft\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"ask-submit\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask-draft\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"ask-submit\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask-draft\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"ask-submit\",\"frameWidth\":960,\"frameHeight\":540}"
+          },
+          {
+            "level": "log",
+            "text": "VELA_RENDER {\"view\":\"ask-draft\",\"theme\":\"night\",\"opaque\":false,\"images\":4,\"loaded\":4,\"focusCount\":1,\"focusTarget\":\"ask-submit\",\"frameWidth\":960,\"frameHeight\":540}"
+          }
+        ],
+        "screenshot": {
+          "mimeType": "image/png",
+          "width": 1080,
+          "height": 615
+        }
+      }
+    }
+  ],
+  "limits": "Metadata is html_preview output. PNGs are concept illustrations, not native app captures. Later edits only added busy-acknowledgement gating; final phone approval spacing was re-previewed."
+}
