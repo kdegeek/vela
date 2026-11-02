@@ -40,15 +40,16 @@ python3 "$tool_dir/vela_pi5.py" stage --source "$source_dir" --snapshot "$snapsh
     --apk "$apk" --aapt2 "$sdk_tools/aapt2" --zipalign "$sdk_tools/zipalign" --display 4k > "$evidence/staging.json"
 cp "$source_dir/vendor/vela/rpi5/vela-staging.json" "$evidence/image-inputs.json"
 cd "$source_dir"
-# AOSP's environment functions reference optional unset variables.
+# AOSP's environment functions, including make's post-build logger, reference
+# optional unset variables. Keep nounset disabled throughout those calls.
 set +u
 # shellcheck disable=SC1091
 source build/envsetup.sh
 lunch vela_rpi5_tv-cp2a-userdebug
-set -u
 [[ $TARGET_PRODUCT == vela_rpi5_tv ]]
 [[ $(realpath -m -- "$ANDROID_PRODUCT_OUT") == "$source_dir/out/target/product/rpi5" ]]
 make bootimage systemimage vendorimage -j4
+set -u
 # Upstream uses image-backed loop devices inside this VM. -e/pipefail prevents
 # its final echo from masking a failed partition copy or format operation.
 # Keep every upstream sudo call non-interactive throughout a long headless build.
